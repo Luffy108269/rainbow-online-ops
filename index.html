@@ -72,11 +72,13 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
+const BUILD = 'B2.3 · 6 ก.ค. 69 · JSON+รูปในไฟล์เดียว';
+console.log('RB Online Ops · '+BUILD);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
 <div id="login"><div class="lbox">
-  <div class="mark">RB</div><h1>Rainbow Online Ops</h1><p>ระบบหลังบ้าน Rainbow Online · Build 2</p>
+  <div class="mark">RB</div><h1>Rainbow Online Ops</h1><p>ระบบหลังบ้าน Rainbow Online</p><p style="font-size:10px;color:#C9A5B2" id="bstamp"></p>
   <input id="u" placeholder="ชื่อผู้ใช้"><input id="p" type="password" placeholder="รหัสผ่าน">
   <div class="err" id="lerr"></div>
   <button class="btn" style="margin-top:0" onclick="doLogin()">เข้าสู่ระบบ 🌈</button>
@@ -171,7 +173,7 @@ const IMG_BASE = 'img/';
     <button class="btn o" onclick="upImgs()">อัปโหลดรูปทั้งหมด → ระบบจับคู่กับ SKU เอง</button>
     <div class="hint" id="imgProg"></div>
     <div style="height:10px"></div>
-    <label>📄 นำเข้า/อัปเดตฐานข้อมูล (ไฟล์ JSON — โหมดปรับปรุง ไม่แตะบัญชี)</label>
+    <label>📄 Import สินค้า (พร้อมรูป) — เลือกไฟล์ rbo_products_107_part1.json แล้วกดนำเข้า เสร็จแล้วทำ part2 ต่อ</label>
     <input type="file" id="jsonFile" accept=".json,application/json">
     <button class="btn o" onclick="upJson()">นำเข้าไฟล์ JSON</button>
     <div class="hint" id="jsonProg"></div>
@@ -371,13 +373,14 @@ async function upJson(){
   if(!Array.isArray(rows)){prog.textContent='โครงไฟล์ต้องเป็น list ของรายการ';return;}
   prog.textContent='กำลังนำเข้า '+rows.length+' รายการ…';
   const r=await api('importData',{rows:rows});
-  prog.textContent=r.ok?('✅ ใหม่ '+r.added+' · อัปเดต '+r.updated+' · รอกำหนดรหัส '+r.pending):('ผิดพลาด: '+r.error);
+  prog.textContent=r.ok?('✅ ใหม่ '+r.added+' · อัปเดต '+r.updated+' · รอกำหนดรหัส '+r.pending+' · รูป '+(r.imgs||0)):('ผิดพลาด: '+r.error);
   loadAll();
 }
 function tab(id,btn){document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
   document.getElementById(id).classList.add('on');
   document.querySelectorAll('nav button').forEach(b=>b.classList.remove('on'));
   btn.classList.add('on');window.scrollTo(0,0);}
+document.getElementById('bstamp').textContent='เวอร์ชั่น: '+BUILD;
 if(S) enter();
 </script>
 </body>
