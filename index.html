@@ -73,6 +73,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
 <div id="login"><div class="lbox">
   <div class="mark">RB</div><h1>Rainbow Online Ops</h1><p>ระบบหลังบ้าน Rainbow Online · Build 2</p>
@@ -165,8 +166,8 @@ const IMG_BASE = 'img/';
 <div id="more" class="pg">
   <div class="card" id="setCard">
     <h2>⚙️ นำเข้าข้อมูล <span class="lock">Luffy/Assist</span></h2>
-    <label>📷 อัปโหลดรูปสินค้า (เลือกจากโฟลเดอร์ zip ได้ทีเดียวทุกรูป)</label>
-    <input type="file" id="imgFiles" multiple accept="image/*">
+    <label>📷 อัปโหลดรูปสินค้า — เลือกไฟล์ img_107SKU.zip ทั้งก้อนได้เลย ระบบแตกไฟล์เอง</label>
+    <input type="file" id="imgFiles" multiple accept="image/*,.zip">
     <button class="btn o" onclick="upImgs()">อัปโหลดรูปทั้งหมด → ระบบจับคู่กับ SKU เอง</button>
     <div class="hint" id="imgProg"></div>
     <div style="height:10px"></div>
@@ -328,22 +329,36 @@ async function addSku(){
 /* ── Settings: อัปโหลดผ่านเว็บ ── */
 function imgSrc(v){ return String(v).indexOf('http')===0 ? v : IMG_BASE+encodeURIComponent(v); }
 async function upImgs(){
-  const files=[...document.getElementById('imgFiles').files];
-  if(!files.length){alert('ยังไม่ได้เลือกรูป');return;}
+  const picked=[...document.getElementById('imgFiles').files];
+  if(!picked.length){alert('ยังไม่ได้เลือกไฟล์');return;}
   const prog=document.getElementById('imgProg');
+  // เตรียมรายการรูป: ถ้าเป็น zip แตกในเบราว์เซอร์เลย
+  let files=[];
+  for(const f of picked){
+    if(/\.zip$/i.test(f.name)){
+      prog.textContent='กำลังแตกไฟล์ zip …';
+      const z=await JSZip.loadAsync(f);
+      for(const name of Object.keys(z.files)){
+        const ent=z.files[name];
+        if(ent.dir) continue;
+        if(!/\.(jpe?g|png|webp)$/i.test(name)) continue;
+        const b64=await ent.async('base64');
+        files.push({name:name.split('/').pop(),mime:'image/jpeg',b64:b64});
+      }
+    } else if(/image\//.test(f.type)){
+      const b64=await new Promise(res=>{const rd=new FileReader();rd.onload=()=>res(rd.result.split(',')[1]);rd.readAsDataURL(f);});
+      files.push({name:f.name,mime:f.type,b64:b64});
+    }
+  }
+  if(!files.length){prog.textContent='ไม่พบรูปในไฟล์ที่เลือก';return;}
   let done=0, missAll=[];
   for(let i=0;i<files.length;i+=8){
-    const batch=await Promise.all(files.slice(i,i+8).map(f=>new Promise(res=>{
-      const rd=new FileReader();
-      rd.onload=()=>res({name:f.name,mime:f.type,b64:rd.result.split(',')[1]});
-      rd.readAsDataURL(f);
-    })));
     prog.textContent='กำลังอัปโหลด '+Math.min(i+8,files.length)+'/'+files.length+' …';
-    const r=await api('imgUp',{files:batch});
+    const r=await api('imgUp',{files:files.slice(i,i+8)});
     if(r.ok){done+=r.done; missAll=missAll.concat(r.miss||[]);}
     else {prog.textContent='ผิดพลาด: '+r.error; return;}
   }
-  prog.textContent='✅ อัปโหลดสำเร็จ '+done+' รูป'+(missAll.length?' · จับคู่ไม่ได้ '+missAll.length+' ('+missAll.slice(0,3).join(', ')+'…)':'');
+  prog.textContent='✅ อัปโหลดสำเร็จ '+done+' รูป'+(missAll.length?' · จับคู่ไม่ได้ '+missAll.length:'');
   loadAll();
 }
 async function upJson(){
