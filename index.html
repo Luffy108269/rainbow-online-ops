@@ -88,7 +88,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B2.13 · 7 ก.ค. 69 · checkbox+draft fix';
+const BUILD = 'B2.15 · 7 ก.ค. 69 · flow ใบเบิกสมบูรณ์';
 console.log('RB Online Ops · '+BUILD);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -135,22 +135,31 @@ console.log('RB Online Ops · '+BUILD);
 
 <!-- ═══ เบิก ═══ -->
 <div id="wd" class="pg">
-  <div class="card" id="wdCreateCard">
-    <h2>🔄 สร้างใบเบิก Rainbow Wholesale</h2>
-    <div class="srch">
-      <input id="wdQ" placeholder="พิมพ์รหัส RBO หรือชื่อ เพื่อเพิ่มรายการ…" oninput="wdSuggest()">
-      <div class="sug" id="wdSug" style="display:none"></div>
+  <div style="display:flex;gap:2px;margin:12px 12px 0;background:var(--soft);border-radius:14px;padding:4px">
+    <button id="wdTab1" onclick="wdTab(1)" style="font-family:'Prompt';flex:1;border:none;border-radius:10px;padding:9px;font-size:13px;font-weight:600;cursor:pointer;background:var(--pd);color:#fff">📝 คีย์รายการ</button>
+    <button id="wdTab2" onclick="wdTab(2)" style="font-family:'Prompt';flex:1;border:none;border-radius:10px;padding:9px;font-size:13px;font-weight:500;cursor:pointer;background:transparent;color:var(--mut)">📋 ใบเบิก <span id="wdBadge" style="display:none;background:var(--pd);color:#fff;border-radius:999px;padding:1px 7px;font-size:10px;margin-left:4px">0</span></button>
+  </div>
+  <div id="wdPane1">
+    <div class="card" id="wdCreateCard">
+      <h2>📝 คีย์รายการเบิก <span style="font-size:11px;color:var(--mut);font-weight:400">· Draft บันทึกอัตโนมัติ</span></h2>
+      <div class="srch">
+        <input id="wdQ" placeholder="พิมพ์รหัส RBO หรือชื่อ เพื่อเพิ่มรายการ…" oninput="wdSuggest()">
+        <div class="sug" id="wdSug" style="display:none"></div>
+      </div>
+      <div id="wdLines"></div>
+      <div style="font-size:11px;color:var(--mut);margin:6px 0 8px" id="wdDraftNote"></div>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <button class="btn" onclick="wdSend()" style="flex:1">📤 ส่งใบเบิก (ทั้งหมด)</button>
+        <button class="btn o" onclick="wdSendSelected()" style="flex:1">☑ ส่งที่ติ๊กเลือก (<span id="wdSelCount">0</span>)</button>
+      </div>
     </div>
-    <div id="wdLines"></div>
-    <button class="btn" onclick="wdSend()">ส่งใบเบิกให้หน้าร้าน Wholesale</button>
   </div>
-  <div class="card">
-    <h2 id="wdListTitle">📋 ใบเบิก</h2>
-    <div id="wdList"><div class="empty">กำลังโหลด…</div></div>
+  <div id="wdPane2" style="display:none">
+    <div class="card">
+      <h2>📋 รายการใบเบิกทั้งหมด</h2>
+      <div id="wdList"><div class="empty">กำลังโหลด…</div></div>
+    </div>
   </div>
-</div>
-
-<!-- ═══ Add SKU ═══ -->
 <div id="add" class="pg">
   <div class="card">
     <h2>➕ Add New SKU <span class="lock">Luffy/Assist</span></h2>
@@ -394,7 +403,7 @@ async function wdSend(){
   const r=await api('wdCreate',{items:WDCART});
   if(r.ok){
     toast('✅ ส่งใบเบิก '+r.doc+' แล้ว — รอหน้าร้านปล่อยของ','ok',4000);
-    WDCART=[];localStorage.removeItem('rbo_wd_draft');wdRender();loadAll();
+    WDCART=[];localStorage.removeItem('rbo_wd_draft');wdRender();loadAll();wdTab(2);
     setTimeout(()=>document.getElementById('wdList').scrollIntoView({behavior:'smooth'}),400);
   } else toast(r.error,'err');
 }
@@ -417,6 +426,8 @@ async function wdLoad(){
   if(!r.ok){el.innerHTML='<div class="empty">'+r.error+'</div>';return;}
   if(!r.orders.length){el.innerHTML='<div class="empty">ยังไม่มีใบเบิก</div>';return;}
   const stTh={sent:'รอหน้าร้านปล่อย',released:'รอ Assist ยืนยันรับเข้า',received:'รับเข้าแล้ว ✓'};
+  var pending=r.orders.filter(function(w){return w.status!=='received';}).length;
+  wdUpdateBadge(pending);
   el.innerHTML=r.orders.map(w=>`
     <div style="border:1px solid var(--line);border-radius:14px;padding:10px;margin-bottom:8px">
       <div style="display:flex;align-items:center;gap:8px"><b class="num" style="font-size:13px">${w.doc_no}</b>
@@ -441,6 +452,26 @@ async function addSku(){
     ['aCustom','aName','aWs','aW','aLocO','aLocW','aQty','aCost','aColW'].forEach(i=>document.getElementById(i).value='');
     loadAll();}
   else document.getElementById('aErr').textContent=r.error;
+}
+/* ── Sub-tab เบิก ── */
+function wdTab(n){
+  document.getElementById('wdPane1').style.display=n===1?'block':'none';
+  document.getElementById('wdPane2').style.display=n===2?'block':'none';
+  var t1=document.getElementById('wdTab1');
+  var t2=document.getElementById('wdTab2');
+  t1.style.background=n===1?'var(--pd)':'transparent';
+  t1.style.color=n===1?'#fff':'var(--mut)';
+  t1.style.fontWeight=n===1?'600':'500';
+  t2.style.background=n===2?'var(--pd)':'transparent';
+  t2.style.color=n===2?'#fff':'var(--mut)';
+  t2.style.fontWeight=n===2?'600':'500';
+  if(n===2) wdLoad();
+}
+function wdUpdateBadge(count){
+  var b=document.getElementById('wdBadge');
+  if(!b) return;
+  if(count>0){b.style.display='inline';b.textContent=count;}
+  else b.style.display='none';
 }
 /* ── จัดการผู้ใช้ ── */
 const ROLE_TH={master:'Master',assist:'Assist Mgr',admin:'Admin',graphic:'Graphic',storefront:'หน้าร้าน WS'};
