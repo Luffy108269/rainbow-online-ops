@@ -594,61 +594,62 @@ function toast(msg, type='ok', ms=3000){
 function printWd(docNo, wJson){
   const w=JSON.parse(wJson);
   const stTh={sent:'รอหน้าร้านปล่อย',released:'รอ Assist ยืนยัน',received:'รับเข้าแล้ว ✓'};
-  const rows=(w.items||[]).map(i=>`
-    <tr>
-      <td style="text-align:center;padding:6px 4px"><img src="${imgSrc(i.img||'')}" style="width:50px;height:50px;object-fit:cover;border-radius:6px" onerror="this.style.display='none'"></td>
-      <td style="padding:6px 8px"><b style="font-size:13px">${i.sku_rbo||''}</b><br><span style="font-size:11px;color:#888">${i.sku_rbws||''}</span></td>
-      <td style="padding:6px 8px;font-size:12px">${i.loc_rbws||'–'}</td>
-      <td style="text-align:center;padding:6px 8px;font-size:15px;font-weight:700">${i.qty||1}</td>
-    </tr>`).join('');
-  const html=`<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8">
-    <title>ใบเบิก ${docNo}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;600;700&display=swap" rel="stylesheet">
-    <style>
-      body{font-family:'Prompt',sans-serif;margin:0;padding:20px;color:#222;font-size:14px}
-      .hd{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #F6A6B9;padding-bottom:12px;margin-bottom:16px}
-      .hd h1{font-size:20px;font-weight:700;color:#B44E6C;margin:0}
-      .hd .meta{font-size:12px;color:#666;text-align:right}
-      .co{font-size:11px;color:#888;margin-top:2px}
-      table{width:100%;border-collapse:collapse}
-      th{background:#F6A6B9;color:#fff;padding:8px;font-size:12px;font-weight:600;text-align:left}
-      th:first-child,th:last-child{text-align:center}
-      tr:nth-child(even) td{background:#FDF1F4}
-      td{border-bottom:1px solid #F8DCE4;vertical-align:middle}
-      .foot{margin-top:20px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;font-size:12px}
-      .sign{border-top:1px solid #ccc;padding-top:6px;text-align:center;color:#666}
-      @media print{body{padding:10px}}
-    </style></head><body>
-    <div class="hd">
-      <div>
-        <h1>ใบเบิกสินค้า</h1>
-        <div class="co">Rainbow Online ← Rainbow Wholesale</div>
-      </div>
-      <div class="meta">
-        <b style="font-size:16px">${docNo}</b><br>
-        วันที่: ${w.date||''}<br>
-        สถานะ: ${stTh[w.status]||w.status}<br>
-        ผู้คีย์: ${w.created_by||''}
-      </div>
-    </div>
-    <table>
-      <tr><th>รูป</th><th>รหัส Rainbow Online / Wholesale</th><th>📍 Location WS</th><th style="text-align:center">จำนวน</th></tr>
-      ${rows}
-    </table>
-    <div class="foot">
-      <div class="sign">ผู้เบิก<br><br>____________________</div>
-      <div class="sign">ผู้ปล่อยของ (Rainbow Wholesale)<br><br>____________________</div>
-      <div class="sign">ผู้รับ (Rainbow Online)<br><br>____________________</div>
-    </div>
-    <scr'+'ipt>window.onload=()=>window.print()</scr'+'ipt>
-    </body></html>`;
-  const blob=new Blob([html],{type:'text/html'});
-  const url=URL.createObjectURL(blob);
-  document.getElementById('pdfFrame').src=url;
-  document.getElementById('pdfFrame').style.display='block';
-  document.getElementById('pdfClose').style.display='block';
-  toast('🖨 เปิด PDF ใบเบิก '+docNo,'info',2000);
+  let rows='';
+  (w.items||[]).forEach(function(i){
+    rows+='<tr>'+
+      '<td style="text-align:center;padding:6px 4px">'+
+        (i.img?'<img src="'+imgSrc(i.img||'')+'" style="width:50px;height:50px;object-fit:cover;border-radius:6px">':'📿')+
+      '</td>'+
+      '<td style="padding:6px 8px"><b style="font-size:13px">'+( i.sku_rbo||'')+
+        '</b><br><span style="font-size:11px;color:#888">'+(i.sku_rbws||'')+'</span></td>'+
+      '<td style="padding:6px 8px;font-size:12px">'+(i.loc_rbws||'–')+'</td>'+
+      '<td style="text-align:center;padding:6px 8px;font-size:15px;font-weight:700">'+(i.qty||1)+'</td>'+
+    '</tr>';
+  });
+  const html='<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8">'+
+    '<title>\u0E43\u0E1A\u0E40\u0E1A\u0E34\u0E01 '+docNo+'</title>'+
+    '<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;600;700&display=swap" rel="stylesheet">'+
+    '<style>'+
+    'body{font-family:\'Prompt\',sans-serif;margin:0;padding:20px;color:#222;font-size:14px}'+
+    '.hd{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #F6A6B9;padding-bottom:12px;margin-bottom:16px}'+
+    '.hd h1{font-size:20px;font-weight:700;color:#B44E6C;margin:0}'+
+    '.hd .meta{font-size:12px;color:#666;text-align:right}'+
+    '.co{font-size:11px;color:#888;margin-top:2px}'+
+    'table{width:100%;border-collapse:collapse}'+
+    'th{background:#F6A6B9;color:#fff;padding:8px;font-size:12px;font-weight:600;text-align:left}'+
+    'th:first-child,th:last-child{text-align:center}'+
+    'tr:nth-child(even) td{background:#FDF1F4}'+
+    'td{border-bottom:1px solid #F8DCE4;vertical-align:middle}'+
+    '.foot{margin-top:20px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;font-size:12px}'+
+    '.sign{border-top:1px solid #ccc;padding-top:6px;text-align:center;color:#666}'+
+    '@media print{body{padding:10px}}'+
+    '</style></head><body>'+
+    '<div class="hd"><div>'+
+    '<h1>\u0E43\u0E1A\u0E40\u0E1A\u0E34\u0E01\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32</h1>'+
+    '<div class="co">Rainbow Online \u2190 Rainbow Wholesale</div></div>'+
+    '<div class="meta"><b style="font-size:16px">'+docNo+'</b><br>'+
+    '\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48: '+(w.date||'')+'<br>'+
+    '\u0E2A\u0E16\u0E32\u0E19\u0E30: '+(stTh[w.status]||w.status)+'<br>'+
+    '\u0E1C\u0E39\u0E49\u0E04\u0E35\u0E22\u0E4C: '+(w.created_by||'')+'</div></div>'+
+    '<table><tr>'+
+    '<th>\u0E23\u0E39\u0E1B</th>'+
+    '<th>\u0E23\u0E2B\u0E31\u0E2A Rainbow Online / Wholesale</th>'+
+    '<th>\uD83D\uDCCD Location WS</th>'+
+    '<th style="text-align:center">\u0E08\u0E33\u0E19\u0E27\u0E19</th></tr>'+
+    rows+'</table>'+
+    '<div class="foot">'+
+    '<div class="sign">\u0E1C\u0E39\u0E49\u0E40\u0E1A\u0E34\u0E01<br><br>____________________</div>'+
+    '<div class="sign">\u0E1C\u0E39\u0E49\u0E1B\u0E25\u0E48\u0E2D\u0E22\u0E02\u0E2D\u0E07 (Rainbow Wholesale)<br><br>____________________</div>'+
+    '<div class="sign">\u0E1C\u0E39\u0E49\u0E23\u0E31\u0E1A (Rainbow Online)<br><br>____________________</div>'+
+    '</div></body></html>';
+  const pw=window.open('','_blank','width=800,height=900');
+  if(!pw){toast('\u274C browser \u0E1A\u0E25\u0E47\u0E2D\u0E01 popup','err',4000);return;}
+  pw.document.write(html);
+  pw.document.close();
+  setTimeout(function(){pw.print();},800);
+  toast('\uD83D\uDDB8 \u0E40\u0E1B\u0E34\u0E14 PDF '+docNo,'info',2000);
 }
+
 function closePdf(){
   document.getElementById('pdfFrame').style.display='none';
   document.getElementById('pdfClose').style.display='none';
