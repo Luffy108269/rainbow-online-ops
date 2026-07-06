@@ -72,7 +72,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B2.3 · 6 ก.ค. 69 · JSON+รูปในไฟล์เดียว';
+const BUILD = 'B2.4 · 6 ก.ค. 69 · จัดการผู้ใช้+ตั้งรหัส';
 console.log('RB Online Ops · '+BUILD);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -178,6 +178,11 @@ console.log('RB Online Ops · '+BUILD);
     <button class="btn o" onclick="upJson()">นำเข้าไฟล์ JSON</button>
     <div class="hint" id="jsonProg"></div>
   </div>
+  <div class="card" id="userCard" style="display:none">
+    <h2>👤 จัดการผู้ใช้ · ตั้งรหัสผ่าน <span class="lock">Luffy เท่านั้น</span></h2>
+    <div id="userList"><div class="empty">กำลังโหลด…</div></div>
+    <div class="hint">กด "ตั้งรหัส" แล้วพิมพ์รหัสใหม่ (4 ตัวขึ้นไป) — ใช้ได้ทันที ไม่ต้อง deploy อะไร</div>
+  </div>
   <div class="card"><h2>🚧 Build ถัดไป</h2>
     <div class="item"><div class="ph">🛍</div><div><b>บิลรับภายนอก + ใบเสร็จ/สลิป</b><small>Build 3</small></div></div>
     <div class="item"><div class="ph">🧾</div><div><b>บัญชี 2 บริษัท + งวดภาษี</b><small>Build 3</small></div></div>
@@ -225,7 +230,7 @@ function enter(){
   document.getElementById('aCat').innerHTML=CATS.map(c=>`<option>${c}</option>`).join('');
   document.getElementById('aCls').innerHTML=CLASSES.map(c=>`<option>${c}</option>`).join('');
   tab('home',document.querySelector('nav button'));
-  loadAll();
+  loadAll(); loadUsers();
 }
 async function loadAll(){
   const d=await api('dashboard');
@@ -293,7 +298,7 @@ function wdRender(){
 async function wdSend(){
   if(!WDCART.length){alert('ยังไม่มีรายการ');return;}
   const r=await api('wdCreate',{items:WDCART});
-  if(r.ok){alert('ส่งใบเบิก '+r.doc+' แล้ว 🌈');WDCART=[];wdRender();loadAll();}
+  if(r.ok){alert('ส่งใบเบิก '+r.doc+' แล้ว 🌈 เลื่อนลงดูสถานะได้ที่การ์ด 📋 ใบเบิก');WDCART=[];wdRender();loadAll();setTimeout(()=>document.getElementById('wdList').scrollIntoView({behavior:'smooth'}),400);}
   else alert(r.error);
 }
 async function wdLoad(){
@@ -328,6 +333,30 @@ async function addSku(){
     loadAll();}
   else document.getElementById('aErr').textContent=r.error;
 }
+/* ── จัดการผู้ใช้ ── */
+async function loadUsers(){
+  if(S.role!=='master') return;
+  document.getElementById('userCard').style.display='block';
+  const r=await api('userList');
+  if(!r.ok){document.getElementById('userList').innerHTML='<div class=empty>'+r.error+'</div>';return;}
+  const roleTh={master:'Master',assist:'Assist Mgr',admin:'Admin',graphic:'Graphic',storefront:'หน้าร้าน WS'};
+  document.getElementById('userList').innerHTML=r.users.map(u=>`
+    <div class="item"><div class="ph">👤</div>
+      <div><b>${u.name}</b><small>${u.username} · ${roleTh[u.role]||u.role}</small></div>
+      <div class="endc"><button class="btn sm o" onclick="setPass('${u.username}','${u.name}')">🔑 ตั้งรหัส</button></div>
+    </div>`).join('');
+}
+async function setPass(target,name){
+  const np=prompt('ตั้งรหัสผ่านใหม่ให้ '+name+' (4 ตัวขึ้นไป):');
+  if(!np) return;
+  const r=await api('userSetPass',{target,newpass:np});
+  if(r.ok) alert('✅ เปลี่ยนรหัสของ '+name+' แล้ว ใช้ได้ทันที');
+  else alert(r.error);
+}
+document.addEventListener('click',e=>{
+  const sg=document.getElementById('wdSug');
+  if(sg&&!e.target.closest('.srch')) sg.style.display='none';
+});
 /* ── Settings: อัปโหลดผ่านเว็บ ── */
 function imgSrc(v){ return String(v).indexOf('http')===0 ? v : IMG_BASE+encodeURIComponent(v); }
 async function upImgs(){
