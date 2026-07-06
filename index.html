@@ -88,7 +88,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B2.11b · 6 ก.ค. 69 · PDF+Toast+syntaxfix';
+const BUILD = 'B2.12 · 6 ก.ค. 69 · Draft+ติ๊กเลือก+PDF popup';
 console.log('RB Online Ops · '+BUILD);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -380,9 +380,26 @@ function wdRender(){
 }
 async function wdSend(){
   if(!WDCART.length){toast('ยังไม่มีรายการ','warn');return;}
+  toast('กำลังส่งใบเบิก...','info',2000);
   const r=await api('wdCreate',{items:WDCART});
-  if(r.ok){toast('✅ ส่งใบเบิก '+r.doc+' แล้ว','ok');WDCART=[];wdRender();loadAll();setTimeout(()=>document.getElementById('wdList').scrollIntoView({behavior:'smooth'}),400);}
-  else toast(r.error,'err');
+  if(r.ok){
+    toast('✅ ส่งใบเบิก '+r.doc+' แล้ว — รอหน้าร้านปล่อยของ','ok',4000);
+    WDCART=[];localStorage.removeItem('rbo_wd_draft');wdRender();loadAll();
+    setTimeout(()=>document.getElementById('wdList').scrollIntoView({behavior:'smooth'}),400);
+  } else toast(r.error,'err');
+}
+async function wdSendSelected(){
+  const sel=WDCART.filter(x=>x.sel);
+  if(!sel.length){toast('ยังไม่ได้ติ๊กเลือกรายการ','warn');return;}
+  toast('กำลังส่งใบเบิก '+sel.length+' รายการ...','info',2000);
+  const r=await api('wdCreate',{items:sel});
+  if(r.ok){
+    toast('✅ ส่งใบเบิก '+r.doc+' ('+sel.length+' รายการ) แล้ว','ok',4000);
+    WDCART=WDCART.filter(x=>!x.sel);
+    localStorage.setItem('rbo_wd_draft',JSON.stringify(WDCART));
+    wdRender();loadAll();
+    setTimeout(()=>document.getElementById('wdList').scrollIntoView({behavior:'smooth'}),400);
+  } else toast(r.error,'err');
 }
 async function wdLoad(){
   const r=await api('wdList');
