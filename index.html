@@ -72,7 +72,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B2.9 · 6 ก.ค. 69 · ย้าย Pending → SKU อัตโนมัติ';
+const BUILD = 'B2.10 · 6 ก.ค. 69 · Luffy สิทธิ์สูงสุดทุกปุ่ม';
 console.log('RB Online Ops · '+BUILD);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -377,7 +377,7 @@ async function wdLoad(){
         <span class="tagst st-${w.status}">${stTh[w.status]||w.status}</span>
         <small style="margin-left:auto;color:var(--mut)">${w.items.length} รายการ · ${w.created_by}</small></div>
       ${w.items.map(i=>`<div style="font-size:11.5px;color:var(--mut);margin-top:3px">• ${i.sku_rbo} → ${i.sku_rbws} ×${i.qty} 📍${i.loc_rbws||'–'}</div>`).join('')}
-      ${(S.role==='storefront'&&w.status==='sent')?`<button class="btn sm" style="margin-top:8px" onclick="wdAct('${w.doc_no}','release')">✅ ปล่อยของแล้ว + แนบเอกสาร</button>`:''}
+      ${((['storefront','master','assist'].includes(S.role))&&w.status==='sent')?`<button class="btn sm" style="margin-top:8px" onclick="wdAct('${w.doc_no}','release')">✅ ปล่อยของแล้ว + แนบเอกสาร</button>`:''}
       ${(isLA()&&w.status==='released')?`<button class="btn sm" style="margin-top:8px" onclick="wdAct('${w.doc_no}','confirm')">📥 ยืนยันรับเข้าสต๊อก</button>`:''}
     </div>`).join('');
 }
