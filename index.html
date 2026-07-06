@@ -72,7 +72,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B2.7 · 6 ก.ค. 69 · session timeout 10 นาที';
+const BUILD = 'B2.8 · 6 ก.ค. 69 · import หลายไฟล์+แถบ+12hr';
 console.log('RB Online Ops · '+BUILD);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -173,10 +173,10 @@ console.log('RB Online Ops · '+BUILD);
     <button class="btn o" onclick="upImgs()">อัปโหลดรูปทั้งหมด → ระบบจับคู่กับ SKU เอง</button>
     <div class="hint" id="imgProg"></div>
     <div style="height:10px"></div>
-    <label>📄 Import สินค้า (พร้อมรูป) — เลือกไฟล์ rbo_products_107_part1.json แล้วกดนำเข้า เสร็จแล้วทำ part2 ต่อ</label>
-    <input type="file" id="jsonFile" accept=".json,application/json">
-    <button class="btn o" onclick="upJson()">นำเข้าไฟล์ JSON</button>
-    <div class="hint" id="jsonProg"></div>
+    <label>📄 Import สินค้า (พร้อมรูป) — เลือกได้หลายไฟล์พร้อมกัน ระบบจะทำทีละไฟล์ให้เอง</label>
+    <input type="file" id="jsonFile" accept=".json,application/json" multiple>
+    <button class="btn o" onclick="upJson()">นำเข้าไฟล์ JSON ที่เลือกทั้งหมด</button>
+    <div id="jsonProg"></div>
   </div>
   <div class="card" id="userCard" style="display:none">
     <h2>👤 จัดการผู้ใช้ <span class="lock">Luffy เท่านั้น</span></h2>
@@ -222,7 +222,7 @@ console.log('RB Online Ops · '+BUILD);
 </nav>
 
 <script>
-const SESSION_TIMEOUT = 10 * 60 * 1000; // 10 นาที
+const SESSION_TIMEOUT = 12 * 60 * 60 * 1000; // 12 ชั่วโมง
 function saveSession(data){
   data._ts = Date.now();
   localStorage.setItem('rbo_session', JSON.stringify(data));
@@ -244,15 +244,21 @@ function loadSession(){
 }
 let S = loadSession();
 // บันทึกเวลาที่ออกจากหน้า
+let isProcessing = false; // ป้องกันเด้งระหว่างระบบกำลังทำงาน
 document.addEventListener('visibilitychange', ()=>{
-  if(document.visibilityState === 'hidden') localStorage.setItem('rbo_away_ts', String(Date.now()));
-  else {
-    // กลับมาใหม่ — เช็คว่าเกิน 10 นาทีไหม
+  if(document.visibilityState === 'hidden'){
+    localStorage.setItem('rbo_away_ts', String(Date.now()));
+  } else {
     const away = localStorage.getItem('rbo_away_ts');
     if(away && (Date.now() - parseInt(away)) > SESSION_TIMEOUT){
-      localStorage.removeItem('rbo_session');
-      localStorage.removeItem('rbo_away_ts');
-      location.reload(); // โหลดใหม่ → เจอหน้า login
+      if(isProcessing){
+        // กำลังทำงานอยู่ — รอจนเสร็จ แล้วค่อยเตะออก
+        localStorage.removeItem('rbo_away_ts'); // รีเซ็ต timer
+      } else {
+        localStorage.removeItem('rbo_session');
+        localStorage.removeItem('rbo_away_ts');
+        location.reload();
+      }
     } else {
       localStorage.removeItem('rbo_away_ts');
     }
@@ -484,16 +490,60 @@ async function upImgs(){
   loadAll();
 }
 async function upJson(){
-  const f=document.getElementById('jsonFile').files[0];
-  if(!f){alert('ยังไม่ได้เลือกไฟล์');return;}
+  const files=[...document.getElementById('jsonFile').files];
+  if(!files.length){alert('ยังไม่ได้เลือกไฟล์');return;}
   const prog=document.getElementById('jsonProg');
-  prog.textContent='กำลังอ่านไฟล์…';
-  const txt=await f.text();
-  let rows; try{rows=JSON.parse(txt);}catch(e){prog.textContent='ไฟล์ไม่ใช่ JSON ที่ถูกต้อง';return;}
-  if(!Array.isArray(rows)){prog.textContent='โครงไฟล์ต้องเป็น list ของรายการ';return;}
-  prog.textContent='กำลังนำเข้า '+rows.length+' รายการ…';
-  const r=await api('importData',{rows:rows});
-  prog.textContent=r.ok?('✅ ใหม่ '+r.added+' · อัปเดต '+r.updated+' · รอกำหนดรหัส '+r.pending+' · รูป '+(r.imgs||0)):('ผิดพลาด: '+r.error);
+  prog.innerHTML='';
+  isProcessing=true;
+  let totalAdded=0,totalUpdated=0,totalPending=0,totalImgs=0;
+  for(let fi=0;fi<files.length;fi++){
+    const f=files[fi];
+    // สร้าง row สำหรับไฟล์นี้
+    const row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;gap:10px;background:var(--soft);border-radius:12px;padding:9px 12px;margin-bottom:6px;font-size:12px';
+    const label=document.createElement('span');
+    label.style.cssText='flex:1;font-weight:500;word-break:break-all';
+    label.textContent=(fi+1)+'/'+files.length+' · '+f.name;
+    const bar=document.createElement('div');
+    bar.style.cssText='width:80px;height:8px;border-radius:99px;background:#EFE3E9;overflow:hidden;flex-shrink:0';
+    const fill=document.createElement('div');
+    fill.style.cssText='height:100%;border-radius:99px;background:var(--pd);width:0;transition:width .3s';
+    bar.appendChild(fill);
+    const status=document.createElement('span');
+    status.style.cssText='font-size:11px;color:var(--mut);white-space:nowrap';
+    status.textContent='รออ่าน…';
+    row.appendChild(label); row.appendChild(bar); row.appendChild(status);
+    prog.appendChild(row);
+    // อ่านไฟล์
+    fill.style.width='20%'; status.textContent='อ่านไฟล์…';
+    let rows;
+    try{
+      const txt=await f.text();
+      rows=JSON.parse(txt);
+      if(!Array.isArray(rows)) throw new Error('ต้องเป็น list');
+    }catch(e){
+      fill.style.background='#E05656'; fill.style.width='100%';
+      status.textContent='❌ '+e.message; continue;
+    }
+    fill.style.width='40%'; status.textContent='กำลังนำเข้า '+rows.length+' รายการ…';
+    // ส่ง API
+    const r=await api('importData',{rows:rows});
+    if(r.ok){
+      fill.style.width='100%'; fill.style.background='var(--green)';
+      status.textContent='✅ +'+r.added+' อัป'+r.updated+' รูป'+(r.imgs||0);
+      totalAdded+=r.added; totalUpdated+=r.updated; totalPending+=r.pending; totalImgs+=(r.imgs||0);
+    } else {
+      fill.style.background='#E05656'; fill.style.width='100%';
+      status.textContent='❌ '+r.error;
+    }
+  }
+  isProcessing=false;
+  if(files.length>1){
+    const sum=document.createElement('div');
+    sum.style.cssText='font-size:12px;font-weight:600;color:var(--pdd);padding:6px 2px';
+    sum.textContent='รวม: ใหม่ '+totalAdded+' · อัปเดต '+totalUpdated+' · รอรหัส '+totalPending+' · รูป '+totalImgs;
+    prog.appendChild(sum);
+  }
   loadAll();
 }
 function tab(id,btn){document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
