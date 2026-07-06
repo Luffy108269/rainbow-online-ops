@@ -427,7 +427,7 @@ async function wdLoad(){
   const el=document.getElementById('wdList');
   if(!r.ok){el.innerHTML='<div class="empty">'+r.error+'</div>';return;}
   if(!r.orders.length){el.innerHTML='<div class="empty">ยังไม่มีใบเบิก</div>';return;}
-  const stTh={sent:'รอหน้าร้านปล่อย',released:'รอ Assist ยืนยันรับเข้า',received:'รับเข้าแล้ว ✓'};
+  const stTh={sent:'รอ Store อนุมัติ',approved:'Store อนุมัติแล้ว',hold:'ของมาแล้ว รอตรวจ',received:'รับของแล้ว',accounting:'ส่งบัญชีแล้ว'};
   var pending=r.orders.filter(function(w){return w.status!=='received';}).length;
   wdUpdateBadge(pending);
   el.innerHTML=r.orders.map(w=>`
