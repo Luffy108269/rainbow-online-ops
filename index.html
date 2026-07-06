@@ -10,183 +10,313 @@
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Prompt',sans-serif;background:#FFF;color:var(--ink);font-size:14px;line-height:1.5;max-width:480px;margin:0 auto;padding-bottom:96px}
 .num{font-family:'Nunito';font-weight:800}
-/* ── Login ── */
 #login{position:fixed;inset:0;background:linear-gradient(160deg,var(--p),var(--p2));display:flex;align-items:center;justify-content:center;z-index:100;padding:20px}
 .lbox{background:#fff;border-radius:26px;padding:26px 22px;width:100%;max-width:340px;box-shadow:0 12px 40px rgba(169,70,99,.3);text-align:center}
 .lbox .mark{width:56px;height:56px;border-radius:18px;background:var(--p);color:#fff;font-family:'Nunito';font-weight:800;font-size:20px;display:flex;align-items:center;justify-content:center;margin:0 auto 10px}
 .lbox h1{font-size:17px;font-weight:700}
 .lbox p{font-size:11.5px;color:var(--mut);margin-bottom:16px}
-.lbox input{font-family:'Prompt';width:100%;font-size:14px;border:1.5px solid var(--line);border-radius:12px;padding:11px 14px;margin-bottom:10px;outline:none}
-.lbox input:focus{border-color:var(--pd)}
-.err{color:#C03A3A;font-size:11.5px;min-height:16px;margin-bottom:4px}
-/* ── โครงหลัก ── */
-header{background:linear-gradient(160deg,var(--p),var(--p2));padding:16px 16px 40px;border-radius:0 0 28px 28px;color:#fff;position:relative;overflow:hidden}
+input,select{font-family:'Prompt';width:100%;font-size:13.5px;border:1.5px solid var(--line);border-radius:12px;padding:10px 13px;margin-bottom:8px;outline:none;background:#fff}
+input:focus,select:focus{border-color:var(--pd)}
+.err{color:#C03A3A;font-size:11.5px;min-height:16px}
+header{background:linear-gradient(160deg,var(--p),var(--p2));padding:16px 16px 40px;border-radius:0 0 28px 28px;color:#fff;position:relative;overflow:hidden;display:none}
 header::after{content:"🌈";position:absolute;right:-4px;bottom:-16px;font-size:76px;opacity:.16}
 header .logo{display:flex;align-items:center;gap:8px;font-weight:600;font-size:15px}
 header .logo .mark{background:#fff;color:var(--pd);border-radius:10px;padding:3px 8px;font-family:'Nunito';font-weight:800;font-size:12px}
 header .out{margin-left:auto;font-size:10.5px;background:rgba(255,255,255,.85);border:none;border-radius:999px;padding:4px 12px;color:var(--pdd);font-weight:600;font-family:'Prompt';cursor:pointer}
-header h1{font-size:19px;font-weight:700;margin-top:8px;text-shadow:0 1px 3px rgba(180,78,108,.25)}
+header h1{font-size:19px;font-weight:700;margin-top:8px}
 header small{opacity:.95;font-size:11.5px}
-.sheet{margin:-26px 12px 0;position:relative}
+.sheet{margin:-26px 12px 0;position:relative;display:none}
 .stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .stat{background:#fff;border-radius:18px;box-shadow:0 4px 14px rgba(217,108,138,.13);padding:10px 6px;text-align:center}
 .stat .num{font-size:18px;color:var(--pdd)}
-.stat small{font-size:9.5px;color:var(--mut);display:block;line-height:1.3}
+.stat small{font-size:9.5px;color:var(--mut);display:block}
 .card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:14px;margin:12px}
 .card h2{font-size:13.5px;font-weight:600;color:var(--pdd);margin-bottom:10px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .lock{font-size:9px;background:var(--soft);color:var(--pdd);border-radius:6px;padding:1px 6px;font-weight:600}
 .item{display:flex;gap:12px;align-items:center;padding:10px 2px;border-bottom:1px solid var(--soft)}
 .item:last-child{border:none}
-.ph{width:48px;height:48px;border-radius:16px;background:var(--soft);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;overflow:hidden}
+.ph{width:52px;height:52px;border-radius:16px;background:var(--soft);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;overflow:hidden}
 .ph img{width:100%;height:100%;object-fit:cover}
-.item b{font-weight:500;font-size:13.5px;display:block}
-.item small{font-size:11px;color:var(--mut)}
-.pricebar{margin-left:auto;text-align:right;flex-shrink:0}
-.pricebar .num{color:var(--pdd);font-size:15px}
-.pricebar small{font-size:10px;color:var(--mut);display:block}
+.item b{font-weight:500;font-size:13.5px;display:block;word-break:break-all}
+.item small{font-size:11px;color:var(--mut);display:block}
+.endc{margin-left:auto;text-align:right;flex-shrink:0}
+.endc .num{color:var(--pdd);font-size:14px}
+.endc small{font-size:10px;color:var(--mut);display:block}
 .dots{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
 .dot{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Nunito';font-weight:800;font-size:9px;color:#fff;box-shadow:inset 0 -3px 5px rgba(0,0,0,.16)}
-.empty{text-align:center;color:var(--mut);font-size:12.5px;padding:20px 10px}
-.loading{text-align:center;color:var(--pd);font-size:13px;padding:24px}
+.empty{text-align:center;color:var(--mut);font-size:12.5px;padding:18px 8px}
 .btn{font-family:'Prompt';border:none;background:var(--pd);color:#fff;font-size:13.5px;font-weight:600;border-radius:999px;padding:12px 18px;width:100%;margin-top:10px;box-shadow:0 4px 12px rgba(217,108,138,.3);cursor:pointer}
+.btn.o{background:#fff;color:var(--pd);border:1.5px solid var(--line);box-shadow:none}
+.btn.sm{width:auto;padding:7px 14px;font-size:11.5px;margin:0}
+.tagst{font-size:10px;border-radius:999px;padding:3px 10px;font-weight:600}
+.st-sent{background:#FFF6DC;color:#8a6d1c}.st-released{background:#E9F4FB;color:#3E6C9E}.st-received{background:#E5F5EC;color:#2c7a52}
 .pg{display:none}.pg.on{display:block}
 nav{position:fixed;bottom:14px;left:14px;right:14px;max-width:452px;margin:0 auto;background:#fff;border-radius:999px;box-shadow:0 8px 28px rgba(169,70,99,.22);display:none;padding:7px;z-index:30}
 nav.show{display:flex}
 nav button{font-family:'Prompt';flex:1;border:none;background:none;font-size:9.5px;font-weight:500;color:var(--mut);display:flex;flex-direction:column;align-items:center;gap:1px;padding:7px 1px;border-radius:999px;cursor:pointer}
 nav button .i{font-size:18px}
 nav button.on{background:var(--pd);color:#fff;font-weight:600}
-.soon{opacity:.45}
+.srch{position:relative}
+.sug{position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 8px 20px rgba(0,0,0,.1);z-index:10;max-height:260px;overflow:auto}
+.sug .item{padding:8px 10px;cursor:pointer}
+.wline{display:flex;gap:8px;align-items:center;background:var(--soft);border-radius:12px;padding:8px 10px;margin-bottom:6px;font-size:12px}
+.wline b{font-weight:600}
+.wline input{width:56px;margin:0;padding:5px 8px;text-align:center}
+.wline .x{margin-left:auto;background:none;border:none;color:#C03A3A;font-size:15px;cursor:pointer}
+.hint{font-size:10.5px;color:var(--mut);margin-top:4px}
+label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 </style>
 </head>
 <body>
-
-<!-- ═══ ตั้งค่า: วาง URL ของ Apps Script ตรงนี้ (ดูคู่มือข้อ 2.7) ═══ -->
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
+const IMG_BASE = 'img/';
 </script>
 
-<div id="login">
-  <div class="lbox">
-    <div class="mark">RB</div>
-    <h1>Rainbow Online Ops</h1>
-    <p>ระบบหลังบ้าน Rainbow Online</p>
-    <input id="u" placeholder="ชื่อผู้ใช้" autocomplete="username">
-    <input id="p" type="password" placeholder="รหัสผ่าน" autocomplete="current-password">
-    <div class="err" id="lerr"></div>
-    <button class="btn" style="margin-top:0" onclick="doLogin()">เข้าสู่ระบบ 🌈</button>
-  </div>
-</div>
+<div id="login"><div class="lbox">
+  <div class="mark">RB</div><h1>Rainbow Online Ops</h1><p>ระบบหลังบ้าน Rainbow Online · Build 2</p>
+  <input id="u" placeholder="ชื่อผู้ใช้"><input id="p" type="password" placeholder="รหัสผ่าน">
+  <div class="err" id="lerr"></div>
+  <button class="btn" style="margin-top:0" onclick="doLogin()">เข้าสู่ระบบ 🌈</button>
+</div></div>
 
-<header style="display:none" id="hd">
+<header id="hd">
   <div class="logo"><span class="mark">RB</span> Rainbow Online Ops <button class="out" onclick="logout()">ออก</button></div>
-  <h1 id="hi">สวัสดี 🌈</h1>
-  <small id="hsub"></small>
+  <h1 id="hi"></h1><small id="hsub"></small>
 </header>
 
-<div class="sheet" style="display:none" id="stats">
-  <div class="stat-row">
-    <div class="stat"><span class="num" id="stSku">–</span><small>SKU ทั้งหมด</small></div>
-    <div class="stat"><span class="num" id="stAlb">–</span><small>อัลบั้ม</small></div>
-    <div class="stat"><span class="num" id="stBill">–</span><small>บิลรอส่งบัญชี</small></div>
-  </div>
-</div>
+<div class="sheet" id="stats"><div class="stat-row">
+  <div class="stat"><span class="num" id="stSku">–</span><small>SKU ทั้งหมด</small></div>
+  <div class="stat"><span class="num" id="stPend">–</span><small>รอกำหนดรหัส</small></div>
+  <div class="stat"><span class="num" id="stWd">–</span><small>ใบเบิกค้าง</small></div>
+</div></div>
 
+<!-- ═══ หน้าแรก ═══ -->
 <div id="home" class="pg">
-  <div class="card">
-    <h2>🎨 กลุ่มสีราคา ชุด C</h2>
-    <div class="dots" id="colorDots"><div class="loading">กำลังโหลด…</div></div>
-  </div>
-  <div class="card">
-    <h2>🚧 Build 1 · เฟส 1</h2>
-    <div class="item"><div class="ph">✅</div><div><b>Login แยกสิทธิ์ 6 บทบาท</b><small>ต้นทุนซ่อนจาก Admin อัตโนมัติ</small></div></div>
-    <div class="item"><div class="ph">✅</div><div><b>โครง Sheet 21 แท็บ + ข้อมูลตั้งต้น</b><small>สี 8 กลุ่ม · prefix 24 · Config</small></div></div>
-    <div class="item"><div class="ph">⏳</div><div><b>Build 2: Import ฐานข้อมูล 107 SKU</b><small>+ ใบเบิก · บิลภายนอก · บัญชี</small></div></div>
+  <div class="card"><h2>🎨 กลุ่มสีราคา ชุด C</h2><div class="dots" id="colorDots"></div></div>
+  <div class="card" id="pendCard" style="display:none">
+    <h2>🏷 รอกำหนดรหัส RBO <span class="lock">L/A</span></h2>
+    <div id="pendList"></div>
+    <div class="hint">ของจากไฟล์ที่ยังไม่มีรหัส Rainbow Online — ตั้งรหัสผ่านหน้า ＋SKU ได้</div>
   </div>
 </div>
 
+<!-- ═══ สินค้า ═══ -->
 <div id="prod" class="pg">
   <div class="card">
     <h2>📿 คัมภีร์สินค้า</h2>
-    <div id="catList"><div class="loading">กำลังโหลด…</div></div>
+    <input id="catQ" placeholder="ค้นหา: รหัส RBO / รายละเอียด…" oninput="renderCat()">
+    <div id="catList"><div class="empty">กำลังโหลด…</div></div>
+  </div>
+</div>
+
+<!-- ═══ เบิก ═══ -->
+<div id="wd" class="pg">
+  <div class="card" id="wdCreateCard">
+    <h2>🔄 สร้างใบเบิก Rainbow Wholesale</h2>
+    <div class="srch">
+      <input id="wdQ" placeholder="พิมพ์รหัส RBO หรือชื่อ เพื่อเพิ่มรายการ…" oninput="wdSuggest()">
+      <div class="sug" id="wdSug" style="display:none"></div>
+    </div>
+    <div id="wdLines"></div>
+    <button class="btn" onclick="wdSend()">ส่งใบเบิกให้หน้าร้าน Wholesale</button>
+  </div>
+  <div class="card">
+    <h2 id="wdListTitle">📋 ใบเบิก</h2>
+    <div id="wdList"><div class="empty">กำลังโหลด…</div></div>
+  </div>
+</div>
+
+<!-- ═══ Add SKU ═══ -->
+<div id="add" class="pg">
+  <div class="card">
+    <h2>➕ Add New SKU <span class="lock">Luffy/Assist</span></h2>
+    <div class="row2">
+      <div><label>หมวด</label><select id="aCat"></select></div>
+      <div><label>Class</label><select id="aCls"></select></div>
+    </div>
+    <div class="hint" id="aCodeHint">รหัสจะรันอัตโนมัติตามหมวด+Class · Non-Silver พิมพ์เองในช่องล่าง</div>
+    <label>รหัสกำหนดเอง (เฉพาะ Non-Silver — อื่นๆ เว้นว่าง)</label>
+    <input id="aCustom" placeholder="เว้นว่าง = ระบบรันให้">
+    <label>ชื่อ/รายละเอียด</label><input id="aName" placeholder="เช่น ต่างหูตุ้มหมี มินิมอล">
+    <div class="row2">
+      <div><label>รหัส RBWS (ถ้ามี)</label><input id="aWs" placeholder="เช่น EA0102700xx"></div>
+      <div><label>น้ำหนัก (g)</label><input id="aW"></div>
+    </div>
+    <div class="row2">
+      <div><label>Location RBO</label><input id="aLocO"></div>
+      <div><label>Location RBWS</label><input id="aLocW"></div>
+    </div>
+    <div class="row2">
+      <div><label>สี RBO (ราคาชุด C)</label><select id="aColor"><option value="">ไม่มีสี (ขาย A/B)</option></select></div>
+      <div><label>จำนวนตั้งต้น</label><input id="aQty" value="0"></div>
+    </div>
+    <div class="row2">
+      <div><label>ราคาทุน (L/A เท่านั้น)</label><input id="aCost"></div>
+      <div><label>รหัสสี RBWS</label><input id="aColW"></div>
+    </div>
+    <div class="err" id="aErr"></div>
+    <button class="btn" onclick="addSku()">บันทึก SKU ใหม่</button>
+    <div class="hint" id="aOk"></div>
   </div>
 </div>
 
 <div id="more" class="pg">
-  <div class="card">
-    <h2>โมดูลถัดไป (Build 2+)</h2>
-    <div class="item soon"><div class="ph">🔄</div><div><b>ใบเบิก Wholesale</b><small>Build 2</small></div></div>
-    <div class="item soon"><div class="ph">🛍</div><div><b>บิลรับภายนอก</b><small>Build 2</small></div></div>
-    <div class="item soon"><div class="ph">🧾</div><div><b>บัญชี + งวดภาษี</b><small>Build 3</small></div></div>
-    <div class="item soon"><div class="ph">📥</div><div><b>Import ฐานข้อมูล</b><small>Build 2</small></div></div>
+  <div class="card"><h2>🚧 Build ถัดไป</h2>
+    <div class="item"><div class="ph">🛍</div><div><b>บิลรับภายนอก + ใบเสร็จ/สลิป</b><small>Build 3</small></div></div>
+    <div class="item"><div class="ph">🧾</div><div><b>บัญชี 2 บริษัท + งวดภาษี</b><small>Build 3</small></div></div>
+    <div class="item"><div class="ph">📬</div><div><b>เช็คสต๊อก + อ่านเมล KETSHOP</b><small>Build 4</small></div></div>
   </div>
 </div>
 
 <nav id="nav">
-  <button class="on" onclick="tab('home',this)"><span class="i">🏠</span>หน้าแรก</button>
-  <button onclick="tab('prod',this)"><span class="i">📿</span>สินค้า</button>
-  <button onclick="tab('more',this)"><span class="i">✨</span>อื่นๆ</button>
+  <button data-p="home" onclick="tab('home',this)"><span class="i">🏠</span>หน้าแรก</button>
+  <button data-p="prod" onclick="tab('prod',this)"><span class="i">📿</span>สินค้า</button>
+  <button data-p="wd" onclick="tab('wd',this)"><span class="i">🔄</span>เบิก</button>
+  <button data-p="add" id="navAdd" onclick="tab('add',this)"><span class="i">➕</span>SKU</button>
+  <button data-p="more" onclick="tab('more',this)"><span class="i">✨</span>อื่นๆ</button>
 </nav>
 
 <script>
-let S = JSON.parse(localStorage.getItem('rbo_session')||'null');
-const CMAP = {CREAM:'#F5E9D7',RED:'#E05656',GREEN:'#58B37C',PINK:'#F29BB4',BLUE:'#6FA8DC',YELLOW:'#FFD84D',GREY:'#B9BFC9',PURPLE:'#9B7FD4'};
+let S=JSON.parse(localStorage.getItem('rbo_session')||'null');
+let CAT=[], COLORS=[], WDCART=[];
+const CMAP={CREAM:'#F5E9D7',RED:'#E05656',GREEN:'#58B37C',PINK:'#F29BB4',BLUE:'#6FA8DC',YELLOW:'#FFD84D',GREY:'#B9BFC9',PURPLE:'#9B7FD4'};
+const CATS='Earrings,Ring,Bangle,Bracelet,Necklace,Pendant,Anklet,Set'.split(',');
+const CLASSES='Silver Classic,Silver Premium,Silver combines with Non silver,Silver Lucky Stone,Lucky stone with Non silver,Brass Classic,Brass Premium,Stainless Steel Classic,Stainless Steel Premium,Non-Silver'.split(',');
 
-async function api(action, data={}){
-  const body = JSON.stringify(Object.assign({action}, S?{u:S.u,key:S.key}:{}, data));
-  const r = await fetch(API_URL, {method:'POST', body});
-  return r.json();
-}
+async function api(a,d={}){const b=JSON.stringify(Object.assign({action:a},S?{u:S.u,key:S.key}:{},d));const r=await fetch(API_URL,{method:'POST',body:b});return r.json();}
 async function doLogin(){
-  const u=document.getElementById('u').value.trim(), p=document.getElementById('p').value;
+  const u=document.getElementById('u').value.trim(),p=document.getElementById('p').value;
   document.getElementById('lerr').textContent='กำลังตรวจสอบ…';
-  try{
-    const r = await api('login',{u,p});
-    if(r.ok){ S={u, key:r.key, name:r.name, role:r.role};
-      localStorage.setItem('rbo_session', JSON.stringify(S)); enter(); }
-    else document.getElementById('lerr').textContent = r.error||'เข้าไม่ได้';
-  }catch(e){ document.getElementById('lerr').textContent='ต่อระบบไม่ได้ — เช็ค API_URL ในคู่มือข้อ 3.4'; }
+  try{const r=await api('login',{u,p});
+    if(r.ok){S={u,key:r.key,name:r.name,role:r.role};localStorage.setItem('rbo_session',JSON.stringify(S));enter();}
+    else document.getElementById('lerr').textContent=r.error;
+  }catch(e){document.getElementById('lerr').textContent='ต่อระบบไม่ได้ — เช็ค API_URL';}
 }
-function logout(){ localStorage.removeItem('rbo_session'); location.reload(); }
+function logout(){localStorage.removeItem('rbo_session');location.reload();}
+function isLA(){return S.role==='master'||S.role==='assist';}
 function enter(){
   document.getElementById('login').style.display='none';
   document.getElementById('hd').style.display='block';
   document.getElementById('stats').style.display='block';
   document.getElementById('nav').classList.add('show');
   document.getElementById('hi').textContent='สวัสดี '+S.name+' 🌈';
-  document.getElementById('hsub').textContent = new Date().toLocaleDateString('th-TH',{weekday:'long',day:'numeric',month:'short',year:'2-digit'});
-  tab('home', document.querySelector('nav button'));
-  loadHome(); loadCatalog();
+  document.getElementById('hsub').textContent=new Date().toLocaleDateString('th-TH',{weekday:'long',day:'numeric',month:'short',year:'2-digit'});
+  if(!isLA()) document.getElementById('navAdd').style.display='none';
+  if(S.role==='storefront'){ document.getElementById('wdCreateCard').style.display='none';
+    document.getElementById('wdListTitle').textContent='📋 ใบเบิกรอปล่อยของ'; }
+  // เติม dropdown
+  document.getElementById('aCat').innerHTML=CATS.map(c=>`<option>${c}</option>`).join('');
+  document.getElementById('aCls').innerHTML=CLASSES.map(c=>`<option>${c}</option>`).join('');
+  tab('home',document.querySelector('nav button'));
+  loadAll();
 }
-async function loadHome(){
-  const r = await api('dashboard');
-  if(!r.ok) return;
-  document.getElementById('stSku').textContent = r.totalSku;
-  document.getElementById('stBill').textContent = r.pendingBills;
-  document.getElementById('colorDots').innerHTML = r.colors.map(c=>
-    `<span class="dot" style="background:${CMAP[c.color]||'#ccc'};color:${['CREAM','YELLOW'].includes(c.color)?'#7a6320':'#fff'}">${c.price}</span>`).join('');
-}
-async function loadCatalog(){
-  const r = await api('catalog');
-  if(!r.ok) return;
-  document.getElementById('stAlb').textContent = r.albums.length;
-  const box = document.getElementById('catList');
-  if(r.selections.length===0){
-    box.innerHTML = '<div class="empty">ยังไม่มีสินค้า — Build 2 จะเปิดหน้า Import<br>ฐานข้อมูล 107 SKU + รูป เข้าอัตโนมัติ 🌈</div>'; return;
+async function loadAll(){
+  const d=await api('dashboard');
+  if(d.ok){document.getElementById('stSku').textContent=d.totalSku;
+    document.getElementById('stPend').textContent=d.pending;
+    document.getElementById('stWd').textContent=d.wdWait;
+    COLORS=d.colors;
+    document.getElementById('colorDots').innerHTML=d.colors.map(c=>`<span class="dot" style="background:${CMAP[c.color]||'#ccc'};color:${['CREAM','YELLOW'].includes(c.color)?'#7a6320':'#fff'}">${c.price}</span>`).join('');
+    document.getElementById('aColor').innerHTML='<option value="">ไม่มีสี (ขาย A/B)</option>'+d.colors.map(c=>`<option>${c.color}</option>`).join('');
   }
-  box.innerHTML = r.selections.slice(0,60).map(s=>`
-    <div class="item">
-      <div class="ph">${s.img?`<img src="${s.img}">`:'📿'}</div>
-      <div><b>${s.sku_rbo}</b><small>${s.sel_name||s.name_rbws||''} ${s.sku_rbws?'· WS: '+s.sku_rbws:''}</small></div>
-      <div class="pricebar">${s.color_rbo?`<span class="num">${s.color_rbo}</span>`:''}
-        ${r.canCost&&s.cost_latest?`<small>ทุน ${s.cost_latest}</small>`:''}</div>
+  const c=await api('catalog');
+  if(c.ok){CAT=c.selections;renderCat();}
+  if(isLA()){const p=await api('pendingList');
+    if(p.ok&&p.list.length){document.getElementById('pendCard').style.display='block';
+      document.getElementById('pendList').innerHTML=p.list.slice(0,15).map(x=>`
+        <div class="item"><div class="ph">${x.img?`<img src="${IMG_BASE+encodeURIComponent(x.img)}">`:'🏷'}</div>
+        <div><b>WS: ${x.sku_rbws}</b><small>${x.detail||''}</small></div>
+        <div class="endc"><small>คงเหลือ WS ${x.qty}</small></div></div>`).join('')
+        +(p.list.length>15?`<div class="hint">…และอีก ${p.list.length-15} รายการ</div>`:'');
+    }}
+  wdLoad();
+}
+function renderCat(){
+  const q=(document.getElementById('catQ').value||'').toLowerCase();
+  const list=CAT.filter(s=>!q||String(s.sku_rbo).toLowerCase().includes(q)||String(s.detail).toLowerCase().includes(q));
+  document.getElementById('catList').innerHTML = list.length? list.slice(0,80).map(s=>`
+    <div class="item"><div class="ph">${s.img?`<img src="${IMG_BASE+encodeURIComponent(s.img)}" loading="lazy">`:'📿'}</div>
+      <div><b>${s.sku_rbo}</b><small>${s.detail||''}</small><small>${s.sku_rbws?'WS: '+s.sku_rbws+' · 📍'+(s.loc_rbws||'–'):'ซื้อภายนอก'}</small></div>
+      <div class="endc">${s.color_rbo?`<span class="num">${s.color_rbo}</span>`:''}<small>คงเหลือ ${s.qty_shop||0}</small>${s.cost_latest?`<small>ทุน ${s.cost_latest}</small>`:''}</div>
+    </div>`).join('') : '<div class="empty">ไม่พบ</div>';
+}
+/* ── ใบเบิก ── */
+let sugTimer=null;
+function wdSuggest(){
+  clearTimeout(sugTimer);
+  const q=document.getElementById('wdQ').value.trim();
+  if(q.length<1){document.getElementById('wdSug').style.display='none';return;}
+  sugTimer=setTimeout(async()=>{
+    const r=await api('skuFind',{q});
+    const el=document.getElementById('wdSug');
+    if(r.ok&&r.hit.length){
+      el.innerHTML=r.hit.map((s,i)=>`<div class="item" onclick='wdPick(${JSON.stringify(JSON.stringify(s))})'>
+        <div class="ph">${s.img?`<img src="${IMG_BASE+encodeURIComponent(s.img)}">`:'📿'}</div>
+        <div><b>${s.sku_rbo}</b><small>${s.sku_rbws?'WS: '+s.sku_rbws:'⚠ ไม่มีฝั่ง WS เบิกไม่ได้'} · 📍${s.loc_rbws||'ว่าง'}</small></div></div>`).join('');
+      el.style.display='block';
+    } else {el.innerHTML='<div class="empty">ไม่พบ</div>';el.style.display='block';}
+  },350);
+}
+function wdPick(js){
+  const s=JSON.parse(js);
+  document.getElementById('wdSug').style.display='none';
+  document.getElementById('wdQ').value='';
+  if(!s.sku_rbws){alert('ตัวนี้ไม่มีรหัส Wholesale — ซื้อจากภายนอกแทน');return;}
+  if(WDCART.some(x=>x.sku===s.sku_rbo)) return;
+  WDCART.push({sku:s.sku_rbo,ws:s.sku_rbws,loc:s.loc_rbws||'',qty:1,needLoc:!s.loc_rbws});
+  wdRender();
+}
+function wdRender(){
+  document.getElementById('wdLines').innerHTML=WDCART.map((x,i)=>`
+    <div class="wline"><div><b>${x.sku}</b> → ${x.ws}<br>
+      ${x.needLoc?`<input placeholder="Location WS (Admin เติมได้)" style="width:170px" onchange="WDCART[${i}].loc=this.value">`:`📍${x.loc}`}</div>
+      <input type="number" value="${x.qty}" min="1" onchange="WDCART[${i}].qty=this.value">
+      <button class="x" onclick="WDCART.splice(${i},1);wdRender()">✕</button></div>`).join('');
+}
+async function wdSend(){
+  if(!WDCART.length){alert('ยังไม่มีรายการ');return;}
+  const r=await api('wdCreate',{items:WDCART});
+  if(r.ok){alert('ส่งใบเบิก '+r.doc+' แล้ว 🌈');WDCART=[];wdRender();loadAll();}
+  else alert(r.error);
+}
+async function wdLoad(){
+  const r=await api('wdList');
+  const el=document.getElementById('wdList');
+  if(!r.ok){el.innerHTML='<div class="empty">'+r.error+'</div>';return;}
+  if(!r.orders.length){el.innerHTML='<div class="empty">ยังไม่มีใบเบิก</div>';return;}
+  const stTh={sent:'รอหน้าร้านปล่อย',released:'รอ Assist ยืนยันรับเข้า',received:'รับเข้าแล้ว ✓'};
+  el.innerHTML=r.orders.map(w=>`
+    <div style="border:1px solid var(--line);border-radius:14px;padding:10px;margin-bottom:8px">
+      <div style="display:flex;align-items:center;gap:8px"><b class="num" style="font-size:13px">${w.doc_no}</b>
+        <span class="tagst st-${w.status}">${stTh[w.status]||w.status}</span>
+        <small style="margin-left:auto;color:var(--mut)">${w.items.length} รายการ · ${w.created_by}</small></div>
+      ${w.items.map(i=>`<div style="font-size:11.5px;color:var(--mut);margin-top:3px">• ${i.sku_rbo} → ${i.sku_rbws} ×${i.qty} 📍${i.loc_rbws||'–'}</div>`).join('')}
+      ${(S.role==='storefront'&&w.status==='sent')?`<button class="btn sm" style="margin-top:8px" onclick="wdAct('${w.doc_no}','release')">✅ ปล่อยของแล้ว + แนบเอกสาร</button>`:''}
+      ${(isLA()&&w.status==='released')?`<button class="btn sm" style="margin-top:8px" onclick="wdAct('${w.doc_no}','confirm')">📥 ยืนยันรับเข้าสต๊อก</button>`:''}
     </div>`).join('');
 }
-function tab(id,btn){
-  document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
+async function wdAct(doc,act){
+  const r=await api('wdAction',{doc,act});
+  if(r.ok){loadAll();} else alert(r.error);
+}
+/* ── Add SKU ── */
+async function addSku(){
+  const g=id=>document.getElementById(id).value.trim();
+  document.getElementById('aErr').textContent='';
+  const r=await api('addSku',{category:g('aCat'),cls:g('aCls'),sku_custom:g('aCustom'),
+    sel_name:g('aName'),sku_rbws:g('aWs'),weight:g('aW'),loc_rbo:g('aLocO'),loc_rbws:g('aLocW'),
+    color_rbo:g('aColor'),qty:g('aQty'),cost:g('aCost'),color_rbws:g('aColW'),detail:g('aName')});
+  if(r.ok){document.getElementById('aOk').textContent='✅ สร้าง '+r.sku+' เรียบร้อย';
+    ['aCustom','aName','aWs','aW','aLocO','aLocW','aQty','aCost','aColW'].forEach(i=>document.getElementById(i).value='');
+    loadAll();}
+  else document.getElementById('aErr').textContent=r.error;
+}
+function tab(id,btn){document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
   document.getElementById(id).classList.add('on');
   document.querySelectorAll('nav button').forEach(b=>b.classList.remove('on'));
-  btn.classList.add('on'); window.scrollTo(0,0);
-}
+  btn.classList.add('on');window.scrollTo(0,0);}
 if(S) enter();
 </script>
 </body>
