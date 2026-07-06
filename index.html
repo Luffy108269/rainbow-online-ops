@@ -163,6 +163,18 @@ const IMG_BASE = 'img/';
 </div>
 
 <div id="more" class="pg">
+  <div class="card" id="setCard">
+    <h2>⚙️ นำเข้าข้อมูล <span class="lock">Luffy/Assist</span></h2>
+    <label>📷 อัปโหลดรูปสินค้า (เลือกจากโฟลเดอร์ zip ได้ทีเดียวทุกรูป)</label>
+    <input type="file" id="imgFiles" multiple accept="image/*">
+    <button class="btn o" onclick="upImgs()">อัปโหลดรูปทั้งหมด → ระบบจับคู่กับ SKU เอง</button>
+    <div class="hint" id="imgProg"></div>
+    <div style="height:10px"></div>
+    <label>📄 นำเข้า/อัปเดตฐานข้อมูล (ไฟล์ JSON — โหมดปรับปรุง ไม่แตะบัญชี)</label>
+    <input type="file" id="jsonFile" accept=".json,application/json">
+    <button class="btn o" onclick="upJson()">นำเข้าไฟล์ JSON</button>
+    <div class="hint" id="jsonProg"></div>
+  </div>
   <div class="card"><h2>🚧 Build ถัดไป</h2>
     <div class="item"><div class="ph">🛍</div><div><b>บิลรับภายนอก + ใบเสร็จ/สลิป</b><small>Build 3</small></div></div>
     <div class="item"><div class="ph">🧾</div><div><b>บัญชี 2 บริษัท + งวดภาษี</b><small>Build 3</small></div></div>
@@ -203,7 +215,7 @@ function enter(){
   document.getElementById('nav').classList.add('show');
   document.getElementById('hi').textContent='สวัสดี '+S.name+' 🌈';
   document.getElementById('hsub').textContent=new Date().toLocaleDateString('th-TH',{weekday:'long',day:'numeric',month:'short',year:'2-digit'});
-  if(!isLA()) document.getElementById('navAdd').style.display='none';
+  if(!isLA()){document.getElementById('navAdd').style.display='none';document.getElementById('setCard').style.display='none';}
   if(S.role==='storefront'){ document.getElementById('wdCreateCard').style.display='none';
     document.getElementById('wdListTitle').textContent='📋 ใบเบิกรอปล่อยของ'; }
   // เติม dropdown
@@ -226,7 +238,7 @@ async function loadAll(){
   if(isLA()){const p=await api('pendingList');
     if(p.ok&&p.list.length){document.getElementById('pendCard').style.display='block';
       document.getElementById('pendList').innerHTML=p.list.slice(0,15).map(x=>`
-        <div class="item"><div class="ph">${x.img?`<img src="${IMG_BASE+encodeURIComponent(x.img)}">`:'🏷'}</div>
+        <div class="item"><div class="ph">${x.img?`<img src="${imgSrc(x.img)}">`:'🏷'}</div>
         <div><b>WS: ${x.sku_rbws}</b><small>${x.detail||''}</small></div>
         <div class="endc"><small>คงเหลือ WS ${x.qty}</small></div></div>`).join('')
         +(p.list.length>15?`<div class="hint">…และอีก ${p.list.length-15} รายการ</div>`:'');
@@ -237,7 +249,7 @@ function renderCat(){
   const q=(document.getElementById('catQ').value||'').toLowerCase();
   const list=CAT.filter(s=>!q||String(s.sku_rbo).toLowerCase().includes(q)||String(s.detail).toLowerCase().includes(q));
   document.getElementById('catList').innerHTML = list.length? list.slice(0,80).map(s=>`
-    <div class="item"><div class="ph">${s.img?`<img src="${IMG_BASE+encodeURIComponent(s.img)}" loading="lazy">`:'📿'}</div>
+    <div class="item"><div class="ph">${s.img?`<img src="${imgSrc(s.img)}" loading="lazy">`:'📿'}</div>
       <div><b>${s.sku_rbo}</b><small>${s.detail||''}</small><small>${s.sku_rbws?'WS: '+s.sku_rbws+' · 📍'+(s.loc_rbws||'–'):'ซื้อภายนอก'}</small></div>
       <div class="endc">${s.color_rbo?`<span class="num">${s.color_rbo}</span>`:''}<small>คงเหลือ ${s.qty_shop||0}</small>${s.cost_latest?`<small>ทุน ${s.cost_latest}</small>`:''}</div>
     </div>`).join('') : '<div class="empty">ไม่พบ</div>';
@@ -253,7 +265,7 @@ function wdSuggest(){
     const el=document.getElementById('wdSug');
     if(r.ok&&r.hit.length){
       el.innerHTML=r.hit.map((s,i)=>`<div class="item" onclick='wdPick(${JSON.stringify(JSON.stringify(s))})'>
-        <div class="ph">${s.img?`<img src="${IMG_BASE+encodeURIComponent(s.img)}">`:'📿'}</div>
+        <div class="ph">${s.img?`<img src="${imgSrc(s.img)}">`:'📿'}</div>
         <div><b>${s.sku_rbo}</b><small>${s.sku_rbws?'WS: '+s.sku_rbws:'⚠ ไม่มีฝั่ง WS เบิกไม่ได้'} · 📍${s.loc_rbws||'ว่าง'}</small></div></div>`).join('');
       el.style.display='block';
     } else {el.innerHTML='<div class="empty">ไม่พบ</div>';el.style.display='block';}
@@ -312,6 +324,40 @@ async function addSku(){
     ['aCustom','aName','aWs','aW','aLocO','aLocW','aQty','aCost','aColW'].forEach(i=>document.getElementById(i).value='');
     loadAll();}
   else document.getElementById('aErr').textContent=r.error;
+}
+/* ── Settings: อัปโหลดผ่านเว็บ ── */
+function imgSrc(v){ return String(v).indexOf('http')===0 ? v : IMG_BASE+encodeURIComponent(v); }
+async function upImgs(){
+  const files=[...document.getElementById('imgFiles').files];
+  if(!files.length){alert('ยังไม่ได้เลือกรูป');return;}
+  const prog=document.getElementById('imgProg');
+  let done=0, missAll=[];
+  for(let i=0;i<files.length;i+=8){
+    const batch=await Promise.all(files.slice(i,i+8).map(f=>new Promise(res=>{
+      const rd=new FileReader();
+      rd.onload=()=>res({name:f.name,mime:f.type,b64:rd.result.split(',')[1]});
+      rd.readAsDataURL(f);
+    })));
+    prog.textContent='กำลังอัปโหลด '+Math.min(i+8,files.length)+'/'+files.length+' …';
+    const r=await api('imgUp',{files:batch});
+    if(r.ok){done+=r.done; missAll=missAll.concat(r.miss||[]);}
+    else {prog.textContent='ผิดพลาด: '+r.error; return;}
+  }
+  prog.textContent='✅ อัปโหลดสำเร็จ '+done+' รูป'+(missAll.length?' · จับคู่ไม่ได้ '+missAll.length+' ('+missAll.slice(0,3).join(', ')+'…)':'');
+  loadAll();
+}
+async function upJson(){
+  const f=document.getElementById('jsonFile').files[0];
+  if(!f){alert('ยังไม่ได้เลือกไฟล์');return;}
+  const prog=document.getElementById('jsonProg');
+  prog.textContent='กำลังอ่านไฟล์…';
+  const txt=await f.text();
+  let rows; try{rows=JSON.parse(txt);}catch(e){prog.textContent='ไฟล์ไม่ใช่ JSON ที่ถูกต้อง';return;}
+  if(!Array.isArray(rows)){prog.textContent='โครงไฟล์ต้องเป็น list ของรายการ';return;}
+  prog.textContent='กำลังนำเข้า '+rows.length+' รายการ…';
+  const r=await api('importData',{rows:rows});
+  prog.textContent=r.ok?('✅ ใหม่ '+r.added+' · อัปเดต '+r.updated+' · รอกำหนดรหัส '+r.pending):('ผิดพลาด: '+r.error);
+  loadAll();
 }
 function tab(id,btn){document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
   document.getElementById(id).classList.add('on');
