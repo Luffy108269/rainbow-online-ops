@@ -72,7 +72,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B2.6 · 6 ก.ค. 69 · จัดการ User เต็มรูปแบบ';
+const BUILD = 'B2.7 · 6 ก.ค. 69 · session timeout 10 นาที';
 console.log('RB Online Ops · '+BUILD);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -222,7 +222,42 @@ console.log('RB Online Ops · '+BUILD);
 </nav>
 
 <script>
-let S=JSON.parse(localStorage.getItem('rbo_session')||'null');
+const SESSION_TIMEOUT = 10 * 60 * 1000; // 10 นาที
+function saveSession(data){
+  data._ts = Date.now();
+  localStorage.setItem('rbo_session', JSON.stringify(data));
+}
+function loadSession(){
+  const raw = localStorage.getItem('rbo_session');
+  if(!raw) return null;
+  try {
+    const d = JSON.parse(raw);
+    const away = localStorage.getItem('rbo_away_ts');
+    if(away && (Date.now() - parseInt(away)) > SESSION_TIMEOUT){
+      localStorage.removeItem('rbo_session');
+      localStorage.removeItem('rbo_away_ts');
+      return null; // ออกจากหน้าเกิน 10 นาที → บังคับ login ใหม่
+    }
+    localStorage.removeItem('rbo_away_ts');
+    return d;
+  } catch(e){ return null; }
+}
+let S = loadSession();
+// บันทึกเวลาที่ออกจากหน้า
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState === 'hidden') localStorage.setItem('rbo_away_ts', String(Date.now()));
+  else {
+    // กลับมาใหม่ — เช็คว่าเกิน 10 นาทีไหม
+    const away = localStorage.getItem('rbo_away_ts');
+    if(away && (Date.now() - parseInt(away)) > SESSION_TIMEOUT){
+      localStorage.removeItem('rbo_session');
+      localStorage.removeItem('rbo_away_ts');
+      location.reload(); // โหลดใหม่ → เจอหน้า login
+    } else {
+      localStorage.removeItem('rbo_away_ts');
+    }
+  }
+});
 let CAT=[], COLORS=[], WDCART=[];
 const CMAP={CREAM:'#F5E9D7',RED:'#E05656',GREEN:'#58B37C',PINK:'#F29BB4',BLUE:'#6FA8DC',YELLOW:'#FFD84D',GREY:'#B9BFC9',PURPLE:'#9B7FD4'};
 const CATS='Earrings,Ring,Bangle,Bracelet,Necklace,Pendant,Anklet,Set'.split(',');
@@ -233,7 +268,7 @@ async function doLogin(){
   const u=document.getElementById('u').value.trim(),p=document.getElementById('p').value;
   document.getElementById('lerr').textContent='กำลังตรวจสอบ…';
   try{const r=await api('login',{u,p});
-    if(r.ok){S={u,key:r.key,name:r.name,role:r.role};localStorage.setItem('rbo_session',JSON.stringify(S));enter();}
+    if(r.ok){S={u,key:r.key,name:r.name,role:r.role};saveSession(S);enter();}
     else document.getElementById('lerr').textContent=r.error;
   }catch(e){document.getElementById('lerr').textContent='ต่อระบบไม่ได้ — เช็ค API_URL';}
 }
