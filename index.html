@@ -72,7 +72,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B2.5 · 6 ก.ค. 69 · บันทึกชื่ออัลบั้ม';
+const BUILD = 'B2.6 · 6 ก.ค. 69 · จัดการ User เต็มรูปแบบ';
 console.log('RB Online Ops · '+BUILD);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -179,9 +179,32 @@ console.log('RB Online Ops · '+BUILD);
     <div class="hint" id="jsonProg"></div>
   </div>
   <div class="card" id="userCard" style="display:none">
-    <h2>👤 จัดการผู้ใช้ · ตั้งรหัสผ่าน <span class="lock">Luffy เท่านั้น</span></h2>
+    <h2>👤 จัดการผู้ใช้ <span class="lock">Luffy เท่านั้น</span></h2>
     <div id="userList"><div class="empty">กำลังโหลด…</div></div>
-    <div class="hint">กด "ตั้งรหัส" แล้วพิมพ์รหัสใหม่ (4 ตัวขึ้นไป) — ใช้ได้ทันที ไม่ต้อง deploy อะไร</div>
+    <div style="margin-top:10px;border-top:1px solid var(--line);padding-top:12px">
+      <div style="font-size:12px;font-weight:600;color:var(--pdd);margin-bottom:8px">＋ เพิ่ม User ใหม่</div>
+      <div class="row2">
+        <div><label>Username</label><input id="nuUser" placeholder="เช่น admina"></div>
+        <div><label>Password</label><input id="nuPass" type="password" placeholder="อย่างน้อย 4 ตัว"></div>
+      </div>
+      <div class="row2">
+        <div><label>ชื่อ-นามสกุล</label><input id="nuName" placeholder="เช่น Admin A"></div>
+        <div><label>สิทธิ์</label>
+          <select id="nuRole">
+            <option value="admin">Admin</option>
+            <option value="assist">Assist Manager</option>
+            <option value="graphic">Graphic</option>
+            <option value="storefront">หน้าร้าน WS</option>
+            <option value="master">Master (Luffy)</option>
+          </select>
+        </div>
+      </div>
+      <div class="err" id="nuErr"></div>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <button class="btn" style="margin-top:0" onclick="userAdd()">💾 บันทึก</button>
+        <button class="btn o" style="margin-top:0;width:auto;padding:12px 20px" onclick="clearUserForm()">ยกเลิก</button>
+      </div>
+    </div>
   </div>
   <div class="card"><h2>🚧 Build ถัดไป</h2>
     <div class="item"><div class="ph">🛍</div><div><b>บิลรับภายนอก + ใบเสร็จ/สลิป</b><small>Build 3</small></div></div>
@@ -334,21 +357,54 @@ async function addSku(){
   else document.getElementById('aErr').textContent=r.error;
 }
 /* ── จัดการผู้ใช้ ── */
+const ROLE_TH={master:'Master',assist:'Assist Mgr',admin:'Admin',graphic:'Graphic',storefront:'หน้าร้าน WS'};
 async function loadUsers(){
   if(S.role!=='master') return;
   document.getElementById('userCard').style.display='block';
   const r=await api('userList');
-  if(!r.ok){document.getElementById('userList').innerHTML='<div class=empty>'+r.error+'</div>';return;}
-  const roleTh={master:'Master',assist:'Assist Mgr',admin:'Admin',graphic:'Graphic',storefront:'หน้าร้าน WS'};
+  if(!r.ok){document.getElementById('userList').innerHTML='<div class="empty">'+r.error+'</div>';return;}
   document.getElementById('userList').innerHTML=r.users.map(u=>`
-    <div class="item"><div class="ph">👤</div>
-      <div><b>${u.name}</b><small>${u.username} · ${roleTh[u.role]||u.role}</small></div>
-      <div class="endc"><button class="btn sm o" onclick="setPass('${u.username}','${u.name}')">🔑 ตั้งรหัส</button></div>
+    <div class="item">
+      <div class="ph" style="background:var(--soft);font-size:15px;font-weight:700;color:var(--pd)">${u.name[0]||'?'}</div>
+      <div><b>${u.name}</b><small>@${u.username} · ${ROLE_TH[u.role]||u.role}</small></div>
+      <div class="endc" style="display:flex;gap:6px">
+        <button class="btn sm o" onclick="editUser('${u.username}','${u.name}','${u.role}')">แก้ไข</button>
+        <button class="btn sm o" onclick="setPass('${u.username}','${u.name}')">🔑</button>
+      </div>
     </div>`).join('');
 }
+async function userAdd(){
+  const u=document.getElementById('nuUser').value.trim();
+  const p=document.getElementById('nuPass').value;
+  const n=document.getElementById('nuName').value.trim();
+  const ro=document.getElementById('nuRole').value;
+  document.getElementById('nuErr').textContent='';
+  if(!u||!p||!n){document.getElementById('nuErr').textContent='กรอกให้ครบทุกช่อง';return;}
+  if(p.length<4){document.getElementById('nuErr').textContent='รหัสผ่านต้องยาวอย่างน้อย 4 ตัว';return;}
+  const r=await api('userAdd',{username:u,newpass:p,name:n,role:ro});
+  if(r.ok){clearUserForm();loadUsers();alert('✅ เพิ่ม '+n+' แล้ว ใช้งานได้ทันที');}
+  else document.getElementById('nuErr').textContent=r.error;
+}
+function clearUserForm(){
+  ['nuUser','nuPass','nuName'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('nuErr').textContent='';
+}
+async function editUser(target,name,role){
+  const newName=prompt('ชื่อใหม่สำหรับ '+name+':',name);
+  if(!newName) return;
+  const roles=['master','assist','admin','graphic','storefront'];
+  const rLabels=['Master','Assist Mgr','Admin','Graphic','หน้าร้าน WS'];
+  const cur=roles.indexOf(role);
+  const pick=prompt('สิทธิ์ใหม่ (พิมพ์ตัวเลข):\n'+roles.map((r,i)=>(i===cur?'▶ ':'   ')+(i+1)+'. '+rLabels[i]).join('\n'),cur+1);
+  if(!pick) return;
+  const newRole=roles[parseInt(pick)-1]||role;
+  const r=await api('userEdit',{target,name:newName,role:newRole});
+  if(r.ok){loadUsers();alert('✅ แก้ไข '+name+' แล้ว');}
+  else alert(r.error);
+}
 async function setPass(target,name){
-  const np=prompt('ตั้งรหัสผ่านใหม่ให้ '+name+' (4 ตัวขึ้นไป):');
-  if(!np) return;
+  const np=prompt('รหัสผ่านใหม่สำหรับ '+name+' (4 ตัวขึ้นไป):');
+  if(!np||np.length<4){if(np!==null)alert('รหัสสั้นเกิน');return;}
   const r=await api('userSetPass',{target,newpass:np});
   if(r.ok) alert('✅ เปลี่ยนรหัสของ '+name+' แล้ว ใช้ได้ทันที');
   else alert(r.error);
