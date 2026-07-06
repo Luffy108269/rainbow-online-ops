@@ -88,7 +88,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B2.12 · 6 ก.ค. 69 · Draft+ติ๊กเลือก+PDF popup';
+const BUILD = 'B2.13 · 7 ก.ค. 69 · checkbox+draft fix';
 console.log('RB Online Ops · '+BUILD);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -372,11 +372,21 @@ function wdPick(js){
   wdRender();
 }
 function wdRender(){
-  document.getElementById('wdLines').innerHTML=WDCART.map((x,i)=>`
-    <div class="wline"><div><b>${x.sku}</b> → ${x.ws}<br>
-      ${x.needLoc?`<input placeholder="Location WS (Admin เติมได้)" style="width:170px" onchange="WDCART[${i}].loc=this.value">`:`📍${x.loc}`}</div>
-      <input type="number" value="${x.qty}" min="1" onchange="WDCART[${i}].qty=this.value">
-      <button class="x" onclick="WDCART.splice(${i},1);wdRender()">✕</button></div>`).join('');
+  localStorage.setItem('rbo_wd_draft',JSON.stringify(WDCART));
+  const note=document.getElementById('wdDraftNote');
+  if(note) note.textContent=WDCART.length>0?'📝 Draft '+WDCART.length+' รายการ — บันทึกแล้ว':'';
+  const selCount=document.getElementById('wdSelCount');
+  if(selCount) selCount.textContent=WDCART.filter(function(x){return x.sel;}).length;
+  document.getElementById('wdLines').innerHTML=WDCART.map(function(x,i){
+    var chk='<input type="checkbox" '+(x.sel?'checked':'')+' onchange="WDCART['+i+'].sel=this.checked;wdRender()" style="width:18px;height:18px;accent-color:var(--pd);flex-shrink:0;margin:0">';
+    var loc=x.needLoc
+      ?'<input placeholder="Location WS (เติมได้)" style="width:160px;margin:2px 0" onchange="WDCART['+i+'].loc=this.value">'
+      :'<small style="color:var(--mut)">📍'+x.loc+'</small>';
+    return '<div class="wline">'+chk+
+      '<div style="flex:1"><b>'+x.sku+'</b><small style="color:var(--mut)"> → '+x.ws+'</small><br>'+loc+'</div>'+
+      '<input type="number" value="'+x.qty+'" min="1" style="width:52px;text-align:center" onchange="WDCART['+i+'].qty=this.value;wdRender()">'+
+      '<button class="x" onclick="WDCART.splice('+i+',1);wdRender()">✕</button></div>';
+  }).join('');
 }
 async function wdSend(){
   if(!WDCART.length){toast('ยังไม่มีรายการ','warn');return;}
