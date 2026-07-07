@@ -56,6 +56,14 @@ nav.show{display:flex}
 nav button{font-family:'Prompt';flex:1;border:none;background:none;font-size:9.5px;font-weight:500;color:var(--mut);display:flex;flex-direction:column;align-items:center;gap:1px;padding:7px 1px;border-radius:999px;cursor:pointer}
 nav button .i{font-size:18px}
 nav button.on{background:var(--pd);color:#fff;font-weight:600}
+.wtab{font-family:'Prompt';border:none;background:transparent;color:var(--mut);font-size:11px;font-weight:500;padding:7px 10px;border-radius:10px;cursor:pointer;white-space:nowrap;flex-shrink:0}
+.wtab.on{background:var(--pd);color:#fff;font-weight:600}
+.wpane{}
+.wbadge{background:#fff;color:var(--pd);border-radius:999px;padding:1px 6px;font-size:9px;font-weight:700;margin-left:3px}
+.wcard{border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:8px}
+.wcard-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.wcard-items{font-size:11px;color:var(--mut);margin-bottom:6px}
+.wcard-btns{display:flex;gap:6px;flex-wrap:wrap}
 
 .toast-wrap{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:999;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:8px}
 .toast{font-family:'Prompt',sans-serif;font-size:14px;font-weight:600;padding:14px 24px;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,.18);max-width:320px;text-align:center;animation:toastIn .2s ease;pointer-events:none}
@@ -88,7 +96,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B2.15 · 7 ก.ค. 69 · flow ใบเบิกสมบูรณ์';
+const BUILD = 'B2.16b · 7 ก.ค. 69 · มีรูปทุกขั้นตอน';
 console.log('RB Online Ops · '+BUILD);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -135,11 +143,17 @@ console.log('RB Online Ops · '+BUILD);
 
 <!-- ═══ เบิก ═══ -->
 <div id="wd" class="pg">
-  <div style="display:flex;gap:2px;margin:12px 12px 0;background:var(--soft);border-radius:14px;padding:4px">
-    <button id="wdTab1" onclick="wdTab(1)" style="font-family:'Prompt';flex:1;border:none;border-radius:10px;padding:9px;font-size:13px;font-weight:600;cursor:pointer;background:var(--pd);color:#fff">📝 คีย์รายการ</button>
-    <button id="wdTab2" onclick="wdTab(2)" style="font-family:'Prompt';flex:1;border:none;border-radius:10px;padding:9px;font-size:13px;font-weight:500;cursor:pointer;background:transparent;color:var(--mut)">📋 ใบเบิก <span id="wdBadge" style="display:none;background:var(--pd);color:#fff;border-radius:999px;padding:1px 7px;font-size:10px;margin-left:4px">0</span></button>
+  <!-- แถบ 5 แท็บ -->
+  <div style="display:flex;gap:0;margin:12px 12px 0;background:var(--soft);border-radius:14px;padding:4px;overflow-x:auto">
+    <button id="wdT1" onclick="wdTab(1)" class="wtab on">📝 เบิก</button>
+    <button id="wdT2" onclick="wdTab(2)" class="wtab">⏳ ขออนุมัติ <span id="wdB2" class="wbadge" style="display:none">0</span></button>
+    <button id="wdT3" onclick="wdTab(3)" class="wtab">✅ อนุมัติแล้ว <span id="wdB3" class="wbadge" style="display:none">0</span></button>
+    <button id="wdT4" onclick="wdTab(4)" class="wtab">📦 รับของ <span id="wdB4" class="wbadge" style="display:none">0</span></button>
+    <button id="wdT5" onclick="wdTab(5)" class="wtab">🧾 บัญชี</button>
   </div>
-  <div id="wdPane1">
+
+  <!-- แท็บ 1: เบิก (draft) -->
+  <div id="wdPane1" class="wpane">
     <div class="card" id="wdCreateCard">
       <h2>📝 คีย์รายการเบิก <span style="font-size:11px;color:var(--mut);font-weight:400">· Draft บันทึกอัตโนมัติ</span></h2>
       <div class="srch">
@@ -149,26 +163,42 @@ console.log('RB Online Ops · '+BUILD);
       <div id="wdLines"></div>
       <div style="font-size:11px;color:var(--mut);margin:6px 0 8px" id="wdDraftNote"></div>
       <div style="display:flex;gap:8px;margin-top:4px">
-        <button class="btn" onclick="wdSend()" style="flex:1">📤 ส่งใบเบิก (ทั้งหมด)</button>
-        <button class="btn o" onclick="wdSendSelected()" style="flex:1">☑ ส่งที่ติ๊กเลือก (<span id="wdSelCount">0</span>)</button>
+        <button class="btn" onclick="wdSend()" style="flex:1">📤 ส่งขออนุมัติ (ทั้งหมด)</button>
+        <button class="btn o" onclick="wdSendSelected()" style="flex:1">☑ ส่งที่ติ๊ก (<span id="wdSelCount">0</span>)</button>
       </div>
     </div>
   </div>
-  <div id="wdPane2" style="display:none">
-    <div class="card">
-      <h2>📋 รายการใบเบิกทั้งหมด</h2>
-      <div id="wdList"><div class="empty">กำลังโหลด…</div></div>
+
+  <!-- แท็บ 2: ส่งขออนุมัติ (sent) -->
+  <div id="wdPane2" class="wpane" style="display:none">
+    <div class="card"><h2>⏳ รอ Store อนุมัติ</h2><div id="wdList2"><div class="empty">กำลังโหลด…</div></div></div>
+  </div>
+
+  <!-- แท็บ 3: อนุมัติแล้ว (approved) -->
+  <div id="wdPane3" class="wpane" style="display:none">
+    <div class="card"><h2>✅ Store อนุมัติแล้ว</h2><div id="wdList3"><div class="empty">กำลังโหลด…</div></div></div>
+  </div>
+
+  <!-- แท็บ 4: รับของ (received) -->
+  <div id="wdPane4" class="wpane" style="display:none">
+    <div class="card"><h2>📦 รับของเข้าร้าน</h2><div id="wdList4"><div class="empty">กำลังโหลด…</div></div></div>
+  </div>
+
+  <!-- แท็บ 5: บัญชี (accounting) -->
+  <div id="wdPane5" class="wpane" style="display:none">
+    <div class="card"><h2>🧾 ส่งบัญชีแล้ว</h2><div id="wdList5"><div class="empty">กำลังโหลด…</div></div></div>
+  </div>
+
+  <!-- Modal -->
+  <div id="wdModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;overflow:auto;padding:16px">
+    <div style="background:#fff;border-radius:20px;max-width:480px;margin:0 auto;padding:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <h2 style="font-size:15px;color:var(--pdd)" id="modalTitle">ใบเบิก</h2>
+        <button onclick="closeModal()" style="font-family:'Prompt';border:none;background:var(--soft);color:var(--pd);border-radius:999px;padding:6px 14px;font-size:13px;cursor:pointer">✕ ปิด</button>
+      </div>
+      <div id="modalBody"></div>
     </div>
   </div>
-    <div id="wdModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;overflow:auto;padding:16px">
-      <div style="background:#fff;border-radius:20px;max-width:480px;margin:0 auto;padding:16px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-          <h2 style="font-size:15px;color:var(--pdd)" id="modalTitle">ใบเบิก</h2>
-          <button onclick="closeModal()" style="font-family:'Prompt';border:none;background:var(--soft);color:var(--pd);border-radius:999px;padding:6px 14px;font-size:13px;cursor:pointer">✕ ปิด</button>
-        </div>
-        <div id="modalBody"></div>
-      </div>
-    </div>
 </div>
 
 <div id="add" class="pg">
@@ -604,6 +634,84 @@ async function printWdFull(doc){
   setTimeout(()=>pw.print(),800);
   toast('🖨 PDF '+doc+' เปิดแล้ว','info',2000);
 }
+
+/* ── 5 แท็บเบิก ── */
+function wdTab(n){
+  [1,2,3,4,5].forEach(function(i){
+    const p=document.getElementById('wdPane'+i);
+    const t=document.getElementById('wdT'+i);
+    if(p) p.style.display=i===n?'block':'none';
+    if(t){t.classList.toggle('on',i===n);}
+  });
+  if(n>=2) wdLoadTab(n);
+}
+
+async function wdLoadTab(n){
+  const statusMap={2:'sent',3:'approved',4:'received',5:'accounting'};
+  const st=statusMap[n];
+  const listId='wdList'+n;
+  const el=document.getElementById(listId);
+  if(!el) return;
+  el.innerHTML='<div class="empty">กำลังโหลด…</div>';
+  const r=await api('wdList');
+  if(!r.ok){el.innerHTML='<div class="empty">'+r.error+'</div>';return;}
+  const orders=r.orders.filter(function(w){return w.status===st;});
+  updateBadges(r.orders);
+  if(!orders.length){el.innerHTML='<div class="empty">ไม่มีรายการ</div>';return;}
+  el.innerHTML=orders.map(function(w){return wdCard(w,n);}).join('');
+}
+
+function updateBadges(orders){
+  const counts={sent:0,approved:0,received:0};
+  orders.forEach(function(w){if(counts[w.status]!==undefined) counts[w.status]++;});
+  [['wdB2','sent'],['wdB3','approved'],['wdB4','received']].forEach(function(x){
+    const el=document.getElementById(x[0]);
+    if(!el) return;
+    if(counts[x[1]]>0){el.style.display='inline';el.textContent=counts[x[1]];}
+    else el.style.display='none';
+  });
+}
+
+function wdCard(w,tabN){
+  const doc=w.doc_no;
+  const isStore=['storefront','master','assist'].includes(S.role);
+  let btns='<button class="btn sm o" data-doc="'+doc+'" onclick="openDetail(this.dataset.doc)">📄 ดูรายละเอียด</button>';
+  if(tabN===2&&isStore)
+    btns='<button class="btn sm" data-doc="'+doc+'" onclick="openApprove(this.dataset.doc)">✅ อนุมัติ</button> '+btns;
+  if(tabN===3&&isLA())
+    btns='<button class="btn sm" data-doc="'+doc+'" data-act="wdReceive" onclick="wdQuickAct2(this)">📦 รับของเข้าร้าน</button> '+btns;
+  if(tabN===4&&isLA())
+    btns='<button class="btn sm o" data-doc="'+doc+'" onclick="confirmAccounting(this.dataset.doc)">🧾 ส่งบัญชี</button> '+btns;
+  // รูปสินค้าทุก SKU
+  const imgRow=w.items.map(function(it){
+    return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--soft)">'+
+      '<div class="ph" style="width:40px;height:40px;flex-shrink:0">'+(it.img?'<img src="'+imgSrc(it.img)+'" style="width:100%;height:100%;object-fit:cover;border-radius:10px">':'📿')+'</div>'+
+      '<div style="flex:1"><div style="font-size:12px;font-weight:600">'+(it.sel_name||it.sku_rbo)+'</div>'+
+      '<div style="font-size:10.5px;color:var(--mut)">'+it.sku_rbo+' → '+it.sku_rbws+'</div></div>'+
+      '<span class="num" style="font-size:14px;color:var(--pdd)">×'+it.qty+'</span></div>';
+  }).join('');
+  return '<div class="wcard">'+
+    '<div class="wcard-head"><b class="num" style="font-size:13px">'+doc+'</b>'+
+    '<small style="color:var(--mut)">'+w.items.length+' SKU · '+w.created_by+' · '+w.date+'</small></div>'+
+    imgRow+
+    '<div class="wcard-btns" style="margin-top:8px">'+btns+'</div></div>';
+}
+function wdQuickAct2(btn){wdQuickAct(btn.dataset.doc,btn.dataset.act);}
+function wdQuickAct2(btn){wdQuickAct(btn.dataset.doc,btn.dataset.act);}
+
+async function confirmAccounting(doc){
+  toast('⚠️ เมื่อส่งบัญชีแล้ว จะแก้ไขใบเบิกนี้ไม่ได้อีก','warn',0);
+  setTimeout(function(){
+    if(confirm('ยืนยันส่งใบ '+doc+' เข้าบัญชี?\nหลังกดยืนยันจะแก้ไขไม่ได้อีก')){
+      api('wdAction',{doc:doc,act:'accounting'}).then(function(r){
+        if(r.ok){toast('🧾 ส่งบัญชีแล้ว','ok',3000);wdLoadTab(4);wdLoadTab(5);}
+        else toast(r.error,'err');
+      });
+    }
+  },300);
+}
+
+function wdUpdateBadge(){}  // compat shim
 
 /* ── Sub-tab เบิก ── */
 function wdTab(n){
