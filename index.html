@@ -96,7 +96,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B2.17e · 7 ก.ค. 69 · received แก้ SKU+น้ำหนัก';
+const BUILD = 'B2.17f · 8 ก.ค. 69 · ระบบบัญชี E-Tax+พี่ตุ่น';
 console.log('RB Online Ops · '+BUILD);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -181,7 +181,13 @@ console.log('RB Online Ops · '+BUILD);
 
   <!-- แท็บ 4: รับของ (received) -->
   <div id="wdPane4" class="wpane" style="display:none">
-    <div class="card"><h2>📦 รับของเข้าร้าน</h2><div id="wdList4"><div class="empty">กำลังโหลด…</div></div></div>
+    <div class="card">
+      <h2>📦 รับของเข้าร้าน</h2>
+      <div id="wdList4"><div class="empty">กำลังโหลด…</div></div>
+      <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line)" id="accBtnWrap" style="display:none">
+        <button class="btn" onclick="openAccounting()">🧾 รวมส่งบัญชี (<span id="accSelCount">0</span> ใบ)</button>
+      </div>
+    </div>
   </div>
 
   <!-- แท็บ 5: บัญชี (accounting) -->
@@ -697,6 +703,126 @@ async function printWdFull(doc){
   toast('🖨 PDF '+doc+' เปิดแล้ว','info',2000);
 }
 
+/* ── ระบบบัญชี ── */
+function openAccounting(){
+  const checked=[...document.querySelectorAll('.acc-chk:checked')].map(function(c){return c.dataset.doc;});
+  if(!checked.length){toast('ยังไม่ได้ติ๊กเลือกใบเบิก','warn');return;}
+  // รวม items จากทุกใบที่เลือก
+  toast('กำลังโหลดข้อมูล...','info',2000);
+  Promise.all(checked.map(function(doc){return api('wdDetail',{doc:doc});})).then(function(results){
+    const allItems=[];
+    const docDates={};
+    results.forEach(function(r){
+      if(!r.ok) return;
+      docDates[r.order.doc_no]=r.order;
+      r.items.forEach(function(it){
+        // รวม SKU เดียวกัน
+        const exist=allItems.find(function(x){return x.sku_rbo===it.sku_rbo;});
+        if(exist){
+          exist.qty+=Number(it.qty);
+          exist.net_weight+=(Number(it.weight)||0)*Number(it.qty);
+        } else {
+          allItems.push({
+            sku_rbo:it.sku_rbo,
+            sku_rbws:it.sku_rbws||'',
+            sel_name:it.sel_name||it.sku_rbo,
+            category:it.category||'',
+            qty:Number(it.qty),
+            cost:Number(it.cost)||0,
+            weight_per:Number(it.weight)||0,
+            net_weight:(Number(it.weight)||0)*Number(it.qty),
+            price_per_gram:''
+          });
+        }
+      });
+    });
+    window._accDocs=checked;
+    window._accItems=allItems;
+    window._accDocDates=docDates;
+    renderAccModal(checked,allItems);
+  });
+}
+
+function renderAccModal(docs,items){
+  document.getElementById('modalTitle').textContent='รวมส่งบัญชี '+docs.length+' ใบ';
+  let html='<div style="font-size:11.5px;color:var(--mut);margin-bottom:10px">'+
+    'ใบเบิก: <b>'+docs.join(', ')+'</b></div>';
+  // ตารางกรอก ราคาต่อกรัม
+  html+='<div style="font-size:11px;color:var(--pdd);font-weight:600;margin-bottom:6px">กรอกราคาต่อกรัมรวม VAT ต่อ SKU</div>';
+  html+=items.map(function(it,i){
+    var totalWt=(it.net_weight||0).toFixed(2);
+    return '<div style="display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--soft)">'+
+      '<div style="flex:1"><div style="font-size:12px;font-weight:600">'+(it.sel_name||it.sku_rbo)+'</div>'+
+      '<div style="font-size:10.5px;color:var(--mut)">'+it.sku_rbo+' · ×'+it.qty+' · '+totalWt+' g</div></div>'+
+      '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">'+
+      '<input type="number" step="0.01" placeholder="฿/g" id="ppg_'+i+'" style="width:80px;text-align:right;border:1.5px solid var(--line);border-radius:8px;padding:4px 6px;font-size:12px" oninput="calcAccTotal()">'+
+      '<small id="sub_'+i+'" style="font-size:10px;color:var(--mut)">–</small></div></div>';
+  }).join('');
+  html+='<div style="background:var(--soft);border-radius:12px;padding:10px;margin-top:10px;font-size:13px">'+
+    'ยอดรวมที่ต้องโอน: <b class="num" style="color:var(--pdd);font-size:16px" id="accTotal">0</b> บาท</div>';
+  html+='<div style="margin-top:10px">'+
+    '<label style="font-size:11px;color:var(--mut)">📎 แนบสลิปโอนเงิน (ถ้ามี)</label>'+
+    '<input type="file" id="accSlip" accept="image/*" style="width:100%;margin-top:4px;font-size:12px"></div>';
+  html+='<button class="btn" onclick="generateAccExcel()" style="margin-top:12px">📥 Generate Excel 2 ไฟล์ + ส่งบัญชี</button>';
+  document.getElementById('modalBody').innerHTML=html;
+  document.getElementById('wdModal').style.display='block';
+}
+
+function calcAccTotal(){
+  const items=window._accItems||[];
+  let total=0;
+  items.forEach(function(it,i){
+    const el=document.getElementById('ppg_'+i);
+    const sub=document.getElementById('sub_'+i);
+    if(!el) return;
+    const ppg=Number(el.value)||0;
+    const amt=ppg*(it.net_weight||0);
+    total+=amt;
+    sub.textContent=amt>0?('฿'+amt.toFixed(2)):'–';
+  });
+  const el=document.getElementById('accTotal');
+  if(el) el.textContent=total.toFixed(2);
+}
+
+async function generateAccExcel(){
+  const items=window._accItems||[];
+  const docs=window._accDocs||[];
+  const today=new Date().toLocaleDateString('th-TH',{year:'numeric',month:'2-digit',day:'2-digit'});
+  // เก็บ ราคาต่อกรัม
+  items.forEach(function(it,i){
+    const el=document.getElementById('ppg_'+i);
+    it.price_per_gram=el?Number(el.value)||0:0;
+    it.total_vat=it.price_per_gram*(it.net_weight||0);
+  });
+  const total=items.reduce(function(s,x){return s+x.total_vat;},0);
+  if(!confirm('ยืนยัน Generate ไฟล์ Excel + ส่งบัญชี\n\nใบเบิก: '+docs.join(', ')+'\nยอดรวม: '+total.toFixed(2)+' บาท\n\n⚠️ หลังกดยืนยัน ใบเบิกเหล่านี้จะถูกล็อก แก้ไขไม่ได้อีก')) return;
+  toast('กำลัง Generate...','info',2000);
+  // Lock ใบเบิกทั้งหมด
+  for(var i=0;i<docs.length;i++){
+    await api('wdAction',{doc:docs[i],act:'accounting'});
+  }
+  // Generate CSV content (E-Tax + พี่ตุ่น)
+  const etaxRows=['รหัสสินค้า SKU,วันที่,จำนวนที่เพิ่มขึ้น,มูลค่ารวม,ต้นทุน/หน่วย,น้ำหนักรวม,น้ำหนักต่อชิ้น,ราคาต่อกรัมรวมVAT'];
+  const ptRows=['รหัสสินค้า SKU,วันที่จริง,วันที่ออกใบกำกับ,จำนวนที่เพิ่มขึ้น,มูลค่ารวม VAT,ต้นทุนต่อหน่วย,หมายเหตุ,น้ำหนักรวม,น้ำหนักต่อชิ้น,ราคาต่อกรัมรวมVAT'];
+  items.forEach(function(it){
+    var mu=it.cost*it.qty;
+    etaxRows.push([it.sku_rbo,'',it.qty,mu.toFixed(2),it.cost,it.net_weight.toFixed(2),it.weight_per,it.price_per_gram].join(','));
+    ptRows.push([it.sku_rbo,'',today,it.qty,(mu*1.07).toFixed(2),it.cost,it.category||'',it.net_weight.toFixed(2),it.weight_per,it.price_per_gram].join(','));
+  });
+  // Download ทั้ง 2 ไฟล์
+  function dlCSV(content,filename){
+    const bom='\uFEFF';
+    const blob=new Blob([bom+content],{type:'text/csv;charset=utf-8'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+    a.download=filename; a.click();
+  }
+  dlCSV(etaxRows.join('\n'),'etax_'+today.replace(/\//g,'-')+'.csv');
+  setTimeout(function(){dlCSV(ptRows.join('\n'),'พี่ตุ่น_'+today.replace(/\//g,'-')+'.csv');},500);
+  toast('✅ Generate 2 ไฟล์แล้ว ใบเบิกล็อกแล้ว','ok',4000);
+  closeModal();
+  wdLoadTab(4); wdLoadTab(5);
+}
+
 /* ── 5 แท็บเบิก ── */
 function wdTab(n){
   [1,2,3,4,5].forEach(function(i){
@@ -726,6 +852,16 @@ async function wdLoadTab(n){
   updateBadges(r.orders);
   if(!orders.length){el.innerHTML='<div class="empty">ไม่มีรายการในขั้นตอนนี้</div>';return;}
   el.innerHTML=orders.map(function(w){return wdCard(w,n);}).join('');
+  if(n===4){
+    // bind checkbox
+    el.querySelectorAll('.acc-chk').forEach(function(chk){
+      chk.addEventListener('change',function(){
+        const cnt=el.querySelectorAll('.acc-chk:checked').length;
+        document.getElementById('accSelCount').textContent=cnt;
+        document.getElementById('accBtnWrap').style.display=cnt>0?'block':'none';
+      });
+    });
+  }
 }
 
 function updateBadges(orders){
@@ -742,27 +878,30 @@ function updateBadges(orders){
 function wdCard(w,tabN){
   const doc=w.doc_no;
   const isStore=['storefront','master','assist'].includes(S.role);
+  // checkbox สำหรับแท็บ "รับของ" เลือกส่งบัญชี
+  const chkHtml=(tabN===4&&isLA())
+    ?'<input type="checkbox" class="acc-chk" data-doc="'+doc+'" style="width:18px;height:18px;accent-color:var(--pd);flex-shrink:0;margin-right:4px;cursor:pointer"> '
+    :'';
   let btns='<button class="btn sm o" data-doc="'+doc+'" onclick="openDetail(this.dataset.doc)">📄 ดูรายละเอียด</button>';
   if(tabN===2&&isStore)
     btns='<button class="btn sm" data-doc="'+doc+'" onclick="openApprove(this.dataset.doc)">✅ อนุมัติ</button> '+btns;
   if(tabN===3&&isLA())
     btns='<button class="btn sm" data-doc="'+doc+'" data-act="wdReceive" onclick="wdQuickAct2(this)">📦 รับของเข้าร้าน</button> '+btns;
-  if(tabN===4&&isLA())
-    btns='<button class="btn sm o" data-doc="'+doc+'" onclick="confirmAccounting(this.dataset.doc)">🧾 ส่งบัญชี</button> '+btns;
-  // รูปสินค้าทุก SKU
   const imgRow=w.items.map(function(it){
-    return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--soft)">'+
-      '<div class="ph" style="width:40px;height:40px;flex-shrink:0">'+(it.img?'<img src="'+imgSrc(it.img)+'" style="width:100%;height:100%;object-fit:cover;border-radius:10px">':'📿')+'</div>'+
+    return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--soft)">'+
+      '<div class="ph" style="width:36px;height:36px;flex-shrink:0">'+(it.img?'<img src="'+imgSrc(it.img)+'" style="width:100%;height:100%;object-fit:cover;border-radius:8px">':'📿')+'</div>'+
       '<div style="flex:1"><div style="font-size:12px;font-weight:600">'+(it.sel_name||it.sku_rbo)+'</div>'+
       '<div style="font-size:10.5px;color:var(--mut)">'+it.sku_rbo+' → '+it.sku_rbws+'</div></div>'+
-      '<span class="num" style="font-size:14px;color:var(--pdd)">×'+it.qty+'</span></div>';
+      '<span class="num" style="font-size:13px;color:var(--pdd)">×'+it.qty+'</span></div>';
   }).join('');
   return '<div class="wcard">'+
-    '<div class="wcard-head"><b class="num" style="font-size:13px">'+doc+'</b>'+
-    '<small style="color:var(--mut)">'+w.items.length+' SKU · '+w.created_by+' · '+w.date+'</small></div>'+
+    '<div class="wcard-head">'+chkHtml+
+    '<b class="num" style="font-size:13px">'+doc+'</b>'+
+    '<small style="color:var(--mut)">'+w.items.length+' SKU · '+w.created_by+' · '+fmtDate(w.date)+'</small></div>'+
     imgRow+
     '<div class="wcard-btns" style="margin-top:8px">'+btns+'</div></div>';
 }
+function wdQuickAct2(btn){wdQuickAct(btn.dataset.doc,btn.dataset.act);}
 function wdQuickAct2(btn){wdQuickAct(btn.dataset.doc,btn.dataset.act);}
 function wdQuickAct2(btn){wdQuickAct(btn.dataset.doc,btn.dataset.act);}
 
