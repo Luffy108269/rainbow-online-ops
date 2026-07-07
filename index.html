@@ -160,6 +160,15 @@ console.log('RB Online Ops · '+BUILD);
       <div id="wdList"><div class="empty">กำลังโหลด…</div></div>
     </div>
   </div>
+    <div id="wdModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;overflow:auto;padding:16px">
+      <div style="background:#fff;border-radius:20px;max-width:480px;margin:0 auto;padding:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <h2 style="font-size:15px;color:var(--pdd)" id="modalTitle">ใบเบิก</h2>
+          <button onclick="closeModal()" style="font-family:'Prompt';border:none;background:var(--soft);color:var(--pd);border-radius:999px;padding:6px 14px;font-size:13px;cursor:pointer">✕ ปิด</button>
+        </div>
+        <div id="modalBody"></div>
+      </div>
+    </div>
 </div>
 
 <div id="add" class="pg">
@@ -467,6 +476,135 @@ async function addSku(){
     loadAll();}
   else document.getElementById('aErr').textContent=r.error;
 }
+/* ── Modal + PDF ใบเบิก ── */
+function closeModal(){document.getElementById('wdModal').style.display='none';}
+document.addEventListener('keydown',function(e){if(e.key==='Escape') closeModal();});
+
+async function wdQuickAct(doc,action){
+  toast('กำลังดำเนินการ...','info',1500);
+  const actMsg={wdHold:'📦 ของมาแล้ว รอตรวจ',wdReceive:'✅ รับของแล้ว สต๊อกบวก'};
+  const r=await api(action,{doc:doc});
+  if(r.ok){toast(actMsg[action]||'✅ สำเร็จ','ok',3000);wdLoad();}
+  else toast(r.error,'err');
+}
+
+async function openDetail(doc){
+  toast('กำลังโหลด...','info',1000);
+  const r=await api('wdDetail',{doc:doc});
+  if(!r.ok){toast(r.error,'err');return;}
+  const w=r.order; const items=r.items;
+  document.getElementById('modalTitle').textContent='ใบเบิก '+doc;
+  let html='<div style="font-size:11.5px;color:var(--mut);margin-bottom:10px">สถานะ: <b style="color:var(--pdd)">'+w.status+'</b> · ผู้คีย์: '+w.created_by+'</div>';
+  html+=items.map((it,i)=>
+    '<div style="display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--soft)">'+
+    '<div style="font-size:12px;font-weight:700;color:var(--pdd);width:20px;text-align:center">'+(i+1)+'</div>'+
+    '<div class="ph">'+(it.img?'<img src="'+imgSrc(it.img)+'" style="width:100%;height:100%;object-fit:cover">':'📿')+'</div>'+
+    '<div style="flex:1"><div style="font-size:12.5px;font-weight:600">'+(it.sel_name||it.sku_rbo)+'</div>'+
+    '<div style="font-size:11px;color:var(--mut)">'+it.sku_rbo+' → '+it.sku_rbws+'</div></div>'+
+    '<span class="num" style="font-size:15px">×'+it.qty+'</span></div>'
+  ).join('');
+  html+='<button class="btn" style="margin-top:12px" data-doc="'+doc+'" onclick="printWdFull(this.dataset.doc)">🖨 พิมพ์ PDF ใบเบิก</button>';
+  document.getElementById('modalBody').innerHTML=html;
+  document.getElementById('wdModal').style.display='block';
+}
+
+async function openApprove(doc){
+  toast('กำลังโหลด...','info',1000);
+  const r=await api('wdDetail',{doc:doc});
+  if(!r.ok){toast(r.error,'err');return;}
+  window._approveItems=r.items;
+  document.getElementById('modalTitle').textContent='อนุมัติใบเบิก '+doc;
+  let html=r.items.map((it,i)=>
+    '<div style="background:var(--soft);border-radius:12px;padding:10px;margin-bottom:8px">'+
+    '<div style="display:flex;gap:10px;align-items:center">'+
+    '<div class="ph">'+(it.img?'<img src="'+imgSrc(it.img)+'" style="width:100%;height:100%;object-fit:cover">':'📿')+'</div>'+
+    '<div style="flex:1"><div style="font-size:12px;font-weight:600">'+(it.sel_name||it.sku_rbo)+'</div>'+
+    '<div style="font-size:11px;color:var(--mut)">'+it.sku_rbo+' → '+it.sku_rbws+'</div></div>'+
+    '<input type="number" id="aqty_'+i+'" value="'+it.qty+'" min="0" style="width:52px;text-align:center;border:1.5px solid var(--line);border-radius:8px;padding:4px"></div>'+
+    '<div style="margin-top:6px;display:flex;gap:8px;align-items:center">'+
+    '<small style="color:var(--mut)">น้ำหนักชั่งจริง (g):</small>'+
+    '<input type="number" id="awt_'+i+'" step="0.01" placeholder="กรอก" style="width:80px;border:1.5px solid var(--line);border-radius:8px;padding:4px 6px"></div></div>'
+  ).join('');
+  html+='<label style="font-size:11px;color:var(--mut)">Gross Weight (g)</label><input id="grossWt" type="number" step="0.01" placeholder="รวมบรรจุภัณฑ์" style="margin-bottom:8px">';
+  html+='<label style="font-size:11px;color:var(--mut)">📷 แนบรูปตราชั่ง</label><input type="file" id="scalePhotos" multiple accept="image/*" style="width:100%;margin-bottom:10px">';
+  html+='<button class="btn" data-doc="'+doc+'" onclick="submitApprove(this.dataset.doc)">✅ ยืนยันอนุมัติ</button>';
+  document.getElementById('modalBody').innerHTML=html;
+  document.getElementById('wdModal').style.display='block';
+}
+
+async function submitApprove(doc){
+  const items=window._approveItems||[];
+  const upd=items.map((it,i)=>({sku_rbo:it.sku_rbo,qty:Number(document.getElementById('aqty_'+i)?.value||it.qty),weight_actual:Number(document.getElementById('awt_'+i)?.value)||null}));
+  const totalQty=upd.reduce((s,x)=>s+x.qty,0);
+  const netSys=items.reduce((s,it)=>s+(Number(it.weight)||0)*it.qty,0).toFixed(2);
+  const gross=Number(document.getElementById('grossWt')?.value)||0;
+  if(!confirm('ยืนยันอนุมัติ '+upd.length+' SKU รวม '+totalQty+' ชิ้น/คู่\nNet ระบบ: '+netSys+' g')) return;
+  toast('กำลังอนุมัติ...','info',2000);
+  const r=await api('wdApprove',{doc:doc,items:upd,net_actual:netSys,gross:gross,photos:[]});
+  if(r.ok){toast('✅ อนุมัติ '+doc+' แล้ว','ok',3000);closeModal();wdLoad();setTimeout(()=>printWdFull(doc),600);}
+  else toast(r.error,'err');
+}
+
+async function printWdFull(doc){
+  toast('กำลังโหลด PDF...','info',1500);
+  const r=await api('wdDetail',{doc:doc});
+  if(!r.ok){toast(r.error,'err');return;}
+  const w=r.order; const items=r.items;
+  let netSys=0;
+  const rows=items.map((it,i)=>{
+    const wt=Number(it.weight)||0,qty=Number(it.qty)||0,rn=(wt*qty).toFixed(2);
+    netSys+=wt*qty;
+    return '<tr style="'+(i%2?'background:#f0f0f0':'')+'">'+'<td style="text-align:center;border:1.5px solid #333;padding:4px;font-family:Nunito;font-weight:800">'+(i+1)+'</td>'+
+      '<td style="border:1.5px solid #333;padding:4px;text-align:center">'+(it.img?'<img src="'+imgSrc(it.img)+'" style="width:34px;height:34px;object-fit:cover;border-radius:3px">':'')+'</td>'+
+      '<td style="border:1.5px solid #333;padding:4px"><b style="font-size:9pt">'+(it.sel_name||it.sku_rbo)+'</b></td>'+
+      '<td style="border:1.5px solid #333;padding:4px"><b style="font-family:Nunito;font-size:10pt">'+it.sku_rbo+'</b><div style="font-size:7pt;color:#555">'+(it.loc_rbo||'–')+'</div><div style="font-family:Nunito;font-weight:700">'+it.sku_rbws+'</div><div style="font-size:7pt;color:#555">'+(it.loc_rbws||'–')+'</div></td>'+
+      '<td style="text-align:center;border:1.5px solid #333;padding:4px;font-family:Nunito">'+wt+'</td>'+
+      '<td style="text-align:center;border:1.5px solid #333;padding:4px;font-family:Nunito;font-weight:800">'+qty+'</td>'+
+      '<td style="text-align:right;border:1.5px solid #333;padding:4px;font-family:Nunito">'+rn+'</td>'+
+      '<td style="text-align:right;border:1.5px solid #333;padding:4px;font-family:Nunito">'+(it.weight_actual||'–')+'</td></tr>';
+  }).join('');
+  const totalQty=items.reduce((s,x)=>s+Number(x.qty),0);
+  const html='<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8">'+
+    '<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;600;700&family=Nunito:wght@700;800&display=swap" rel="stylesheet">'+
+    '<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Prompt,sans-serif;padding:8mm 9mm;color:#000;font-size:8.5pt}'+
+    '.hd{display:flex;justify-content:space-between;border-bottom:2.5px solid #000;padding-bottom:6px;margin-bottom:7px}'+
+    'h1{font-size:15pt;font-weight:700}table{width:100%;border-collapse:collapse;margin-bottom:6px}'+
+    'thead th{border:2px solid #000;border-bottom:3px solid #000;padding:5px 4px;font-weight:700}'+
+    'tfoot td{border:2.5px solid #000;border-top:3px solid #000;padding:5px 4px;font-weight:700;font-family:Nunito}'+
+    '.sum{border:2px solid #000;padding:6px 10px;margin-bottom:6px;display:grid;grid-template-columns:1fr 1fr;gap:2px 20px}'+
+    '.sr{display:flex;justify-content:space-between;font-size:8pt;padding:1.5px 0}.sr .v{font-family:Nunito;font-weight:700}'+
+    '.sr.big{font-size:9pt;font-weight:700;border-top:1.5px solid #333;margin-top:2px;padding-top:3px;grid-column:1/-1}'+
+    '.signs{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:8px}'+
+    '.sign{border-top:2px solid #000;padding-top:5px;text-align:center;font-size:8pt}'+
+    '.sign b{display:block;font-size:9pt;font-weight:700}'+
+    '@media print{@page{size:A4;margin:6mm}}</style></head><body>'+
+    '<div class="hd"><div><h1>ใบเบิกสินค้า</h1><div style="font-size:7.5pt;color:#444">Rainbow Online ← Rainbow Wholesale</div>'+
+    '<div style="font-size:8.5pt;margin-top:5px">ผู้ขอเบิก: <b>'+(w.created_by||'')+'</b> | ผู้อนุมัติ: <b>'+(w.confirmed_by||'–')+'</b></div></div>'+
+    '<div style="text-align:right"><div style="font-family:Nunito;font-size:16pt;font-weight:800">'+doc+'</div>'+
+    '<div style="font-size:7.5pt;line-height:1.8">วันที่: '+(w.date||'')+'<br>สถานะ: อนุมัติแล้ว ✓</div></div></div>'+
+    '<table><thead><tr><th style="width:22px;text-align:center">No.</th><th style="width:40px;text-align:center">รูป</th>'+
+    '<th>ชื่ออัลบั้ม / ตัวเลือก</th><th>SKU RBO+Location / SKU WS+Location</th>'+
+    '<th style="text-align:center">น้ำหนัก g/ชิ้น</th><th style="text-align:center">จำนวน</th>'+
+    '<th style="text-align:right">Net ระบบ(g)</th><th style="text-align:right">Net ชั่งจริง(g)</th></tr></thead>'+
+    '<tbody>'+rows+'</tbody>'+
+    '<tfoot><tr><td colspan="4">รวม ('+items.length+' SKU)</td><td style="text-align:center">–</td>'+
+    '<td style="text-align:center;font-size:10pt">'+totalQty+'</td>'+
+    '<td style="text-align:right">'+netSys.toFixed(2)+'</td><td style="text-align:right">'+(w.net_actual||'–')+'</td></tr></tfoot></table>'+
+    '<div class="sum"><div class="sr"><span>จำนวน SKU</span><span class="v">'+items.length+'</span></div>'+
+    '<div class="sr"><span>Net Weight ตามระบบ</span><span class="v">'+netSys.toFixed(2)+' g</span></div>'+
+    '<div class="sr"><span>จำนวนรวม</span><span class="v">'+totalQty+' ชิ้น/คู่</span></div>'+
+    '<div class="sr"><span>Net Weight ชั่งจริง</span><span class="v">'+(w.net_actual||'–')+' g</span></div>'+
+    '<div class="sr big"><span>Gross Weight</span><span class="v">'+(w.gross_weight||'–')+' g</span></div></div>'+
+    '<div class="signs"><div class="sign"><b>ผู้ขอเบิก (Rainbow Online)</b>'+(w.created_by||'')+'<br><br>________________________________<br><span style="font-size:7pt">วันที่ '+(w.date||'')+'</span></div>'+
+    '<div class="sign"><b>ผู้อนุมัติ (Rainbow Wholesale)</b>'+(w.confirmed_by||'–')+'<br><br>________________________________<br><span style="font-size:7pt">วันที่ '+(w.invoice_date||'')+'</span></div></div>'+
+    '</body></html>';
+  const pw=window.open('','_blank','width=820,height=1000');
+  if(!pw){toast('❌ browser block popup','err',4000);return;}
+  pw.document.write(html); pw.document.close();
+  setTimeout(()=>pw.print(),800);
+  toast('🖨 PDF '+doc+' เปิดแล้ว','info',2000);
+}
+
 /* ── Sub-tab เบิก ── */
 function wdTab(n){
   document.getElementById('wdPane1').style.display=n===1?'block':'none';
