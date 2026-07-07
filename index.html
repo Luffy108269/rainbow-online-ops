@@ -96,7 +96,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B2.17f · 8 ก.ค. 69 · ระบบบัญชี E-Tax+พี่ตุ่น';
+const BUILD = 'B2.17g · 8 ก.ค. 69 · แก้สูตร+วันที่';
 console.log('RB Online Ops · '+BUILD);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -787,29 +787,68 @@ function calcAccTotal(){
 async function generateAccExcel(){
   const items=window._accItems||[];
   const docs=window._accDocs||[];
+  const docDates=window._accDocDates||{};
   const today=new Date().toLocaleDateString('th-TH',{year:'numeric',month:'2-digit',day:'2-digit'});
-  // เก็บ ราคาต่อกรัม
+
+  // เก็บ ราคาต่อกรัม และคำนวณสูตรใหม่
   items.forEach(function(it,i){
     const el=document.getElementById('ppg_'+i);
     it.price_per_gram=el?Number(el.value)||0:0;
-    it.total_vat=it.price_per_gram*(it.net_weight||0);
+    // ต้นทุนต่อหน่วย = ราคาต่อกรัม × น้ำหนักต่อชิ้น
+    it.cost_per_unit=(it.price_per_gram*it.weight_per);
+    // มูลค่ารวม = ต้นทุนต่อหน่วย × จำนวน
+    it.total_value=(it.cost_per_unit*it.qty);
+    // มูลค่ารวม VAT = total_value × 1.07
+    it.total_vat=(it.total_value*1.07);
   });
+
   const total=items.reduce(function(s,x){return s+x.total_vat;},0);
-  if(!confirm('ยืนยัน Generate ไฟล์ Excel + ส่งบัญชี\n\nใบเบิก: '+docs.join(', ')+'\nยอดรวม: '+total.toFixed(2)+' บาท\n\n⚠️ หลังกดยืนยัน ใบเบิกเหล่านี้จะถูกล็อก แก้ไขไม่ได้อีก')) return;
+  if(!confirm('ยืนยัน Generate ไฟล์ Excel + ส่งบัญชี\n\nใบเบิก: '+docs.join(', ')+'\nยอดรวม VAT: '+total.toFixed(2)+' บาท\n\n⚠️ หลังกดยืนยัน ใบเบิกเหล่านี้จะถูกล็อก แก้ไขไม่ได้อีก')) return;
   toast('กำลัง Generate...','info',2000);
+
+  // หาวันที่ Store อนุมัติ (เอาจากใบแรก)
+  const firstDoc=docDates[docs[0]]||{};
+  const approvedDate=firstDoc.invoice_date||firstDoc.date||'';
+  const approvedDateFmt=approvedDate?fmtDate(approvedDate):'';
+
   // Lock ใบเบิกทั้งหมด
   for(var i=0;i<docs.length;i++){
     await api('wdAction',{doc:docs[i],act:'accounting'});
   }
-  // Generate CSV content (E-Tax + พี่ตุ่น)
+
+  // ── E-Tax CSV ──
   const etaxRows=['รหัสสินค้า SKU,วันที่,จำนวนที่เพิ่มขึ้น,มูลค่ารวม,ต้นทุน/หน่วย,น้ำหนักรวม,น้ำหนักต่อชิ้น,ราคาต่อกรัมรวมVAT'];
+  items.forEach(function(it){
+    etaxRows.push([
+      it.sku_rbo,
+      today,
+      it.qty,
+      it.total_value.toFixed(2),
+      it.cost_per_unit.toFixed(4),
+      it.net_weight.toFixed(2),
+      it.weight_per,
+      it.price_per_gram
+    ].join(','));
+  });
+
+  // ── พี่ตุ่น CSV ──
   const ptRows=['รหัสสินค้า SKU,วันที่จริง,วันที่ออกใบกำกับ,จำนวนที่เพิ่มขึ้น,มูลค่ารวม VAT,ต้นทุนต่อหน่วย,หมายเหตุ,น้ำหนักรวม,น้ำหนักต่อชิ้น,ราคาต่อกรัมรวมVAT'];
   items.forEach(function(it){
-    var mu=it.cost*it.qty;
-    etaxRows.push([it.sku_rbo,'',it.qty,mu.toFixed(2),it.cost,it.net_weight.toFixed(2),it.weight_per,it.price_per_gram].join(','));
-    ptRows.push([it.sku_rbo,'',today,it.qty,(mu*1.07).toFixed(2),it.cost,it.category||'',it.net_weight.toFixed(2),it.weight_per,it.price_per_gram].join(','));
+    ptRows.push([
+      it.sku_rbo,
+      approvedDateFmt,
+      today,
+      it.qty,
+      it.total_vat.toFixed(2),
+      it.cost_per_unit.toFixed(4),
+      it.category||'',
+      it.net_weight.toFixed(2),
+      it.weight_per,
+      it.price_per_gram
+    ].join(','));
   });
-  // Download ทั้ง 2 ไฟล์
+
+  // Download
   function dlCSV(content,filename){
     const bom='\uFEFF';
     const blob=new Blob([bom+content],{type:'text/csv;charset=utf-8'});
@@ -818,6 +857,7 @@ async function generateAccExcel(){
   }
   dlCSV(etaxRows.join('\n'),'etax_'+today.replace(/\//g,'-')+'.csv');
   setTimeout(function(){dlCSV(ptRows.join('\n'),'พี่ตุ่น_'+today.replace(/\//g,'-')+'.csv');},500);
+
   toast('✅ Generate 2 ไฟล์แล้ว ใบเบิกล็อกแล้ว','ok',4000);
   closeModal();
   wdLoadTab(4); wdLoadTab(5);
