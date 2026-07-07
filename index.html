@@ -96,7 +96,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B2.17c · 7 ก.ค. 69 · ลบ wdTab เก่า';
+const BUILD = 'B2.17e · 7 ก.ค. 69 · received แก้ SKU+น้ำหนัก';
 console.log('RB Online Ops · '+BUILD);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -500,67 +500,83 @@ async function wdQuickAct(doc,action){
   else toast(r.error,'err');
 }
 
+function delDetailItem(btn){
+  window._detailItems.splice(Number(btn.dataset.idx),1);
+  document.getElementById('detailItems').innerHTML=window.renderItemsHtml();
+}
 async function openDetail(doc){
   toast('กำลังโหลด...','info',1000);
   const r=await api('wdDetail',{doc:doc});
   if(!r.ok){toast(r.error,'err');return;}
   const w=r.order; const items=r.items;
   const stTh={sent:'รอ Store อนุมัติ',approved:'Store อนุมัติแล้ว',hold:'ของมาแล้ว รอตรวจ',received:'รับของแล้ว ✓',accounting:'ส่งบัญชีแล้ว'};
+  const canEdit=w.status==='received'&&isLA();
   document.getElementById('modalTitle').textContent='ใบเบิก '+doc;
-  let html='<div style="font-size:11.5px;color:var(--mut);margin-bottom:10px">สถานะ: <b style="color:var(--pdd)">'+(stTh[w.status]||w.status)+'</b> · ผู้คีย์: '+w.created_by+' · วันที่: '+w.date+'</div>';
-  // รายการสินค้า
-  html+=items.map(function(it,i){
-    return '<div style="display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--soft)">'+
-      '<div style="font-size:12px;font-weight:700;color:var(--pdd);width:20px;text-align:center">'+(i+1)+'</div>'+
-      '<div class="ph">'+(it.img?'<img src="'+imgSrc(it.img)+'" style="width:100%;height:100%;object-fit:cover">':'📿')+'</div>'+
-      '<div style="flex:1"><div style="font-size:12.5px;font-weight:600">'+(it.sel_name||it.sku_rbo)+'</div>'+
-      '<div style="font-size:11px;color:var(--mut)">'+it.sku_rbo+' → '+it.sku_rbws+'</div></div>'+
-      '<div style="text-align:right">'+
-      (w.status==='received'&&isLA()
-        ?'<input type="number" id="rqty_'+i+'" value="'+it.qty+'" min="0" style="width:52px;text-align:center;border:1.5px solid var(--line);border-radius:8px;padding:3px" data-sku="'+it.sku_rbo+'">'
-        :'<span class="num" style="font-size:15px">×'+it.qty+'</span>')+
-      '</div></div>';
-  }).join('');
-  // รูปตราชั่ง (ถ้ามี)
+  window._detailItems=items.map(function(x){return Object.assign({},x);});
+  window._detailDoc=doc;
+
+  function renderItems(){
+    const list=window._detailItems;
+    return list.map(function(it,i){
+      return '<div style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--soft)">'+
+        '<div style="font-size:12px;font-weight:700;color:var(--pdd);width:20px;text-align:center;margin-top:4px">'+(i+1)+'</div>'+
+        '<div class="ph">'+(it.img?'<img src="'+imgSrc(it.img)+'" style="width:100%;height:100%;object-fit:cover">':'📿')+'</div>'+
+        '<div style="flex:1"><div style="font-size:12.5px;font-weight:600">'+(it.sel_name||it.sku_rbo)+'</div>'+
+        '<div style="font-size:11px;color:var(--mut)">'+it.sku_rbo+' → '+it.sku_rbws+'</div>'+
+        (canEdit?'<div style="margin-top:4px;display:flex;gap:6px;align-items:center">'+
+          '<small style="color:var(--mut)">น้ำหนักชั่งจริง(g):</small>'+
+          '<input type="number" step="0.01" placeholder="กรอก" value="'+(it.weight_actual||'')+'" style="width:75px;border:1.5px solid var(--line);border-radius:8px;padding:3px 6px;font-size:12px" oninput="window._detailItems['+i+'].weight_actual=this.value">'+
+          '</div>':'')+
+        '</div>'+
+        '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">'+
+        (canEdit
+          ?'<input type="number" value="'+it.qty+'" min="0" style="width:52px;text-align:center;border:1.5px solid var(--line);border-radius:8px;padding:3px;font-family:Nunito;font-weight:700;font-size:14px" oninput="window._detailItems['+i+'].qty=Number(this.value)">'+
+            '<button data-idx="'+i+'" onclick="delDetailItem(this)" style="font-size:10px;border:none;background:var(--soft);color:var(--pd);border-radius:999px;padding:2px 8px;cursor:pointer">✕ ลบ</button>'          :'<span class="num" style="font-size:15px">×'+it.qty+'</span>')+
+        '</div></div>';
+    }).join('');
+  }
+  window.renderItemsHtml = renderItems;
+
+  let html='<div style="font-size:11px;color:var(--mut);margin-bottom:8px">'+
+    'สถานะ: <b style="color:var(--pdd)">'+(stTh[w.status]||w.status)+'</b> · '+
+    'ผู้คีย์: '+w.created_by+' · วันที่: '+fmtDate(w.date||'')+'</div>';
+  html+='<div id="detailItems">'+renderItems()+'</div>';
+
+  // รูปตราชั่ง
   let photos=[];
   try{photos=JSON.parse(w.photos||'[]');}catch(e){}
   if(photos.length>0){
     html+='<div style="margin-top:10px;font-size:11px;font-weight:600;color:var(--pdd);margin-bottom:6px">📷 รูปถ่ายชั่งน้ำหนัก</div>';
     html+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">'+
       photos.map(function(p){
-        return '<div style="width:100px;height:75px;border:1.5px solid var(--line);border-radius:8px;overflow:hidden;background:var(--soft);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--mut)">'+
-          (p.url?'<img src="'+p.url+'" style="width:100%;height:100%;object-fit:cover">':'📷 '+p.name)+'</div>';
+        return '<div style="width:90px;height:68px;border:1.5px solid var(--line);border-radius:8px;overflow:hidden;background:var(--soft);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--mut);text-align:center">'+
+          (p.url?'<img src="'+p.url+'" style="width:100%;height:100%;object-fit:cover">':'📷<br>'+p.name)+'</div>';
       }).join('')+'</div>';
   }
-  // น้ำหนัก
+
+  // น้ำหนักรวม
   if(w.net_actual||w.gross_weight){
-    html+='<div style="background:var(--soft);border-radius:12px;padding:10px;font-size:12px;margin-bottom:10px">'+
-      (w.net_actual?'<div>Net Weight ชั่งจริง: <b>'+w.net_actual+' g</b></div>':'')+
-      (w.gross_weight?'<div>Gross Weight: <b>'+w.gross_weight+' g</b></div>':'')+'</div>';
+    html+='<div style="background:var(--soft);border-radius:12px;padding:8px 12px;font-size:12px;margin-bottom:10px">'+
+      (w.net_actual?'Net Weight ชั่งจริง: <b>'+w.net_actual+' g</b><br>':'')+
+      (w.gross_weight?'Gross Weight: <b>'+w.gross_weight+' g</b>':'')+'</div>';
   }
+
   // ปุ่ม
-  let actionBtns='';
-  if(w.status==='received'&&isLA()){
-    actionBtns='<button class="btn o" data-doc="'+doc+'" onclick="saveReceiveEdit(this.dataset.doc)" style="margin-top:8px">💾 บันทึกการแก้ไข</button> ';
-  }
-  actionBtns+='<button class="btn" data-doc="'+doc+'" onclick="printWdFull(this.dataset.doc)" style="margin-top:8px">🖨 พิมพ์ PDF ใบเบิก</button>';
-  html+='<div>'+actionBtns+'</div>';
+  let btns='';
+  if(canEdit) btns='<button class="btn o" style="margin-bottom:8px" data-doc="'+doc+'" onclick="saveReceiveEdit(this.dataset.doc)">💾 บันทึกการแก้ไข</button><br>';
+  btns+='<button class="btn" data-doc="'+doc+'" onclick="printWdFull(this.dataset.doc)">🖨 พิมพ์ PDF ใบเบิก</button>';
+  html+='<div>'+btns+'</div>';
+
   document.getElementById('modalBody').innerHTML=html;
   document.getElementById('wdModal').style.display='block';
-  window._detailItems=items;
-  window._detailDoc=doc;
 }
 
 async function saveReceiveEdit(doc){
   const items=window._detailItems||[];
-  const upd=items.map(function(it,i){
-    const el=document.getElementById('rqty_'+i);
-    return {sku_rbo:it.sku_rbo,qty:el?Number(el.value):it.qty};
-  });
   if(!confirm('ยืนยันบันทึกการแก้ไข '+doc+'?')) return;
   toast('กำลังบันทึก...','info',1500);
-  const r=await api('wdApprove',{doc:doc,items:upd,net_actual:'',gross:0,photos:[]});
-  if(r.ok){toast('✅ บันทึกแล้ว','ok',2000);closeModal();wdLoadTab(4);}
+  const r=await api('wdEditReceived',{doc:doc,items:items});
+  if(r.ok){toast('✅ บันทึกการแก้ไขแล้ว','ok',2000);closeModal();wdLoadTab(4);}
   else toast(r.error,'err');
 }
 
@@ -601,6 +617,14 @@ async function submitApprove(doc){
   else toast(r.error,'err');
 }
 
+function fmtDate(d){
+  if(!d) return '';
+  try{
+    const dt=new Date(d);
+    if(isNaN(dt)) return d;
+    return dt.toLocaleDateString('th-TH',{year:'numeric',month:'short',day:'numeric'});
+  }catch(e){return d;}
+}
 async function printWdFull(doc){
   toast('กำลังโหลด PDF...','info',1500);
   const r=await api('wdDetail',{doc:doc});
@@ -651,6 +675,18 @@ async function printWdFull(doc){
     '<div class="sr"><span>จำนวนรวม</span><span class="v">'+totalQty+' ชิ้น/คู่</span></div>'+
     '<div class="sr"><span>Net Weight ชั่งจริง</span><span class="v">'+(w.net_actual||'–')+' g</span></div>'+
     '<div class="sr big"><span>Gross Weight</span><span class="v">'+(w.gross_weight||'–')+' g</span></div></div>'+
+    '<div style="margin-bottom:8px">'+
+    '<div style="font-size:8.5pt;font-weight:700;border-bottom:1.5px solid #000;padding-bottom:3px;margin-bottom:6px">📷 รูปถ่ายหลักฐานชั่งน้ำหนัก</div>'+
+    (function(){
+      var ph=[];try{ph=JSON.parse(w.photos||'[]');}catch(e){}
+      if(!ph.length) return '<div style="font-size:8pt;color:#999">ไม่มีรูปแนบ</div>';
+      return '<div style="display:flex;gap:6px;flex-wrap:wrap">'+ph.map(function(p){
+        return p.url
+          ?'<img src="'+p.url+'" style="width:120px;height:90px;object-fit:cover;border:1.5px solid #333;border-radius:4px">'
+          :'<div style="width:120px;height:90px;border:1.5px solid #333;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:8pt;color:#555;text-align:center">📷<br>'+p.name+'</div>';
+      }).join('')+'</div>';
+    })()+
+    '</div>'+
     '<div class="signs"><div class="sign"><b>ผู้ขอเบิก (Rainbow Online)</b>'+(w.created_by||'')+'<br><br>________________________________<br><span style="font-size:7pt">วันที่ '+(w.date||'')+'</span></div>'+
     '<div class="sign"><b>ผู้อนุมัติ (Rainbow Wholesale)</b>'+(w.confirmed_by||'–')+'<br><br>________________________________<br><span style="font-size:7pt">วันที่ '+(w.invoice_date||'')+'</span></div></div>'+
     '</body></html>';
