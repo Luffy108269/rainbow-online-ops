@@ -60,6 +60,16 @@ nav button.on{background:var(--pd);color:#fff;font-weight:600}
 .wtab.on{background:var(--pd);color:#fff;font-weight:600}
 .wpane{}
 .wbadge{background:#fff;color:var(--pd);border-radius:999px;padding:1px 6px;font-size:9px;font-weight:700;margin-left:3px}
+.wd-order-card{border:1px solid var(--line);border-radius:16px;overflow:hidden;margin-bottom:10px}
+.wd-order-head{background:var(--soft);padding:10px 12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.wd-order-body{padding:0}
+.wd-sku-row{display:flex;align-items:center;gap:8px;padding:8px 12px;border-top:1px solid var(--line)}
+.wd-sku-row.selected{background:#FDF8FF}
+.wd-sku-chk{width:20px;height:20px;accent-color:var(--pd);flex-shrink:0;cursor:pointer}
+.wd-qty-input{width:52px;text-align:center;border:1.5px solid var(--line);border-radius:8px;padding:4px;font-family:'Nunito';font-weight:700;font-size:14px}
+.wd-wt-input{width:72px;text-align:right;border:1.5px solid var(--line);border-radius:8px;padding:4px 6px;font-size:12px}
+.wd-order-foot{padding:8px 12px;border-top:1px solid var(--line);display:flex;gap:8px;align-items:center}
+.sel-all-btn{font-family:'Prompt';border:none;background:var(--soft);color:var(--pdd);border-radius:999px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer}
 .wcard{border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:8px}
 .wcard-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
 .wcard-items{font-size:11px;color:var(--mut);margin-bottom:6px}
@@ -96,7 +106,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B2.17g · 8 ก.ค. 69 · แก้สูตร+วันที่';
+const BUILD = 'B2.17i · 8 ก.ค. 69 · inline edit RBWS style';
 console.log('RB Online Ops · '+BUILD);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -171,12 +181,20 @@ console.log('RB Online Ops · '+BUILD);
 
   <!-- แท็บ 2: ส่งขออนุมัติ (sent) -->
   <div id="wdPane2" class="wpane" style="display:none">
-    <div class="card"><h2>⏳ รอ Store อนุมัติ</h2><div id="wdList2"><div class="empty">กำลังโหลด…</div></div></div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <h2 style="margin:0">⏳ รอ Store อนุมัติ</h2>
+      </div>
+      <div id="wdList2"><div class="empty">กำลังโหลด…</div></div>
+    </div>
   </div>
 
   <!-- แท็บ 3: อนุมัติแล้ว (approved) -->
   <div id="wdPane3" class="wpane" style="display:none">
-    <div class="card"><h2>✅ Store อนุมัติแล้ว</h2><div id="wdList3"><div class="empty">กำลังโหลด…</div></div></div>
+    <div class="card">
+      <h2>✅ Store อนุมัติแล้ว</h2>
+      <div id="wdList3"><div class="empty">กำลังโหลด…</div></div>
+    </div>
   </div>
 
   <!-- แท็บ 4: รับของ (received) -->
@@ -703,6 +721,105 @@ async function printWdFull(doc){
   toast('🖨 PDF '+doc+' เปิดแล้ว','info',2000);
 }
 
+/* ── Inline edit WD card ── */
+function renderWdInline(orders, tabN){
+  const isApprove = tabN===2;
+  const isReceive = tabN===3;
+  const canAct = isApprove?['storefront','master','assist'].includes(S.role):isLA();
+  if(!orders.length) return '<div class="empty">ไม่มีรายการ</div>';
+  return orders.map(function(w){
+    const doc=w.doc_no;
+    const stTh={sent:'รอ Store อนุมัติ',approved:'อนุมัติแล้ว',received:'รับของแล้ว'};
+    // head
+    var html='<div class="wd-order-card" id="wdcard_'+doc+'">'+
+      '<div class="wd-order-head">'+
+      '<input type="checkbox" class="wd-sel-all wd-sku-chk" data-doc="'+doc+'" onchange="wdSelectAll(this)" style="margin:0">'+
+      '<b class="num" style="font-size:13px">'+doc+'</b>'+
+      '<small style="color:var(--mut)">'+w.items.length+' SKU · '+w.created_by+' · '+fmtDate(w.date)+'</small>'+
+      (canAct?
+        '<button class="btn sm" style="margin-left:auto" data-doc="'+doc+'" data-tab="'+tabN+'" onclick="wdSubmitInline(this.dataset.doc,Number(this.dataset.tab))">'+
+        (isApprove?'✅ อนุมัติ':'📦 ยืนยันรับของ')+
+        '</button>':
+        '<span style="margin-left:auto"><button class="btn sm o" data-doc="'+doc+'" onclick="openDetail(this.dataset.doc)">📄 ดู PDF</button></span>')+
+      '</div>';
+    // body: แต่ละ SKU
+    html+=w.items.map(function(it,i){
+      const rowId='wdr_'+doc+'_'+i;
+      return '<div class="wd-sku-row" id="'+rowId+'">'+
+        '<input type="checkbox" class="wd-sku-chk wd-row-chk" data-doc="'+doc+'" onchange="wdRowChk(this,this.dataset.doc)" style="margin:0">'+
+        '<div style="width:36px;height:36px;flex-shrink:0;border-radius:8px;overflow:hidden;background:var(--soft);display:flex;align-items:center;justify-content:center">'+
+          (it.img?'<img src="'+imgSrc(it.img)+'" style="width:100%;height:100%;object-fit:cover">':'📿')+'</div>'+
+        '<div style="flex:1;min-width:0">'+
+          '<div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(it.sel_name||it.sku_rbo)+'</div>'+
+          '<div style="font-size:10.5px;color:var(--mut)">'+it.sku_rbo+'</div>'+
+        '</div>'+
+        (canAct?
+          '<div style="display:flex;flex-direction:column;gap:3px;align-items:flex-end">'+
+            '<input type="number" class="wd-qty-input" value="'+it.qty+'" min="0" data-doc="'+doc+'" data-idx="'+i+'" data-field="qty" oninput="wdStoreEdit(this)">'+
+            (isApprove?
+              '<input type="number" class="wd-wt-input" placeholder="g ชั่งจริง" step="0.01" data-doc="'+doc+'" data-idx="'+i+'" data-field="wt" oninput="wdStoreEdit(this)">':
+              '<small style="color:var(--mut);font-size:10px">'+(it.weight_actual?it.weight_actual+'g':'–')+'</small>'
+            )+
+          '</div>':
+          '<span class="num" style="font-size:14px;color:var(--pdd)">×'+it.qty+'</span>')+
+      '</div>';
+    }).join('');
+    html+='</div>';
+    return html;
+  }).join('');
+}
+
+// เก็บ edit state
+window._wdEdits={};
+function wdStoreEdit(el){
+  const doc=el.dataset.doc, idx=el.dataset.idx, field=el.dataset.field;
+  if(!_wdEdits[doc]) _wdEdits[doc]={};
+  if(!_wdEdits[doc][idx]) _wdEdits[doc][idx]={};
+  _wdEdits[doc][idx][field]=Number(el.value)||0;
+}
+function wdSelectAll(chk){
+  const doc=chk.dataset.doc;
+  document.querySelectorAll('.wd-row-chk[data-doc="'+doc+'"]').forEach(function(c){c.checked=chk.checked;});
+}
+function wdRowChk(chk,doc){
+  const allChks=[...document.querySelectorAll('.wd-row-chk[data-doc="'+doc+'"]')];
+  const selAll=document.querySelector('.wd-sel-all[data-doc="'+doc+'"]');
+  if(selAll) selAll.checked=allChks.every(function(c){return c.checked;});
+}
+
+async function wdSubmitInline(doc,tabN){
+  const isApprove=tabN===2;
+  const edits=_wdEdits[doc]||{};
+  // รวบ items จากการ์ด
+  const qtyInputs=[...document.querySelectorAll('.wd-qty-input[data-doc="'+doc+'"]')];
+  const wtInputs=[...document.querySelectorAll('.wd-wt-input[data-doc="'+doc+'"]')];
+  const items=qtyInputs.map(function(el,i){
+    return {sku_rbo:'', qty:Number(el.value)||0, weight_actual:wtInputs[i]?Number(wtInputs[i].value)||null:null, _idx:i};
+  });
+  // gross weight ถ้า approve
+  var gross=0;
+  if(isApprove){
+    const gv=prompt('กรอก Gross Weight (g) รวมบรรจุภัณฑ์:');
+    if(gv===null) return;
+    gross=Number(gv)||0;
+  }
+  const actMsg=isApprove?'อนุมัติ':'ยืนยันรับของ';
+  if(!confirm(actMsg+' '+doc+'?')) return;
+  toast('กำลัง'+actMsg+'...','info',2000);
+  const action=isApprove?'wdApprove':'wdEditReceived';
+  const r=await api(action,{doc:doc,items:items,gross:gross,net_actual:'',photos:[]});
+  if(r.ok){
+    if(!isApprove){
+      // ยืนยันรับ → เรียก wdReceive ด้วย
+      await api('wdAction',{doc:doc,act:'wdReceive'});
+    }
+    toast('✅ '+actMsg+' '+doc+' สำเร็จ','ok',3000);
+    delete _wdEdits[doc];
+    wdLoadTab(tabN);
+    if(!isApprove) wdLoadTab(4);
+  } else toast(r.error,'err');
+}
+
 /* ── ระบบบัญชี ── */
 function openAccounting(){
   const checked=[...document.querySelectorAll('.acc-chk:checked')].map(function(c){return c.dataset.doc;});
@@ -889,9 +1006,13 @@ async function wdLoadTab(n){
   const r=await api('wdList');
   if(!r.ok){el.innerHTML='<div class="empty">'+r.error+'</div>';return;}
   const orders=r.orders.filter(function(w){return w.status===st;});
-  updateBadges(r.orders);
+  updateBadges(r.counts||{});
   if(!orders.length){el.innerHTML='<div class="empty">ไม่มีรายการในขั้นตอนนี้</div>';return;}
-  el.innerHTML=orders.map(function(w){return wdCard(w,n);}).join('');
+  if(n===2||n===3){
+    el.innerHTML=renderWdInline(orders,n);
+  } else {
+    el.innerHTML=orders.map(function(w){return wdCard(w,n);}).join('');
+  }
   if(n===4){
     // bind checkbox
     el.querySelectorAll('.acc-chk').forEach(function(chk){
@@ -904,15 +1025,21 @@ async function wdLoadTab(n){
   }
 }
 
-function updateBadges(orders){
-  const counts={sent:0,approved:0,received:0};
-  orders.forEach(function(w){if(counts[w.status]!==undefined) counts[w.status]++;});
+function updateBadges(counts){
+  if(!counts) return;
   [['wdB2','sent'],['wdB3','approved'],['wdB4','received']].forEach(function(x){
     const el=document.getElementById(x[0]);
     if(!el) return;
-    if(counts[x[1]]>0){el.style.display='inline';el.textContent=counts[x[1]];}
+    const n=counts[x[1]]||0;
+    if(n>0){el.style.display='inline';el.textContent=n;}
     else el.style.display='none';
   });
+  // อัป stat card หน้าแรก
+  const wdStat=document.getElementById('statWd');
+  if(wdStat){
+    const pending=(counts.sent||0)+(counts.approved||0)+(counts.received||0);
+    wdStat.textContent=pending;
+  }
 }
 
 function wdCard(w,tabN){
