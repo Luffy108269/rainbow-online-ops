@@ -96,7 +96,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B2.16c · 7 ก.ค. 69 · รูป draft + fix โหลด';
+const BUILD = 'B2.17 · 7 ก.ค. 69 · wdTab+รูปตราชั่ง+แก้ไขรับของ';
 console.log('RB Online Ops · '+BUILD);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -529,19 +529,63 @@ async function openDetail(doc){
   const r=await api('wdDetail',{doc:doc});
   if(!r.ok){toast(r.error,'err');return;}
   const w=r.order; const items=r.items;
+  const stTh={sent:'รอ Store อนุมัติ',approved:'Store อนุมัติแล้ว',hold:'ของมาแล้ว รอตรวจ',received:'รับของแล้ว ✓',accounting:'ส่งบัญชีแล้ว'};
   document.getElementById('modalTitle').textContent='ใบเบิก '+doc;
-  let html='<div style="font-size:11.5px;color:var(--mut);margin-bottom:10px">สถานะ: <b style="color:var(--pdd)">'+w.status+'</b> · ผู้คีย์: '+w.created_by+'</div>';
-  html+=items.map((it,i)=>
-    '<div style="display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--soft)">'+
-    '<div style="font-size:12px;font-weight:700;color:var(--pdd);width:20px;text-align:center">'+(i+1)+'</div>'+
-    '<div class="ph">'+(it.img?'<img src="'+imgSrc(it.img)+'" style="width:100%;height:100%;object-fit:cover">':'📿')+'</div>'+
-    '<div style="flex:1"><div style="font-size:12.5px;font-weight:600">'+(it.sel_name||it.sku_rbo)+'</div>'+
-    '<div style="font-size:11px;color:var(--mut)">'+it.sku_rbo+' → '+it.sku_rbws+'</div></div>'+
-    '<span class="num" style="font-size:15px">×'+it.qty+'</span></div>'
-  ).join('');
-  html+='<button class="btn" style="margin-top:12px" data-doc="'+doc+'" onclick="printWdFull(this.dataset.doc)">🖨 พิมพ์ PDF ใบเบิก</button>';
+  let html='<div style="font-size:11.5px;color:var(--mut);margin-bottom:10px">สถานะ: <b style="color:var(--pdd)">'+(stTh[w.status]||w.status)+'</b> · ผู้คีย์: '+w.created_by+' · วันที่: '+w.date+'</div>';
+  // รายการสินค้า
+  html+=items.map(function(it,i){
+    return '<div style="display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--soft)">'+
+      '<div style="font-size:12px;font-weight:700;color:var(--pdd);width:20px;text-align:center">'+(i+1)+'</div>'+
+      '<div class="ph">'+(it.img?'<img src="'+imgSrc(it.img)+'" style="width:100%;height:100%;object-fit:cover">':'📿')+'</div>'+
+      '<div style="flex:1"><div style="font-size:12.5px;font-weight:600">'+(it.sel_name||it.sku_rbo)+'</div>'+
+      '<div style="font-size:11px;color:var(--mut)">'+it.sku_rbo+' → '+it.sku_rbws+'</div></div>'+
+      '<div style="text-align:right">'+
+      (w.status==='received'&&isLA()
+        ?'<input type="number" id="rqty_'+i+'" value="'+it.qty+'" min="0" style="width:52px;text-align:center;border:1.5px solid var(--line);border-radius:8px;padding:3px" data-sku="'+it.sku_rbo+'">'
+        :'<span class="num" style="font-size:15px">×'+it.qty+'</span>')+
+      '</div></div>';
+  }).join('');
+  // รูปตราชั่ง (ถ้ามี)
+  let photos=[];
+  try{photos=JSON.parse(w.photos||'[]');}catch(e){}
+  if(photos.length>0){
+    html+='<div style="margin-top:10px;font-size:11px;font-weight:600;color:var(--pdd);margin-bottom:6px">📷 รูปถ่ายชั่งน้ำหนัก</div>';
+    html+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">'+
+      photos.map(function(p){
+        return '<div style="width:100px;height:75px;border:1.5px solid var(--line);border-radius:8px;overflow:hidden;background:var(--soft);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--mut)">'+
+          (p.url?'<img src="'+p.url+'" style="width:100%;height:100%;object-fit:cover">':'📷 '+p.name)+'</div>';
+      }).join('')+'</div>';
+  }
+  // น้ำหนัก
+  if(w.net_actual||w.gross_weight){
+    html+='<div style="background:var(--soft);border-radius:12px;padding:10px;font-size:12px;margin-bottom:10px">'+
+      (w.net_actual?'<div>Net Weight ชั่งจริง: <b>'+w.net_actual+' g</b></div>':'')+
+      (w.gross_weight?'<div>Gross Weight: <b>'+w.gross_weight+' g</b></div>':'')+'</div>';
+  }
+  // ปุ่ม
+  let actionBtns='';
+  if(w.status==='received'&&isLA()){
+    actionBtns='<button class="btn o" data-doc="'+doc+'" onclick="saveReceiveEdit(this.dataset.doc)" style="margin-top:8px">💾 บันทึกการแก้ไข</button> ';
+  }
+  actionBtns+='<button class="btn" data-doc="'+doc+'" onclick="printWdFull(this.dataset.doc)" style="margin-top:8px">🖨 พิมพ์ PDF ใบเบิก</button>';
+  html+='<div>'+actionBtns+'</div>';
   document.getElementById('modalBody').innerHTML=html;
   document.getElementById('wdModal').style.display='block';
+  window._detailItems=items;
+  window._detailDoc=doc;
+}
+
+async function saveReceiveEdit(doc){
+  const items=window._detailItems||[];
+  const upd=items.map(function(it,i){
+    const el=document.getElementById('rqty_'+i);
+    return {sku_rbo:it.sku_rbo,qty:el?Number(el.value):it.qty};
+  });
+  if(!confirm('ยืนยันบันทึกการแก้ไข '+doc+'?')) return;
+  toast('กำลังบันทึก...','info',1500);
+  const r=await api('wdApprove',{doc:doc,items:upd,net_actual:'',gross:0,photos:[]});
+  if(r.ok){toast('✅ บันทึกแล้ว','ok',2000);closeModal();wdLoadTab(4);}
+  else toast(r.error,'err');
 }
 
 async function openApprove(doc){
@@ -647,7 +691,11 @@ function wdTab(n){
     const p=document.getElementById('wdPane'+i);
     const t=document.getElementById('wdT'+i);
     if(p) p.style.display=i===n?'block':'none';
-    if(t){t.classList.toggle('on',i===n);}
+    if(t){
+      t.style.background=i===n?'var(--pd)':'transparent';
+      t.style.color=i===n?'#fff':'var(--mut)';
+      t.style.fontWeight=i===n?'600':'500';
+    }
   });
   if(n>=2) wdLoadTab(n);
 }
