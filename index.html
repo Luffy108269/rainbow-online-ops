@@ -160,7 +160,8 @@ console.log('RB Online Ops · '+BUILD);
       <div id="wdList"><div class="empty">กำลังโหลด…</div></div>
     </div>
   </div>
-  
+</div>
+
 <div id="add" class="pg">
   <div class="card">
     <h2>➕ Add New SKU <span class="lock">Luffy/Assist</span></h2>
@@ -241,8 +242,7 @@ console.log('RB Online Ops · '+BUILD);
     <div class="item"><div class="ph">📬</div><div><b>เช็คสต๊อก + อ่านเมล KETSHOP</b><small>Build 4</small></div></div>
   </div>
 </div>
-</div>
-  
+
 <nav id="nav">
   <button data-p="home" onclick="tab('home',this)"><span class="i">🏠</span>หน้าแรก</button>
   <button data-p="prod" onclick="tab('prod',this)"><span class="i">📿</span>สินค้า</button>
@@ -428,16 +428,28 @@ async function wdLoad(){
   if(!r.ok){el.innerHTML='<div class="empty">'+r.error+'</div>';return;}
   if(!r.orders.length){el.innerHTML='<div class="empty">ยังไม่มีใบเบิก</div>';return;}
   const stTh={sent:'รอ Store อนุมัติ',approved:'Store อนุมัติแล้ว',hold:'ของมาแล้ว รอตรวจ',received:'รับของแล้ว',accounting:'ส่งบัญชีแล้ว'};
-  var pending=r.orders.filter(function(w){return w.status!=='received';}).length;
+  el.innerHTML=r.orders.map(function(w){
+    const d=w.doc_no;
+    var btns='';
+    if(['storefront','master','assist'].includes(S.role)&&w.status==='sent')
+      btns+='<button class="btn sm" style="margin-top:8px" data-doc="'+d+'" onclick="openApprove(this.getAttribute(String.fromCharCode(100,97,116,97,45,100,111,99)))">✅ อนุมัติ</button> ';
+    if(isLA()&&w.status==='approved')
+      btns+='<button class="btn sm o" style="margin-top:8px" data-doc="'+d+'" data-act="wdHold" onclick="wdQuickAct(this.getAttribute(String.fromCharCode(100,97,116,97,45,100,111,99)),this.dataset.act)">📦 ของมาแล้ว</button> ';
+    if(isLA()&&(w.status==='approved'||w.status==='hold'))
+      btns+='<button class="btn sm" style="margin-top:8px" data-doc="'+d+'" data-act="wdReceive" onclick="wdQuickAct(this.getAttribute(String.fromCharCode(100,97,116,97,45,100,111,99)),this.dataset.act)">📥 ยืนยันรับของ</button> ';
+    btns+='<button class="btn sm o" style="margin-top:8px" data-doc="'+d+'" onclick="openDetail(this.getAttribute(String.fromCharCode(100,97,116,97,45,100,111,99)))">📄 ดูรายละเอียด</button>';
+    return '<div style="border:1px solid var(--line);border-radius:14px;padding:10px;margin-bottom:8px">'+
+      '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'+
+      '<b class="num" style="font-size:13px">'+d+'</b>'+
+      '<span class="tagst st-grn">'+(stTh[w.status]||w.status)+'</span>'+
+      '<small style="margin-left:auto;color:var(--mut)">'+w.items.length+' รายการ · '+w.created_by+'</small></div>'+
+      '<div style="font-size:11px;color:var(--mut);margin-top:4px">'+
+      w.items.slice(0,3).map(function(i){return '• '+i.sku_rbo+' → '+i.sku_rbws+' ×'+i.qty;}).join('   ')+
+      (w.items.length>3?' <i>...อีก '+(w.items.length-3)+' รายการ</i>':'')+'</div>'+
+      '<div style="margin-top:6px">'+btns+'</div></div>';
+  }).join('');
+  var pending=r.orders.filter(function(w){return w.status!=='received'&&w.status!=='accounting';}).length;
   wdUpdateBadge(pending);
-  el.innerHTML=r.orders.map(w=>`
-    <div style="border:1px solid var(--line);border-radius:14px;padding:10px;margin-bottom:8px">
-      <div style="display:flex;align-items:center;gap:8px"><b class="num" style="font-size:13px">${w.doc_no}</b>
-        <span class="tagst st-${w.status}">${stTh[w.status]||w.status}</span>
-        <small style="margin-left:auto;color:var(--mut)">${w.items.length} รายการ · ${w.created_by}</small></div>
-      ${w.items.map(i=>`<div style="font-size:11.5px;color:var(--mut);margin-top:3px">• ${i.sku_rbo} → ${i.sku_rbws} ×${i.qty} 📍${i.loc_rbws||'–'}</div>`).join('')}
-      ${((['storefront','master','assist'].includes(S.role))&&w.status==='sent')?`<button class="btn sm" style="margin-top:8px" onclick="wdAct('${w.doc_no}','release')">✅ ปล่อยของแล้ว</button>`:''}${(isLA()&&w.status==='released')?`<button class="btn sm" style="margin-top:8px" onclick="wdAct('${w.doc_no}','confirm')">📥 ยืนยันรับเข้าสต๊อก</button>`:''}<button class="btn sm o" style="margin-top:8px" onclick="printWd('${w.doc_no}',${JSON.stringify(JSON.stringify(w))})">🖨 PDF ใบเบิก</button>
-    </div>`).join('');
 }
 async function wdAct(doc,act){
   const r=await api('wdAction',{doc,act});
