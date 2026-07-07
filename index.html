@@ -96,7 +96,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B2.16b · 7 ก.ค. 69 · มีรูปทุกขั้นตอน';
+const BUILD = 'B2.16c · 7 ก.ค. 69 · รูป draft + fix โหลด';
 console.log('RB Online Ops · '+BUILD);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -428,11 +428,17 @@ function wdRender(){
   const selCount=document.getElementById('wdSelCount');
   if(selCount) selCount.textContent=WDCART.filter(function(x){return x.sel;}).length;
   document.getElementById('wdLines').innerHTML=WDCART.map(function(x,i){
-    var chk='<input type="checkbox" '+(x.sel?'checked':'')+' onchange="WDCART['+i+'].sel=this.checked;wdRender()" style="width:18px;height:18px;accent-color:var(--pd);flex-shrink:0;margin:0">';
-    var loc=x.needLoc
+    // หารูปจาก CAT
+    const catItem=CAT.find(function(c){return c.sku_rbo===x.sku;});
+    const imgHtml=catItem&&catItem.img
+      ?'<img src="'+imgSrc(catItem.img)+'" style="width:100%;height:100%;object-fit:cover;border-radius:10px">'
+      :'📿';
+    const chk='<input type="checkbox" '+(x.sel?'checked':'')+' onchange="WDCART['+i+'].sel=this.checked;wdRender()" style="width:18px;height:18px;accent-color:var(--pd);flex-shrink:0;margin:0">';
+    const loc=x.needLoc
       ?'<input placeholder="Location WS (เติมได้)" style="width:160px;margin:2px 0" onchange="WDCART['+i+'].loc=this.value">'
       :'<small style="color:var(--mut)">📍'+x.loc+'</small>';
     return '<div class="wline">'+chk+
+      '<div class="ph" style="width:40px;height:40px;flex-shrink:0">'+imgHtml+'</div>'+
       '<div style="flex:1"><b>'+x.sku+'</b><small style="color:var(--mut)"> → '+x.ws+'</small><br>'+loc+'</div>'+
       '<input type="number" value="'+x.qty+'" min="1" style="width:52px;text-align:center" onchange="WDCART['+i+'].qty=this.value;wdRender()">'+
       '<button class="x" onclick="WDCART.splice('+i+',1);wdRender()">✕</button></div>';
@@ -653,11 +659,12 @@ async function wdLoadTab(n){
   const el=document.getElementById(listId);
   if(!el) return;
   el.innerHTML='<div class="empty">กำลังโหลด…</div>';
+  // โหลดแบบ lightweight ก่อน แล้วค่อยโหลดรูป
   const r=await api('wdList');
   if(!r.ok){el.innerHTML='<div class="empty">'+r.error+'</div>';return;}
   const orders=r.orders.filter(function(w){return w.status===st;});
   updateBadges(r.orders);
-  if(!orders.length){el.innerHTML='<div class="empty">ไม่มีรายการ</div>';return;}
+  if(!orders.length){el.innerHTML='<div class="empty">ไม่มีรายการในขั้นตอนนี้</div>';return;}
   el.innerHTML=orders.map(function(w){return wdCard(w,n);}).join('');
 }
 
