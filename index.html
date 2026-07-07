@@ -96,7 +96,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B2.17b · 7 ก.ค. 69 · ลบ wdLoad เก่า';
+const BUILD = 'B2.17c · 7 ก.ค. 69 · ลบ wdTab เก่า';
 console.log('RB Online Ops · '+BUILD);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -745,19 +745,7 @@ async function confirmAccounting(doc){
 function wdUpdateBadge(){}  // compat shim
 
 /* ── Sub-tab เบิก ── */
-function wdTab(n){
-  document.getElementById('wdPane1').style.display=n===1?'block':'none';
-  document.getElementById('wdPane2').style.display=n===2?'block':'none';
-  var t1=document.getElementById('wdTab1');
-  var t2=document.getElementById('wdTab2');
-  t1.style.background=n===1?'var(--pd)':'transparent';
-  t1.style.color=n===1?'#fff':'var(--mut)';
-  t1.style.fontWeight=n===1?'600':'500';
-  t2.style.background=n===2?'var(--pd)':'transparent';
-  t2.style.color=n===2?'#fff':'var(--mut)';
-  t2.style.fontWeight=n===2?'600':'500';
-  if(n===2) wdLoad();
-}
+
 function wdUpdateBadge(count){
   var b=document.getElementById('wdBadge');
   if(!b) return;
