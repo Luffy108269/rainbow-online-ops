@@ -106,7 +106,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B2.17j · 8 ก.ค. 69 · fix receive+PDF';
+const BUILD = 'B2.17j2 · 8 ก.ค. 69 · รูปกลับมา+ค้นหาเร็ว';
 console.log('RB Online Ops · '+BUILD);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -167,7 +167,7 @@ console.log('RB Online Ops · '+BUILD);
     <div class="card" id="wdCreateCard">
       <h2>📝 คีย์รายการเบิก <span style="font-size:11px;color:var(--mut);font-weight:400">· Draft บันทึกอัตโนมัติ</span></h2>
       <div class="srch">
-        <input id="wdQ" placeholder="พิมพ์รหัส RBO หรือชื่อ เพื่อเพิ่มรายการ…" oninput="wdSuggest()">
+        <input id="wdQ" placeholder="พิมพ์รหัส RBO หรือชื่อ เพื่อเพิ่มรายการ…" oninput="if(this.value.length>=2)wdSuggest();else{document.getElementById('wdSug').style.display='none'}">
         <div class="sug" id="wdSug" style="display:none"></div>
       </div>
       <div id="wdLines"></div>
@@ -750,7 +750,10 @@ function renderWdInline(orders, tabN){
       return '<div class="wd-sku-row" id="'+rowId+'">'+
         '<input type="checkbox" class="wd-sku-chk wd-row-chk" data-doc="'+doc+'" onchange="wdRowChk(this,this.dataset.doc)" style="margin:0">'+
         '<div style="width:36px;height:36px;flex-shrink:0;border-radius:8px;overflow:hidden;background:var(--soft);display:flex;align-items:center;justify-content:center">'+
-          (it.img?'<img src="'+imgSrc(it.img)+'" style="width:100%;height:100%;object-fit:cover">':'📿')+'</div>'+
+          (function(){
+            var imgUrl=it.img||(CAT.find(function(c){return c.sku_rbo===it.sku_rbo;})||{}).img||'';
+            return imgUrl?'<img src="'+imgSrc(imgUrl)+'" style="width:100%;height:100%;object-fit:cover">':'📿';
+          }())+'</div>'+
         '<div style="flex:1;min-width:0">'+
           '<div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(it.sel_name||it.sku_rbo)+'</div>'+
           '<div style="font-size:10.5px;color:var(--mut)">'+it.sku_rbo+'</div>'+
@@ -812,10 +815,15 @@ async function wdSubmitInline(doc,tabN){
     // Store อนุมัติ → wdApprove
     const r=await api('wdApprove',{doc:doc,items:items,gross:gross,net_actual:'',photos:[]});
     if(r.ok){
-      toast('✅ อนุมัติ '+doc+' สำเร็จ — ของกำลังมา','ok',3000);
       delete _wdEdits[doc];
       wdLoadTab(2); wdLoadTab(3);
-      setTimeout(function(){printWdFull(doc);},600);
+      if(r.pdf_url){
+        toast('✅ อนุมัติแล้ว PDF บันทึกใน Drive แล้ว','ok',4000);
+        window.open(r.pdf_url,'_blank');
+      } else {
+        toast('✅ อนุมัติ '+doc+' สำเร็จ','ok',3000);
+        setTimeout(function(){printWdFull(doc);},600);
+      }
     } else toast(r.error,'err');
   } else {
     // Assist ยืนยันรับของ → wdReceive (ล็อก + บวกสต๊อก)
