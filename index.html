@@ -106,7 +106,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B2.17L7 · 8 ก.ค. 69 · รูปตราชั่ง+weight PDF';
+const BUILD = 'B2.17L8 · 8 ก.ค. 69 · qty fix+รูปPDF+FB';
 console.log('RB Online Ops · '+BUILD);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -812,8 +812,13 @@ async function wdSubmitInline(doc,tabN){
   const isApprove=tabN===2;
   const qtyInputs=[...document.querySelectorAll('.wd-qty-input[data-doc="'+doc+'"]')];
   const wtInputs=[...document.querySelectorAll('.wd-wt-input[data-doc="'+doc+'"]')];
+  const skuInputs=[...document.querySelectorAll('.wd-qty-input[data-doc="'+doc+'"]')];
   const items=qtyInputs.map(function(el,i){
-    return {qty:Number(el.value)||0,weight_actual:wtInputs[i]?Number(wtInputs[i].value)||null:null};
+    return {
+      sku_rbo:el.dataset.sku||'',
+      qty:Number(el.value)||0,
+      weight_actual:wtInputs[i]?Number(wtInputs[i].value)||null:null
+    };
   });
   var gross=0; var photos=[];
   if(isApprove){
@@ -872,7 +877,7 @@ function openAccounting(){
           var wtPer2=Number(it.weight)||Number(catItem2.weight)||0;
           var wtAct2=Number(it.weight_actual)||0;
           var netWt2=wtAct2>0?wtAct2:(wtPer2*Number(it.qty));
-          var catMap={'EA':'ต่างหู','EB':'ต่างหู','ES':'ต่างหู','RI':'แหวน','PE':'จี้','NB':'สร้อยคอ','NE':'สร้อยคอ','BR':'สร้อยข้อมือ','BA':'กำไลข้อมือ','AN':'สร้อยข้อเท้า','SE':'เซ็ต'};
+          var catMap={'EA':'ต่างหู','EB':'ต่างหู','ES':'ต่างหู','FB':'สร้อยข้อมือ','RI':'แหวน','PE':'จี้','NB':'สร้อยคอ','NE':'สร้อยคอ','BR':'สร้อยข้อมือ','BA':'กำไลข้อมือ','AN':'สร้อยข้อเท้า','SE':'เซ็ต'};
           var pfx2=it.sku_rbo.replace(/[0-9]/g,'').slice(0,2).toUpperCase();
           var cat2=it.category||catItem2.category||catMap[pfx2]||catMap[pfx2.slice(0,1)]||'';
           allItems.push({
