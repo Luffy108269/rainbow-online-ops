@@ -106,7 +106,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B2.17i · 8 ก.ค. 69 · inline edit RBWS style';
+const BUILD = 'B2.17j · 8 ก.ค. 69 · fix receive+PDF';
 console.log('RB Online Ops · '+BUILD);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -740,7 +740,9 @@ function renderWdInline(orders, tabN){
         '<button class="btn sm" style="margin-left:auto" data-doc="'+doc+'" data-tab="'+tabN+'" onclick="wdSubmitInline(this.dataset.doc,Number(this.dataset.tab))">'+
         (isApprove?'✅ อนุมัติ':'📦 ยืนยันรับของ')+
         '</button>':
-        '<span style="margin-left:auto"><button class="btn sm o" data-doc="'+doc+'" onclick="openDetail(this.dataset.doc)">📄 ดู PDF</button></span>')+
+        '<div style="margin-left:auto;display:flex;gap:6px">'+
+          '<button class="btn sm o" data-doc="'+doc+'" onclick="printWdFull(this.dataset.doc)">🖨 PDF</button>'+
+          '</div>')+
       '</div>';
     // body: แต่ละ SKU
     html+=w.items.map(function(it,i){
@@ -806,18 +808,24 @@ async function wdSubmitInline(doc,tabN){
   const actMsg=isApprove?'อนุมัติ':'ยืนยันรับของ';
   if(!confirm(actMsg+' '+doc+'?')) return;
   toast('กำลัง'+actMsg+'...','info',2000);
-  const action=isApprove?'wdApprove':'wdEditReceived';
-  const r=await api(action,{doc:doc,items:items,gross:gross,net_actual:'',photos:[]});
-  if(r.ok){
-    if(!isApprove){
-      // ยืนยันรับ → เรียก wdReceive ด้วย
-      await api('wdAction',{doc:doc,act:'wdReceive'});
-    }
-    toast('✅ '+actMsg+' '+doc+' สำเร็จ','ok',3000);
-    delete _wdEdits[doc];
-    wdLoadTab(tabN);
-    if(!isApprove) wdLoadTab(4);
-  } else toast(r.error,'err');
+  if(isApprove){
+    // Store อนุมัติ → wdApprove
+    const r=await api('wdApprove',{doc:doc,items:items,gross:gross,net_actual:'',photos:[]});
+    if(r.ok){
+      toast('✅ อนุมัติ '+doc+' สำเร็จ — ของกำลังมา','ok',3000);
+      delete _wdEdits[doc];
+      wdLoadTab(2); wdLoadTab(3);
+      setTimeout(function(){printWdFull(doc);},600);
+    } else toast(r.error,'err');
+  } else {
+    // Assist ยืนยันรับของ → wdReceive (ล็อก + บวกสต๊อก)
+    const r=await api('wdReceive',{doc:doc,items:items});
+    if(r.ok){
+      toast('✅ ยืนยันรับของ '+doc+' สำเร็จ — สต๊อกบวกแล้ว','ok',4000);
+      delete _wdEdits[doc];
+      wdLoadTab(3); wdLoadTab(4);
+    } else toast(r.error,'err');
+  }
 }
 
 /* ── ระบบบัญชี ── */
