@@ -106,7 +106,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B2.21 · 9 ก.ค. 69 · fix unknown+รูปตราชั่งแสดงจริง+แก้ไขรับของนับผล+โฟลเดอร์ส่งบัญชีPDF';
+const BUILD = 'B2.22 · 9 ก.ค. 69 · fix สูตรบัญชี(฿/กรัม×นน.ต่อชิ้น)+หมวดสินค้าตามSKU+fmtDateTh';
 console.log('RB Online Ops · '+BUILD);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -911,6 +911,15 @@ function resizeImgB64(file,maxPx,quality){
 }
 
 /* ── ระบบบัญชี ── */
+/* ตารางจับคู่หมวดสินค้า (กำหนดโดย Luffy): EA/ES=ต่างหู · BR ที่ใดก็ตาม(รวม FB-BR)=สร้อยข้อมือ · BA=กำไลข้อมือ · NE/NB=สร้อยคอ · AN=สร้อยข้อเท้า · PE=จี้ · SE=เซ็ต */
+function catFromSku(sku){
+  sku=String(sku||'').toUpperCase();
+  var map={EA:'ต่างหู',ES:'ต่างหู',EB:'ต่างหู',NE:'สร้อยคอ',NB:'สร้อยคอ',BA:'กำไลข้อมือ',AN:'สร้อยข้อเท้า',PE:'จี้',SE:'เซ็ต',BR:'สร้อยข้อมือ',RI:'แหวน'};
+  var p2=sku.slice(0,2);
+  if(map[p2]) return map[p2];
+  if(sku.indexOf('BR')>-1) return 'สร้อยข้อมือ';
+  return '';
+}
 function openAccounting(){
   const checked=[...document.querySelectorAll('.acc-chk:checked')].map(function(c){return c.dataset.doc;});
   if(!checked.length){toast('ยังไม่ได้ติ๊กเลือกใบเบิก','warn');return;}
@@ -935,9 +944,7 @@ function openAccounting(){
           var wtPer2=Number(it.weight)||Number(catItem2.weight)||0;
           var wtAct2=Number(it.weight_actual)||0;
           var netWt2=wtAct2>0?wtAct2:(wtPer2*Number(it.qty));
-          var catMap={'EA':'ต่างหู','EB':'ต่างหู','ES':'ต่างหู','FB':'สร้อยข้อมือ','RI':'แหวน','PE':'จี้','NB':'สร้อยคอ','NE':'สร้อยคอ','BR':'สร้อยข้อมือ','BA':'กำไลข้อมือ','AN':'สร้อยข้อเท้า','SE':'เซ็ต'};
-          var pfx2=it.sku_rbo.replace(/[0-9]/g,'').slice(0,2).toUpperCase();
-          var cat2=it.category||catItem2.category||catMap[pfx2]||catMap[pfx2.slice(0,1)]||'';
+          var cat2=catFromSku(it.sku_rbo);
           allItems.push({
             sku_rbo:it.sku_rbo,
             sku_rbws:it.sku_rbws||'',
@@ -965,8 +972,9 @@ function renderAccModal(docs,items){
   let html='<div style="font-size:11.5px;color:var(--mut);margin-bottom:10px">ใบเบิก: <b>'+docs.join(', ')+'</b></div>';
   html+='<div style="font-size:11px;color:var(--pdd);font-weight:600;margin-bottom:8px">กรอกราคาต่อ SKU — เลือกกรอก 1 ช่องเท่านั้น</div>';
   html+=items.map(function(it,i){
-    var wtLatest=Number(it.weight_actual)||Number(it.weight_per)||0;
-    var totalWt=(wtLatest*(it.qty||1)).toFixed(2);
+    // น้ำหนักรวม = net_weight ที่บวกสะสมครบทุกใบ (ชั่งจริงเป็นน้ำหนักรวมต่อบรรทัด ไม่ใช่ต่อชิ้น)
+    var netW=Number(it.net_weight)||0;
+    var totalWt=(netW>0?netW:(Number(it.weight_per)||0)*(it.qty||1)).toFixed(2);
     return '<div style="background:var(--soft);border-radius:12px;padding:10px;margin-bottom:8px">'+
       '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">'+
         '<div><div style="font-size:12.5px;font-weight:600">'+(it.sel_name||it.sku_rbo)+'</div>'+
@@ -1059,22 +1067,24 @@ async function generateAccExcel(){
     var ppg=Number(document.getElementById('ppg_'+i)?.value)||0;
     var ppc=Number(document.getElementById('ppc_'+i)?.value)||0;
     if(ppg>0&&ppc>0){hasConflict=true;return;}
-    var wtActual=Number(it.weight_actual)||0;
-    var wtLatest=wtActual>0?wtActual/Number(it.qty||1):Number(it.weight_per)||0;
-    var totalWt=wtActual>0?wtActual:(wtLatest*Number(it.qty||1));
+    // น้ำหนักรวมทุกใบ (ชั่งจริงสะสม) → น้ำหนักต่อชิ้น = รวม ÷ จำนวน
+    var netW=Number(it.net_weight)||0;
+    var totalWt=netW>0?netW:(Number(it.weight_per)||0)*Number(it.qty||1);
+    var wtPerPiece=Number(it.qty)>0?totalWt/Number(it.qty):0;
     it.price_per_gram=ppg;
     it.price_per_unit=ppc;
     if(ppc>0){
-      it.cost_per_unit=ppc;
+      it.cost_per_unit=ppc;                    // จ่ายเป็นชิ้น
       it.total_value=ppc*it.qty;
     } else if(ppg>0){
-      it.cost_per_unit=ppg*wtLatest;
-      it.total_value=it.cost_per_unit*it.qty;
+      it.cost_per_unit=ppg*wtPerPiece;         // กฎหลัก: ฿/กรัม × น้ำหนักต่อชิ้น
+      it.total_value=it.cost_per_unit*it.qty;  // = ฿/กรัม × น้ำหนักรวม
     } else {
       it.cost_per_unit=0; it.total_value=0;
     }
     it.total_vat=it.total_value; // ราคาที่กรอกรวม VAT แล้ว ไม่ต้อง *1.07
     it.net_weight_used=totalWt;
+    it.weight_per_used=wtPerPiece;
   });
   if(hasConflict){toast('⚠️ กรุณากรอกเพียง 1 ราคาต่อ SKU','err',4000);return;}
   const total=items.reduce(function(s,x){return s+x.total_vat;},0);
@@ -1091,9 +1101,9 @@ async function generateAccExcel(){
   const etaxRows=['รหัสสินค้า SKU,วันที่,จำนวนที่เพิ่มขึ้น,จำนวนที่ลดลง,มูลค่ารวม,ต้นทุนต่อหน่วย,หมายเหตุ,แผนก,คลังสินค้า,Serial/Lot'];
   const ptRows=['รหัสสินค้า SKU,วันที่จริง,วันที่ออกใบกำกับ,จำนวนที่เพิ่มขึ้น,มูลค่ารวม VAT,ต้นทุนต่อหน่วย,หมายเหตุ,น้ำหนักรวม,น้ำหนักต่อชิ้น,ราคาต่อกรัมรวมVAT'];
   items.forEach(function(it){
-    var wtPer=Number(it.weight_actual)||Number(it.weight_per)||0;
+    var wtPer=Number(it.weight_per_used)||Number(it.weight_per)||0;
     etaxRows.push([it.sku_rbo,todayFmt,it.qty,'',it.total_value.toFixed(2),it.cost_per_unit.toFixed(4),it.category||'','','',''].join(','));
-    ptRows.push([it.sku_rbo,approvedDateFmt,todayFmt,it.qty,it.total_vat.toFixed(2),it.cost_per_unit.toFixed(4),it.category||'',it.net_weight_used.toFixed(2),wtPer,it.price_per_gram||''].join(','));
+    ptRows.push([it.sku_rbo,approvedDateFmt,todayFmt,it.qty,it.total_vat.toFixed(2),it.cost_per_unit.toFixed(4),it.category||'',it.net_weight_used.toFixed(2),wtPer.toFixed(4),it.price_per_gram||''].join(','));
   });
   const etaxName='Etax_'+thMonth+'_'+todayStr;
   const ptName='ส่งพี่ตุ่น_'+thMonth+'_'+todayStr;
