@@ -106,7 +106,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B2.19 · 9 ก.ค. 69 · fix รับของจำนวนแก้แล้วไม่บันทึก+รูปสินค้าแท็บ4/5+PDF regen ส่งบัญชี+สลิป';
+const BUILD = 'B2.20 · 9 ก.ค. 69 · fix น้ำหนักหาย(เติมคอลัมน์ชีตอัตโนมัติ)+ปุ่มพิมพ์หลังอนุมัติ+บังคับรูปตราชั่ง';
 console.log('RB Online Ops · '+BUILD);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -652,9 +652,13 @@ function fmtDate(d){
   }catch(e){return String(d);}
 }
 async function printWdFull(doc){
+  // ⚠️ ต้องเปิดหน้าต่างทันทีตอนคลิก (ก่อน await) ไม่งั้น browser บล็อก popup
+  const pw=window.open('','_blank','width=820,height=1000');
+  if(!pw){toast('❌ Browser บล็อก popup — อนุญาต popup ให้เว็บนี้แล้วลองใหม่','err',5000);return;}
+  pw.document.write('<html><body style="font-family:sans-serif;padding:40px;color:#B4436C">⏳ กำลังโหลดใบเบิก '+doc+' …</body></html>');
   toast('กำลังโหลด PDF...','info',1500);
   const r=await api('wdDetail',{doc:doc});
-  if(!r.ok){toast(r.error,'err');return;}
+  if(!r.ok){pw.close();toast(r.error,'err');return;}
   const w=r.order; const items=r.items;
   let netSys=0;
   const rows=items.map((it,i)=>{
@@ -716,10 +720,9 @@ async function printWdFull(doc){
     '<div class="signs"><div class="sign"><b>ผู้ขอเบิก (Rainbow Online)</b>'+(w.created_by||'')+'<br><br>________________________________<br><span style="font-size:7pt">วันที่ '+fmtDate(w.date||'')+'</span></div>'+
     '<div class="sign"><b>ผู้อนุมัติ (Rainbow Wholesale)</b>'+(w.confirmed_by||'–')+'<br><br>________________________________<br><span style="font-size:7pt">วันที่ '+fmtDate(w.invoice_date||'')+'</span></div></div>'+
     '</body></html>';
-  const pw=window.open('','_blank','width=820,height=1000');
-  if(!pw){toast('❌ browser block popup','err',4000);return;}
-  pw.document.write(html); pw.document.close();
-  setTimeout(()=>pw.print(),800);
+  const pw2=pw; // ใช้หน้าต่างที่เปิดไว้ตั้งแต่ตอนคลิก
+  pw2.document.open(); pw2.document.write(html); pw2.document.close();
+  setTimeout(()=>pw2.print(),800);
   toast('🖨 PDF '+doc+' เปิดแล้ว','info',2000);
 }
 
@@ -825,12 +828,13 @@ async function wdSubmitInline(doc,tabN){
     const gEl=document.getElementById('gross_'+doc);
     gross=gEl?Number(gEl.value)||0:0;
     const fEl=document.getElementById('photos_'+doc);
-    if(fEl&&fEl.files.length){
-      toast('กำลังอ่านรูปตราชั่ง...','info',1500);
-      for(var fi=0;fi<fEl.files.length;fi++){
-        var b64=await resizeImgB64(fEl.files[fi],1280,0.8);
-        photos.push({name:fEl.files[fi].name,mime:'image/jpeg',b64:b64});
-      }
+    // ── กฎ workflow: ทุกใบต้องมีรูปตราชั่ง + Gross Weight ──
+    if(!gross){toast('⚠️ กรุณากรอก Gross Weight ก่อนอนุมัติ','err',4000);if(gEl)gEl.focus();return;}
+    if(!fEl||!fEl.files.length){toast('⚠️ ต้องแนบรูปถ่ายสินค้าบนตราชั่งทุกครั้ง ก่อนอนุมัติ','err',4500);return;}
+    toast('กำลังอ่านรูปตราชั่ง...','info',1500);
+    for(var fi=0;fi<fEl.files.length;fi++){
+      var b64=await resizeImgB64(fEl.files[fi],1280,0.8);
+      photos.push({name:fEl.files[fi].name,mime:'image/jpeg',b64:b64});
     }
   }
   if(!confirm((isApprove?'อนุมัติ':'ยืนยันรับของ')+' '+doc+'?')) return;
@@ -841,10 +845,8 @@ async function wdSubmitInline(doc,tabN){
   if(isApprove){
     const r=await api('wdApprove',{doc:doc,items:items,gross:gross,net_actual:'',photos:photos});
     if(r.ok){
-      toast('✅ อนุมัติ '+doc+' แล้ว'+(r.pdf_url?' · PDF บันทึกใน Drive':''),'ok',4000);
-      if(r.pdf_url) window.open(r.pdf_url,'_blank');
-      else setTimeout(function(){printWdFull(doc);},600);
       wdLoadTab(2); wdLoadTab(3); wdLoadTab(4);
+      showApproveDone(doc,r.pdf_url||''); // ให้กดปุ่มพิมพ์เอง — auto-open โดน browser บล็อก
     } else {
       toast(r.error,'err',4000);
       wdLoadTab(2); wdLoadTab(3); // รีเฟรชล้างการ์ดค้าง (ใบที่อนุมัติไปแล้ว)
@@ -855,6 +857,20 @@ async function wdSubmitInline(doc,tabN){
     else {toast(r.error,'err',4000);wdLoadTab(3);wdLoadTab(4);}
   }
   if(btnEl){btnEl.disabled=false;btnEl.style.opacity='';}
+}
+
+/* ── หน้าต่างสำเร็จหลังอนุมัติ: ปุ่มพิมพ์ต้องมาจากการคลิกของผู้ใช้ popup ถึงไม่โดนบล็อก ── */
+function showApproveDone(doc,pdfUrl){
+  document.getElementById('modalTitle').textContent='✅ อนุมัติ '+doc+' สำเร็จ';
+  var html='<div style="text-align:center;padding:10px 0">'+
+    '<div style="font-size:40px;margin-bottom:8px">🎉</div>'+
+    '<div style="font-size:13px;color:var(--mut);margin-bottom:16px">พิมพ์ใบเบิกเพื่อแนบไปกับสินค้าให้ Admin</div>'+
+    '<button class="btn" style="width:100%;margin-bottom:8px" data-doc="'+doc+'" onclick="printWdFull(this.dataset.doc)">🖨 พิมพ์ใบเบิก '+doc+'</button>'+
+    (pdfUrl?'<a href="'+pdfUrl+'" target="_blank" class="btn o" style="display:block;width:100%;box-sizing:border-box;margin-bottom:8px;text-decoration:none;text-align:center">📄 เปิดไฟล์ PDF ใน Drive</a>':'')+
+    '<button class="btn o" style="width:100%" onclick="closeModal()">ปิด</button>'+
+    '</div>';
+  document.getElementById('modalBody').innerHTML=html;
+  document.getElementById('wdModal').style.display='block';
 }
 
 /* ── ย่อรูปก่อนส่ง (กัน payload ใหญ่ อัปโหลดเร็วขึ้น) ── */
