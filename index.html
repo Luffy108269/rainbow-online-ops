@@ -106,7 +106,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B2.17L2 · 8 ก.ค. 69 · แก้สูตร VAT';
+const BUILD = 'B2.17L3 · 8 ก.ค. 69 · น้ำหนัก+category';
 console.log('RB Online Ops · '+BUILD);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -977,8 +977,9 @@ async function generateAccExcel(){
     var ppg=Number(document.getElementById('ppg_'+i)?.value)||0;
     var ppc=Number(document.getElementById('ppc_'+i)?.value)||0;
     if(ppg>0&&ppc>0){hasConflict=true;return;}
-    var wtLatest=Number(it.weight_actual)||Number(it.weight_per)||0;
-    var totalWt=wtLatest*(it.qty||1);
+    var wtActual=Number(it.weight_actual)||0;
+    var wtLatest=wtActual>0?wtActual/Number(it.qty||1):Number(it.weight_per)||0;
+    var totalWt=wtActual>0?wtActual:(wtLatest*Number(it.qty||1));
     it.price_per_gram=ppg;
     it.price_per_unit=ppc;
     if(ppc>0){
