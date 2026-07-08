@@ -106,7 +106,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B2.20 · 9 ก.ค. 69 · fix น้ำหนักหาย(เติมคอลัมน์ชีตอัตโนมัติ)+ปุ่มพิมพ์หลังอนุมัติ+บังคับรูปตราชั่ง';
+const BUILD = 'B2.21 · 9 ก.ค. 69 · fix unknown+รูปตราชั่งแสดงจริง+แก้ไขรับของนับผล+โฟลเดอร์ส่งบัญชีPDF';
 console.log('RB Online Ops · '+BUILD);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -525,8 +525,10 @@ async function wdQuickAct(doc,action){
 }
 
 function delDetailItem(btn){
-  window._detailItems.splice(Number(btn.dataset.idx),1);
-  document.getElementById('detailItems').innerHTML=window.renderItemsHtml();
+  // ตั้งจำนวนเป็น 0 แทนการลบแถว (การลบจริงจะทำให้สต๊อก/บัญชีไม่ตรง)
+  var i=Number(btn.dataset.idx);
+  var qEl=document.getElementById('rqty_'+i);
+  if(qEl){qEl.value=0;toast('ตั้งจำนวนเป็น 0 แล้ว — กด 💾 บันทึกการแก้ไข เพื่อยืนยัน','info',3000);}
 }
 async function openDetail(doc){
   toast('กำลังโหลด...','info',1000);
@@ -574,7 +576,7 @@ async function openDetail(doc){
     html+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">'+
       photos.map(function(p){
         return '<div style="width:90px;height:68px;border:1.5px solid var(--line);border-radius:8px;overflow:hidden;background:var(--soft);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--mut);text-align:center">'+
-          (p.url?'<img src="'+p.url+'" style="width:100%;height:100%;object-fit:cover">':'📷<br>'+p.name)+'</div>';
+          (drivePhotoSrc(p)?'<img src="'+drivePhotoSrc(p)+'" style="width:100%;height:100%;object-fit:cover">':'📷<br>'+(p.name||''))+'</div>';
       }).join('')+'</div>';
   }
   if(w.net_actual||w.gross_weight){
@@ -601,8 +603,12 @@ async function saveReceiveEdit(doc){
   if(!confirm('ยืนยันบันทึกการแก้ไข '+doc+'?')) return;
   toast('กำลังบันทึก...','info',1500);
   const r=await api('wdEditReceived',{doc:doc,items:items});
-  if(r.ok){toast('✅ บันทึกการแก้ไขแล้ว','ok',2000);closeModal();wdLoadTab(4);}
-  else toast(r.error,'err');
+  if(r.ok){
+    toast('✅ บันทึกแล้ว '+(r.updated!=null?r.updated+' รายการ':''),'ok',2500);
+    wdLoadTab(4);
+    openDetail(doc); // เปิดซ้ำเพื่อยืนยันว่าค่าบันทึกจริง
+  }
+  else toast(r.error,'err',4000);
 }
 
 async function openApprove(doc){
@@ -711,9 +717,10 @@ async function printWdFull(doc){
       var ph=[];try{ph=JSON.parse(w.photos||'[]');}catch(e){}
       if(!ph.length) return '<div style="font-size:8pt;color:#999">ไม่มีรูปแนบ</div>';
       return '<div style="display:flex;gap:6px;flex-wrap:wrap">'+ph.map(function(p){
-        return p.url
-          ?'<img src="'+p.url+'" style="width:120px;height:90px;object-fit:cover;border:1.5px solid #333;border-radius:4px">'
-          :'<div style="width:120px;height:90px;border:1.5px solid #333;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:8pt;color:#555;text-align:center">📷<br>'+p.name+'</div>';
+        var src=drivePhotoSrc(p);
+        return src
+          ?'<img src="'+src+'" style="width:120px;height:90px;object-fit:cover;border:1.5px solid #333;border-radius:4px">'
+          :'<div style="width:120px;height:90px;border:1.5px solid #333;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:8pt;color:#555;text-align:center">📷<br>'+(p.name||'')+'</div>';
       }).join('')+'</div>';
     })()+
     '</div>'+
@@ -846,6 +853,7 @@ async function wdSubmitInline(doc,tabN){
     const r=await api('wdApprove',{doc:doc,items:items,gross:gross,net_actual:'',photos:photos});
     if(r.ok){
       wdLoadTab(2); wdLoadTab(3); wdLoadTab(4);
+      if(r.pdf_error) toast('⚠️ บันทึกสำเร็จ แต่สร้างไฟล์ PDF ใน Drive ไม่สำเร็จ: '+r.pdf_error,'warn',6000);
       showApproveDone(doc,r.pdf_url||''); // ให้กดปุ่มพิมพ์เอง — auto-open โดน browser บล็อก
     } else {
       toast(r.error,'err',4000);
@@ -871,6 +879,15 @@ function showApproveDone(doc,pdfUrl){
     '</div>';
   document.getElementById('modalBody').innerHTML=html;
   document.getElementById('wdModal').style.display='block';
+}
+
+/* ── แปลงลิงก์รูป Drive ให้แสดงใน <img> ได้ (uc?export=view โดน Google บล็อกแล้ว) ── */
+function drivePhotoSrc(p){
+  var id=(p&&p.id)||'';
+  var url=(p&&p.url)||'';
+  if(!id&&url.indexOf('id=')>-1) id=url.split('id=')[1].split('&')[0];
+  if(id) return 'https://drive.google.com/thumbnail?id='+id+'&sz=w800';
+  return url;
 }
 
 /* ── ย่อรูปก่อนส่ง (กัน payload ใหญ่ อัปโหลดเร็วขึ้น) ── */
