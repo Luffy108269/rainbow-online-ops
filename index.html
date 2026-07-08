@@ -106,7 +106,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B2.17L · 8 ก.ค. 69 · fix รูป+น้ำหนัก+บัญชี';
+const BUILD = 'B2.17L2 · 8 ก.ค. 69 · แก้สูตร VAT';
 console.log('RB Online Ops · '+BUILD);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -990,12 +990,12 @@ async function generateAccExcel(){
     } else {
       it.cost_per_unit=0; it.total_value=0;
     }
-    it.total_vat=it.total_value*1.07;
+    it.total_vat=it.total_value; // ราคาที่กรอกรวม VAT แล้ว ไม่ต้อง *1.07
     it.net_weight_used=totalWt;
   });
   if(hasConflict){toast('⚠️ กรุณากรอกเพียง 1 ราคาต่อ SKU','err',4000);return;}
   const total=items.reduce(function(s,x){return s+x.total_vat;},0);
-  if(!confirm('ยืนยัน Generate ไฟล์ + ส่งบัญชี\nใบเบิก: '+docs.join(', ')+'\nยอดรวม VAT: '+total.toFixed(2)+' บาท\n\n⚠️ ใบเบิกเหล่านี้จะถูกล็อก แก้ไขไม่ได้อีก')) return;
+  if(!confirm('ยืนยัน Generate ไฟล์ + ส่งบัญชี\nใบเบิก: '+docs.join(', ')+'\nยอดรวมที่ต้องโอน: '+total.toFixed(2)+' บาท\n\n⚠️ ใบเบิกเหล่านี้จะถูกล็อก แก้ไขไม่ได้อีก')) return;
   toast('กำลัง Generate...','info',2000);
   // หาวันที่ Store อนุมัติจากใบแรก
   const firstDoc=docDates[docs[0]]||{};
