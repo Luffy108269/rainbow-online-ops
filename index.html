@@ -106,7 +106,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B2.17L3 · 8 ก.ค. 69 · น้ำหนัก+category';
+const BUILD = 'B2.17L6 · 8 ก.ค. 69 · E-Tax format ถูก';
 console.log('RB Online Ops · '+BUILD);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -687,7 +687,7 @@ async function printWdFull(doc){
     '<div class="hd"><div><h1>ใบเบิกสินค้า</h1><div style="font-size:7.5pt;color:#444">Rainbow Online ← Rainbow Wholesale</div>'+
     '<div style="font-size:8.5pt;margin-top:5px">ผู้ขอเบิก: <b>'+(w.created_by||'')+'</b> | ผู้อนุมัติ: <b>'+(w.confirmed_by||'–')+'</b></div></div>'+
     '<div style="text-align:right"><div style="font-family:Nunito;font-size:16pt;font-weight:800">'+doc+'</div>'+
-    '<div style="font-size:7.5pt;line-height:1.8">วันที่: '+(w.date||'')+'<br>สถานะ: อนุมัติแล้ว ✓</div></div></div>'+
+    '<div style="font-size:7.5pt;line-height:1.8">วันที่: '+fmtDate(w.date||'')+'<br>สถานะ: อนุมัติแล้ว ✓</div></div></div>'+
     '<table><thead><tr><th style="width:22px;text-align:center">No.</th><th style="width:40px;text-align:center">รูป</th>'+
     '<th>ชื่ออัลบั้ม / ตัวเลือก</th><th>SKU RBO+Location / SKU WS+Location</th>'+
     '<th style="text-align:center">น้ำหนัก g/ชิ้น</th><th style="text-align:center">จำนวน</th>'+
@@ -713,8 +713,8 @@ async function printWdFull(doc){
       }).join('')+'</div>';
     })()+
     '</div>'+
-    '<div class="signs"><div class="sign"><b>ผู้ขอเบิก (Rainbow Online)</b>'+(w.created_by||'')+'<br><br>________________________________<br><span style="font-size:7pt">วันที่ '+(w.date||'')+'</span></div>'+
-    '<div class="sign"><b>ผู้อนุมัติ (Rainbow Wholesale)</b>'+(w.confirmed_by||'–')+'<br><br>________________________________<br><span style="font-size:7pt">วันที่ '+(w.invoice_date||'')+'</span></div></div>'+
+    '<div class="signs"><div class="sign"><b>ผู้ขอเบิก (Rainbow Online)</b>'+(w.created_by||'')+'<br><br>________________________________<br><span style="font-size:7pt">วันที่ '+fmtDate(w.date||'')+'</span></div>'+
+    '<div class="sign"><b>ผู้อนุมัติ (Rainbow Wholesale)</b>'+(w.confirmed_by||'–')+'<br><br>________________________________<br><span style="font-size:7pt">วันที่ '+fmtDate(w.invoice_date||'')+'</span></div></div>'+
     '</body></html>';
   const pw=window.open('','_blank','width=820,height=1000');
   if(!pw){toast('❌ browser block popup','err',4000);return;}
@@ -855,17 +855,27 @@ function openAccounting(){
         const exist=allItems.find(function(x){return x.sku_rbo===it.sku_rbo;});
         if(exist){
           exist.qty+=Number(it.qty);
-          exist.net_weight+=(Number(it.weight)||0)*Number(it.qty);
+          var wa=Number(it.weight_actual)||0;
+          var wp=Number(it.weight)||0;
+          exist.net_weight+=(wa>0?wa:(wp*Number(it.qty)));
         } else {
+          var catItem2=CAT.find(function(c){return c.sku_rbo===it.sku_rbo;})||{};
+          var wtPer2=Number(it.weight)||Number(catItem2.weight)||0;
+          var wtAct2=Number(it.weight_actual)||0;
+          var netWt2=wtAct2>0?wtAct2:(wtPer2*Number(it.qty));
+          var catMap={'EA':'ต่างหู','EB':'ต่างหู','ES':'ต่างหู','RI':'แหวน','PE':'จี้','NB':'สร้อยคอ','NE':'สร้อยคอ','BR':'สร้อยข้อมือ','BA':'กำไลข้อมือ','AN':'สร้อยข้อเท้า','SE':'เซ็ต'};
+          var pfx2=it.sku_rbo.replace(/[0-9]/g,'').slice(0,2).toUpperCase();
+          var cat2=it.category||catItem2.category||catMap[pfx2]||catMap[pfx2.slice(0,1)]||'';
           allItems.push({
             sku_rbo:it.sku_rbo,
             sku_rbws:it.sku_rbws||'',
             sel_name:it.sel_name||it.sku_rbo,
-            category:it.category||'',
+            category:cat2,
             qty:Number(it.qty),
             cost:Number(it.cost)||0,
-            weight_per:Number(it.weight)||0,
-            net_weight:(Number(it.weight)||0)*Number(it.qty),
+            weight_per:wtPer2,
+            weight_actual:wtAct2,
+            net_weight:netWt2,
             price_per_gram:''
           });
         }
@@ -1006,11 +1016,11 @@ async function generateAccExcel(){
     await api('wdAction',{doc:docs[i],act:'accounting'});
   }
   // สร้าง CSV
-  const etaxRows=['รหัสสินค้า SKU,วันที่,จำนวนที่เพิ่มขึ้น,มูลค่ารวม,ต้นทุน/หน่วย,น้ำหนักรวม,น้ำหนักต่อชิ้น,ราคาต่อกรัมรวมVAT'];
+  const etaxRows=['รหัสสินค้า SKU,วันที่,จำนวนที่เพิ่มขึ้น,จำนวนที่ลดลง,มูลค่ารวม,ต้นทุนต่อหน่วย,หมายเหตุ,แผนก,คลังสินค้า,Serial/Lot'];
   const ptRows=['รหัสสินค้า SKU,วันที่จริง,วันที่ออกใบกำกับ,จำนวนที่เพิ่มขึ้น,มูลค่ารวม VAT,ต้นทุนต่อหน่วย,หมายเหตุ,น้ำหนักรวม,น้ำหนักต่อชิ้น,ราคาต่อกรัมรวมVAT'];
   items.forEach(function(it){
     var wtPer=Number(it.weight_actual)||Number(it.weight_per)||0;
-    etaxRows.push([it.sku_rbo,todayFmt,it.qty,it.total_value.toFixed(2),it.cost_per_unit.toFixed(4),it.net_weight_used.toFixed(2),wtPer,it.price_per_gram||''].join(','));
+    etaxRows.push([it.sku_rbo,todayFmt,it.qty,'',it.total_value.toFixed(2),it.cost_per_unit.toFixed(4),it.category||'','','',''].join(','));
     ptRows.push([it.sku_rbo,approvedDateFmt,todayFmt,it.qty,it.total_vat.toFixed(2),it.cost_per_unit.toFixed(4),it.category||'',it.net_weight_used.toFixed(2),wtPer,it.price_per_gram||''].join(','));
   });
   const etaxName='Etax_'+thMonth+'_'+todayStr;
@@ -1023,8 +1033,23 @@ async function generateAccExcel(){
   dlCSV(etaxRows.join('\n'),etaxName);
   setTimeout(function(){dlCSV(ptRows.join('\n'),ptName);},500);
   // Save ลง Drive
-  api('saveAccToDrive',{etax_name:etaxName,etax_csv:etaxRows.join('\n'),pt_name:ptName,pt_csv:ptRows.join('\n')})
-    .then(function(r){if(r.ok) toast('📁 บันทึกใน Drive: Rainbow Online/เอกสารส่งบัญชี แล้ว','ok',5000);});
+  // อ่านสลิปโอนเงิน (ถ้ามี)
+  var slipEl=document.getElementById('accSlip');
+  var slipB64=''; var slipName='';
+  if(slipEl&&slipEl.files[0]){
+    var slipFile=slipEl.files[0];
+    slipName=slipFile.name;
+    slipB64=await new Promise(function(res){
+      var rd=new FileReader();
+      rd.onload=function(){res(rd.result.split(',')[1]);};
+      rd.readAsDataURL(slipFile);
+    });
+  }
+  api('saveAccToDrive',{
+    etax_name:etaxName,etax_csv:etaxRows.join('\n'),
+    pt_name:ptName,pt_csv:ptRows.join('\n'),
+    slip_name:slipName,slip_b64:slipB64
+  }).then(function(r){if(r.ok) toast('📁 บันทึกใน Drive: Rainbow Online/เอกสารส่งบัญชี แล้ว','ok',5000);});
   toast('✅ Generate 2 ไฟล์แล้ว ใบเบิกล็อกแล้ว','ok',4000);
   closeModal(); wdLoadTab(4); wdLoadTab(5);
 }
