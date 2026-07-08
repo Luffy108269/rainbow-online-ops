@@ -106,7 +106,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B2.17k4 · 8 ก.ค. 69 · ราคาต่อชิ้น/กรัม+validation';
+const BUILD = 'B2.17L · 8 ก.ค. 69 · fix รูป+น้ำหนัก+บัญชี';
 console.log('RB Online Ops · '+BUILD);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -157,6 +157,7 @@ console.log('RB Online Ops · '+BUILD);
   <div style="display:flex;gap:0;margin:12px 12px 0;background:var(--soft);border-radius:14px;padding:4px;overflow-x:auto">
     <button id="wdT1" onclick="wdTab(1)" class="wtab on">📝 เบิก</button>
     <button id="wdT2" onclick="wdTab(2)" class="wtab">⏳ ขออนุมัติ <span id="wdB2" class="wbadge" style="display:none">0</span></button>
+    <button id="wdT3" onclick="wdTab(3)" class="wtab">✅ อนุมัติแล้ว <span id="wdB3" class="wbadge" style="display:none">0</span></button>
     <button id="wdT4" onclick="wdTab(4)" class="wtab">📦 รับของ <span id="wdB4" class="wbadge" style="display:none">0</span></button>
     <button id="wdT5" onclick="wdTab(5)" class="wtab">🧾 บัญชี</button>
   </div>
@@ -189,14 +190,19 @@ console.log('RB Online Ops · '+BUILD);
   </div>
 
   <!-- แท็บ 3: อนุมัติแล้ว (approved) -->
-
+  <div id="wdPane3" class="wpane" style="display:none">
+    <div class="card">
+      <h2>✅ Store อนุมัติแล้ว</h2>
+      <div id="wdList3"><div class="empty">กำลังโหลด…</div></div>
+    </div>
+  </div>
 
   <!-- แท็บ 4: รับของ (received) -->
   <div id="wdPane4" class="wpane" style="display:none">
     <div class="card">
-      <h2>📦 รับของเข้าร้าน <span style="font-size:11px;color:var(--mut);font-weight:400">· อนุมัติแล้ว + รอยืนยันรับ</span></h2>
+      <h2>📦 รับของเข้าร้าน</h2>
       <div id="wdList4"><div class="empty">กำลังโหลด…</div></div>
-      <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line);display:none" id="accBtnWrap">
+      <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line)" id="accBtnWrap" style="display:none">
         <button class="btn" onclick="openAccounting()">🧾 รวมส่งบัญชี (<span id="accSelCount">0</span> ใบ)</button>
       </div>
     </div>
@@ -534,40 +540,43 @@ async function openDetail(doc){
   window._detailDoc=doc;
   let html='<div style="font-size:11px;color:var(--mut);margin-bottom:8px">'+
     'สถานะ: <b style="color:var(--pdd)">'+(stTh[w.status]||w.status)+'</b> · '+
-    'ผู้คีย์: '+w.created_by+' · วันที่: '+fmtDate(w.date||'')+'</div>';
+    'ผู้คีย์: '+w.created_by+' · '+fmtDate(w.date||'')+'</div>';
   html+=items.map(function(it,i){
     var imgUrl=it.img||(CAT.find(function(c){return c.sku_rbo===it.sku_rbo;})||{}).img||'';
     return '<div style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--soft)">'+
       '<div style="font-size:12px;font-weight:700;color:var(--pdd);width:20px;text-align:center;margin-top:4px">'+(i+1)+'</div>'+
       '<div class="ph">'+(imgUrl?'<img src="'+imgSrc(imgUrl)+'" style="width:100%;height:100%;object-fit:cover">':'📿')+'</div>'+
-      '<div style="flex:1"><div style="font-size:12.5px;font-weight:600">'+(it.sel_name||it.sku_rbo)+'</div>'+
-      '<div style="font-size:11px;color:var(--mut)">'+it.sku_rbo+' → '+it.sku_rbws+'</div>'+
-      '<div style="font-size:10.5px;color:var(--mut)">น้ำหนัก/ชิ้น: '+(it.weight||'–')+' g</div>'+
-      (canEdit?'<div style="margin-top:4px;display:flex;gap:6px;align-items:center">'+
-        '<small style="color:var(--mut)">ชั่งจริง(g):</small>'+
-        '<input type="number" id="rwt_'+i+'" value="'+(it.weight_actual||'')+'" step="0.01" placeholder="กรอก" style="width:75px;border:1.5px solid var(--line);border-radius:8px;padding:3px 6px;font-size:12px">'+
-        '</div>':
-        (it.weight_actual?'<div style="font-size:10.5px;color:#2FA36B">ชั่งจริง: '+it.weight_actual+' g</div>':''))+
+      '<div style="flex:1">'+
+        '<div style="font-size:12.5px;font-weight:600">'+(it.sel_name||it.sku_rbo)+'</div>'+
+        '<div style="font-size:11px;color:var(--mut)">'+it.sku_rbo+' → '+it.sku_rbws+'</div>'+
+        '<div style="font-size:10.5px;color:var(--mut)">น้ำหนัก/ชิ้น: '+(it.weight||'–')+' g</div>'+
+        (canEdit?
+          '<div style="margin-top:4px;display:flex;gap:6px;align-items:center">'+
+            '<small style="color:var(--mut)">ชั่งจริง(g):</small>'+
+            '<input type="number" id="rwt_'+i+'" value="'+(it.weight_actual||'')+'" step="0.01" placeholder="กรอก" '+
+              'style="width:75px;border:1.5px solid var(--line);border-radius:8px;padding:3px 6px;font-size:12px">'+
+          '</div>':
+          (it.weight_actual?'<div style="font-size:10.5px;color:#2FA36B">ชั่งจริง: '+it.weight_actual+' g</div>':''))+
       '</div>'+
       '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">'+
-      (canEdit
-        ?'<input type="number" id="rqty_'+i+'" value="'+it.qty+'" min="0" style="width:52px;text-align:center;border:1.5px solid var(--line);border-radius:8px;padding:3px;font-family:Nunito;font-weight:700;font-size:14px">'+
-          '<button data-idx="'+i+'" onclick="delDetailItem(this)" style="font-size:10px;border:none;background:var(--soft);color:var(--pd);border-radius:999px;padding:2px 8px;cursor:pointer">✕ ลบ</button>'
-        :'<span class="num" style="font-size:15px">×'+it.qty+'</span>')+
+        (canEdit?
+          '<input type="number" id="rqty_'+i+'" value="'+it.qty+'" min="0" '+
+            'style="width:52px;text-align:center;border:1.5px solid var(--line);border-radius:8px;padding:3px;font-family:Nunito;font-weight:700;font-size:14px">'+
+          '<button data-idx="'+i+'" onclick="delDetailItem(this)" '+
+            'style="font-size:10px;border:none;background:var(--soft);color:var(--pd);border-radius:999px;padding:2px 8px;cursor:pointer">✕ ลบ</button>':
+          '<span class="num" style="font-size:15px">×'+it.qty+'</span>')+
       '</div></div>';
   }).join('');
   // รูปตราชั่ง
-  var photos=[];
-  try{photos=JSON.parse(w.photos||'[]');}catch(e){}
+  var photos=[];try{photos=JSON.parse(w.photos||'[]');}catch(e){}
   if(photos.length>0){
     html+='<div style="margin-top:10px;font-size:11px;font-weight:600;color:var(--pdd);margin-bottom:6px">📷 รูปถ่ายชั่งน้ำหนัก</div>';
-    html+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">'+
+    html+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">'+
       photos.map(function(p){
         return '<div style="width:90px;height:68px;border:1.5px solid var(--line);border-radius:8px;overflow:hidden;background:var(--soft);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--mut);text-align:center">'+
           (p.url?'<img src="'+p.url+'" style="width:100%;height:100%;object-fit:cover">':'📷<br>'+p.name)+'</div>';
       }).join('')+'</div>';
   }
-  // น้ำหนักรวม
   if(w.net_actual||w.gross_weight){
     html+='<div style="background:var(--soft);border-radius:12px;padding:8px 12px;font-size:12px;margin-bottom:10px">'+
       (w.net_actual?'Net Weight ชั่งจริง: <b>'+w.net_actual+' g</b><br>':'')+
@@ -583,6 +592,12 @@ async function openDetail(doc){
 
 async function saveReceiveEdit(doc){
   const items=window._detailItems||[];
+  items.forEach(function(it,i){
+    const qEl=document.getElementById('rqty_'+i);
+    const wEl=document.getElementById('rwt_'+i);
+    if(qEl) it.qty=Number(qEl.value)||it.qty;
+    if(wEl&&wEl.value!=='') it.weight_actual=Number(wEl.value)||null;
+  });
   if(!confirm('ยืนยันบันทึกการแก้ไข '+doc+'?')) return;
   toast('กำลังบันทึก...','info',1500);
   const r=await api('wdEditReceived',{doc:doc,items:items});
@@ -710,60 +725,52 @@ async function printWdFull(doc){
 
 /* ── Inline edit WD card ── */
 function renderWdInline(orders, tabN){
-  const isApprove=tabN===2;
-  const isReceive=tabN===4;
-  const canAct=isApprove?['storefront','master','assist'].includes(S.role):isLA();
+  const isApprove = tabN===2;
+  const isReceive = tabN===3;
+  const canAct = isApprove?['storefront','master','assist'].includes(S.role):isLA();
   if(!orders.length) return '<div class="empty">ไม่มีรายการ</div>';
   return orders.map(function(w){
     const doc=w.doc_no;
-    const stLabel={sent:'รอ Store อนุมัติ',approved:'✅ Store อนุมัติแล้ว รอรับของ',received:'✓ รับของแล้ว'};
-    const isApproved=w.status==='approved';
-    const isReceived=w.status==='received';
-    var html='<div class="wd-order-card" id="wdcard_'+doc+'">';
+    const stTh={sent:'รอ Store อนุมัติ',approved:'อนุมัติแล้ว',received:'รับของแล้ว'};
     // head
-    html+='<div class="wd-order-head">'+
-      (canAct&&!isReceived?'<input type="checkbox" class="wd-sel-all wd-sku-chk" data-doc="'+doc+'" onchange="wdSelectAll(this)" style="margin:0">':'<span></span>')+
-      '<div><b class="num" style="font-size:13px">'+doc+'</b>'+
-      '<div style="font-size:10.5px;color:var(--mut)">'+fmtDate(w.date)+' · '+w.created_by+
-      ' · <span style="color:'+(isReceived?'#2FA36B':isApproved?'var(--pd)':'var(--mut)')+'">'+( stLabel[w.status]||w.status)+'</span></div></div>'+
-      '<div style="margin-left:auto;display:flex;gap:6px">'+
-      (!isReceived&&canAct?'<button class="btn sm" data-doc="'+doc+'" data-tab="'+tabN+'" onclick="wdSubmitInline(this.dataset.doc,Number(this.dataset.tab))">'+
-        (isApprove?'✅ อนุมัติ':'📦 ยืนยันรับของ')+'</button>':'')+
-      '<button class="btn sm o" data-doc="'+doc+'" onclick="printWdFull(this.dataset.doc)">🖨 PDF</button>'+
-      '</div></div>';
-    // body: SKU rows
-    html+=w.items.map(function(it,i){
-      var imgUrl=it.img||(CAT.find(function(c){return c.sku_rbo===it.sku_rbo;})||{}).img||'';
-      return '<div class="wd-sku-row" id="wdr_'+doc+'_'+i+'">'+
-        (!isReceived&&canAct?'<input type="checkbox" class="wd-sku-chk wd-row-chk" data-doc="'+doc+'" onchange="wdRowChk(this,this.dataset.doc)" style="margin:0">':'')+
-        '<div style="width:40px;height:40px;flex-shrink:0;border-radius:8px;overflow:hidden;background:var(--soft);display:flex;align-items:center;justify-content:center">'+
-          (imgUrl?'<img src="'+imgSrc(imgUrl)+'" style="width:100%;height:100%;object-fit:cover">':'📿')+'</div>'+
-        '<div style="flex:1;min-width:0">'+
-          '<div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(it.sel_name||it.sku_rbo)+'</div>'+
-          '<div style="font-size:10.5px;color:var(--mut)">'+it.sku_rbo+' → '+(it.sku_rbws||'')+'</div>'+
-          '<div style="font-size:10px;color:var(--mut)">น้ำหนัก/ชิ้น: '+(it.weight||'–')+' g</div>'+
-        '</div>'+
-        (!isReceived&&canAct?
-          '<div style="display:flex;flex-direction:column;gap:3px;align-items:flex-end">'+
-            '<input type="number" class="wd-qty-input" value="'+it.qty+'" min="0" data-doc="'+doc+'" data-idx="'+i+'" oninput="wdStoreEdit(this,String.fromCharCode(113,116,121))">'+
-            '<input type="number" class="wd-wt-input" placeholder="g ชั่งจริง" step="0.01" value="'+(it.weight_actual||'')+'" data-doc="'+doc+'" data-idx="'+i+'" oninput="wdStoreEdit(this,String.fromCharCode(119,116))">'+
-          '</div>':
-          '<div style="text-align:right"><span class="num" style="font-size:14px;color:var(--pdd)">×'+it.qty+'</span>'+
-          (it.weight_actual?'<div style="font-size:10px;color:#2FA36B">ชั่งจริง: '+it.weight_actual+' g</div>':'')+
+    var html='<div class="wd-order-card" id="wdcard_'+doc+'">'+
+      '<div class="wd-order-head">'+
+      '<input type="checkbox" class="wd-sel-all wd-sku-chk" data-doc="'+doc+'" onchange="wdSelectAll(this)" style="margin:0">'+
+      '<b class="num" style="font-size:13px">'+doc+'</b>'+
+      '<small style="color:var(--mut)">'+w.items.length+' SKU · '+w.created_by+' · '+fmtDate(w.date)+'</small>'+
+      (canAct?
+        '<button class="btn sm" style="margin-left:auto" data-doc="'+doc+'" data-tab="'+tabN+'" onclick="wdSubmitInline(this.dataset.doc,Number(this.dataset.tab))">'+
+        (isApprove?'✅ อนุมัติ':'📦 ยืนยันรับของ')+
+        '</button>':
+        '<div style="margin-left:auto;display:flex;gap:6px">'+
+          '<button class="btn sm o" data-doc="'+doc+'" onclick="printWdFull(this.dataset.doc)">🖨 PDF</button>'+
           '</div>')+
       '</div>';
-    }).join('');
-    // แนบรูปตราชั่ง (เฉพาะแท็บ ขออนุมัติ ยังไม่ผ่าน)
-    if(isApprove&&canAct&&!isApproved&&!isReceived){
-      html+='<div style="padding:10px 12px;border-top:1px solid var(--line);background:var(--soft)">'+
-        '<div style="font-size:11px;font-weight:600;color:var(--pdd);margin-bottom:6px">📷 แนบรูปตราชั่ง + Gross Weight (กรอกก่อนอนุมัติ)</div>'+
-        '<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">'+
-          '<label style="font-size:11px;color:var(--mut)">Gross Weight (g):</label>'+
-          '<input type="number" step="0.01" placeholder="รวมบรรจุภัณฑ์" id="gross_'+doc+'" style="flex:1;border:1.5px solid var(--line);border-radius:8px;padding:5px 8px;font-size:12px">'+
+    // body: แต่ละ SKU
+    html+=w.items.map(function(it,i){
+      const rowId='wdr_'+doc+'_'+i;
+      return '<div class="wd-sku-row" id="'+rowId+'">'+
+        '<input type="checkbox" class="wd-sku-chk wd-row-chk" data-doc="'+doc+'" onchange="wdRowChk(this,this.dataset.doc)" style="margin:0">'+
+        '<div style="width:36px;height:36px;flex-shrink:0;border-radius:8px;overflow:hidden;background:var(--soft);display:flex;align-items:center;justify-content:center">'+
+          (function(){
+            var imgUrl=it.img||(CAT.find(function(c){return c.sku_rbo===it.sku_rbo;})||{}).img||'';
+            return imgUrl?'<img src="'+imgSrc(imgUrl)+'" style="width:100%;height:100%;object-fit:cover">':'📿';
+          }())+'</div>'+
+        '<div style="flex:1;min-width:0">'+
+          '<div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(it.sel_name||it.sku_rbo)+'</div>'+
+          '<div style="font-size:10.5px;color:var(--mut)">'+it.sku_rbo+'</div>'+
         '</div>'+
-        '<input type="file" id="photos_'+doc+'" multiple accept="image/*" style="width:100%;font-size:11px">'+
+        (canAct?
+          '<div style="display:flex;flex-direction:column;gap:3px;align-items:flex-end">'+
+            '<input type="number" class="wd-qty-input" value="'+it.qty+'" min="0" data-doc="'+doc+'" data-idx="'+i+'" data-field="qty" oninput="wdStoreEdit(this)">'+
+            (isApprove?
+              '<input type="number" class="wd-wt-input" placeholder="g ชั่งจริง" step="0.01" data-doc="'+doc+'" data-idx="'+i+'" data-field="wt" oninput="wdStoreEdit(this)">':
+              '<small style="color:var(--mut);font-size:10px">'+(it.weight_actual?it.weight_actual+'g':'–')+'</small>'
+            )+
+          '</div>':
+          '<span class="num" style="font-size:14px;color:var(--pdd)">×'+it.qty+'</span>')+
       '</div>';
-    }
+    }).join('');
     html+='</div>';
     return html;
   }).join('');
@@ -771,8 +778,8 @@ function renderWdInline(orders, tabN){
 
 // เก็บ edit state
 window._wdEdits={};
-function wdStoreEdit(el,field){
-  const doc=el.dataset.doc, idx=el.dataset.idx;
+function wdStoreEdit(el){
+  const doc=el.dataset.doc, idx=el.dataset.idx, field=el.dataset.field;
   if(!_wdEdits[doc]) _wdEdits[doc]={};
   if(!_wdEdits[doc][idx]) _wdEdits[doc][idx]={};
   _wdEdits[doc][idx][field]=Number(el.value)||0;
@@ -789,44 +796,44 @@ function wdRowChk(chk,doc){
 
 async function wdSubmitInline(doc,tabN){
   const isApprove=tabN===2;
+  const edits=_wdEdits[doc]||{};
+  // รวบ items จากการ์ด
   const qtyInputs=[...document.querySelectorAll('.wd-qty-input[data-doc="'+doc+'"]')];
   const wtInputs=[...document.querySelectorAll('.wd-wt-input[data-doc="'+doc+'"]')];
   const items=qtyInputs.map(function(el,i){
-    return {qty:Number(el.value)||0, weight_actual:wtInputs[i]?Number(wtInputs[i].value)||null:null};
+    return {sku_rbo:'', qty:Number(el.value)||0, weight_actual:wtInputs[i]?Number(wtInputs[i].value)||null:null, _idx:i};
   });
-  var gross=0; var photos=[];
+  // gross weight ถ้า approve
+  var gross=0;
   if(isApprove){
-    const gEl=document.getElementById('gross_'+doc);
-    gross=gEl?Number(gEl.value)||0:0;
-    // อ่านรูปตราชั่ง
-    const fEl=document.getElementById('photos_'+doc);
-    if(fEl&&fEl.files.length){
-      for(var fi=0;fi<fEl.files.length;fi++){
-        var b64=await new Promise(function(res){
-          var rd=new FileReader();
-          rd.onload=function(){res(rd.result.split(',')[1]);};
-          rd.readAsDataURL(fEl.files[fi]);
-        });
-        photos.push({name:fEl.files[fi].name,mime:fEl.files[fi].type,b64:b64});
-      }
-    }
+    const gv=prompt('กรอก Gross Weight (g) รวมบรรจุภัณฑ์:');
+    if(gv===null) return;
+    gross=Number(gv)||0;
   }
   const actMsg=isApprove?'อนุมัติ':'ยืนยันรับของ';
   if(!confirm(actMsg+' '+doc+'?')) return;
   toast('กำลัง'+actMsg+'...','info',2000);
   if(isApprove){
-    const r=await api('wdApprove',{doc:doc,items:items,gross:gross,net_actual:'',photos:photos.map(function(p){return p.name;})});
+    // Store อนุมัติ → wdApprove
+    const r=await api('wdApprove',{doc:doc,items:items,gross:gross,net_actual:'',photos:[]});
     if(r.ok){
-      toast('✅ อนุมัติ '+doc+' แล้ว'+(r.pdf_url?' · PDF บันทึกใน Drive แล้ว':''),'ok',4000);
-      if(r.pdf_url) window.open(r.pdf_url,'_blank');
-      else setTimeout(function(){printWdFull(doc);},600);
-      wdLoadTab(2); wdLoadTab(4); wdTab(4);
+      delete _wdEdits[doc];
+      wdLoadTab(2); wdLoadTab(3);
+      if(r.pdf_url){
+        toast('✅ อนุมัติแล้ว PDF บันทึกใน Drive แล้ว','ok',4000);
+        window.open(r.pdf_url,'_blank');
+      } else {
+        toast('✅ อนุมัติ '+doc+' สำเร็จ','ok',3000);
+        setTimeout(function(){printWdFull(doc);},600);
+      }
     } else toast(r.error,'err');
   } else {
+    // Assist ยืนยันรับของ → wdReceive (ล็อก + บวกสต๊อก)
     const r=await api('wdReceive',{doc:doc,items:items});
     if(r.ok){
-      toast('✅ ยืนยันรับของ '+doc+' สำเร็จ สต๊อกบวกแล้ว','ok',4000);
-      wdLoadTab(4);
+      toast('✅ ยืนยันรับของ '+doc+' สำเร็จ — สต๊อกบวกแล้ว','ok',4000);
+      delete _wdEdits[doc];
+      wdLoadTab(3); wdLoadTab(4);
     } else toast(r.error,'err');
   }
 }
@@ -873,81 +880,71 @@ function openAccounting(){
 
 function renderAccModal(docs,items){
   document.getElementById('modalTitle').textContent='รวมส่งบัญชี '+docs.length+' ใบ';
-  let html='<div style="font-size:11.5px;color:var(--mut);margin-bottom:10px">'+
-    'ใบเบิก: <b>'+docs.join(', ')+'</b></div>';
-  html+='<div style="font-size:11px;color:var(--pdd);font-weight:600;margin-bottom:6px">กรอกราคาต่อ SKU (เลือก 1 ช่องเท่านั้น)</div>';
+  let html='<div style="font-size:11.5px;color:var(--mut);margin-bottom:10px">ใบเบิก: <b>'+docs.join(', ')+'</b></div>';
+  html+='<div style="font-size:11px;color:var(--pdd);font-weight:600;margin-bottom:8px">กรอกราคาต่อ SKU — เลือกกรอก 1 ช่องเท่านั้น</div>';
   html+=items.map(function(it,i){
-    // น้ำหนักล่าสุด = weight_actual (ตอนรับของ) ถ้าไม่มีใช้ weight_per
     var wtLatest=Number(it.weight_actual)||Number(it.weight_per)||0;
-    var totalWt=wtLatest>0?(wtLatest*(it.qty||1)).toFixed(2):(it.net_weight||0).toFixed(2);
+    var totalWt=(wtLatest*(it.qty||1)).toFixed(2);
     return '<div style="background:var(--soft);border-radius:12px;padding:10px;margin-bottom:8px">'+
-      '<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">'+
-        '<div style="flex:1"><div style="font-size:12.5px;font-weight:600">'+(it.sel_name||it.sku_rbo)+'</div>'+
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">'+
+        '<div><div style="font-size:12.5px;font-weight:600">'+(it.sel_name||it.sku_rbo)+'</div>'+
           '<div style="font-size:10.5px;color:var(--mut)">'+it.sku_rbo+' · ×'+it.qty+' · น้ำหนักล่าสุด: '+totalWt+' g</div></div>'+
-        '<small id="sub_'+i+'" style="font-size:10px;font-weight:600;color:var(--pdd)">–</small>'+
+        '<b id="sub_'+i+'" style="font-size:12px;color:var(--pdd)">–</b>'+
       '</div>'+
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
-        '<div>'+
-          '<label style="font-size:10.5px;color:var(--mut)">฿ ต่อกรัม (÷ น้ำหนัก)</label>'+
-          '<input type="number" step="0.01" placeholder="฿/g" id="ppg_'+i+'" data-idx="'+i+'" data-wt="'+totalWt+'" data-qty="'+it.qty+'" '+
+        '<div><label style="font-size:10.5px;color:var(--mut)">฿ ต่อกรัม</label>'+
+          '<input type="number" step="0.01" placeholder="฿/g" id="ppg_'+i+'" '+
+            'data-wt="'+totalWt+'" data-qty="'+it.qty+'" '+
             'style="width:100%;border:1.5px solid var(--line);border-radius:8px;padding:5px 8px;font-size:12px;margin-top:2px" '+
-            'oninput="calcAccItem('+i+')">'+
-        '</div>'+
-        '<div>'+
-          '<label style="font-size:10.5px;color:var(--mut)">฿ ต่อชิ้น (÷ จำนวน)</label>'+
-          '<input type="number" step="0.01" placeholder="฿/ชิ้น" id="ppc_'+i+'" data-idx="'+i+'" data-qty="'+it.qty+'" '+
+            'oninput="calcAccRow('+i+')"></div>'+
+        '<div><label style="font-size:10.5px;color:var(--mut)">฿ ต่อชิ้น</label>'+
+          '<input type="number" step="0.01" placeholder="฿/ชิ้น" id="ppc_'+i+'" '+
+            'data-qty="'+it.qty+'" '+
             'style="width:100%;border:1.5px solid var(--line);border-radius:8px;padding:5px 8px;font-size:12px;margin-top:2px" '+
-            'oninput="calcAccItem('+i+')">'+
-        '</div>'+
-      '</div>'+
-    '</div>';
+            'oninput="calcAccRow('+i+')"></div>'+
+      '</div></div>';
   }).join('');
-  html+='<div style="background:var(--soft);border-radius:12px;padding:10px;margin-top:4px;margin-bottom:10px">'+
+  html+='<div style="background:var(--soft);border-radius:12px;padding:10px;margin:10px 0;font-size:13px">'+
     'ยอดรวมที่ต้องโอน: <b class="num" style="color:var(--pdd);font-size:16px" id="accTotal">0.00</b> บาท</div>';
-  html+='<div style="margin-bottom:10px">'+
-    '<label style="font-size:11px;color:var(--mut)">📎 แนบสลิปโอนเงิน (ถ้ามี)</label>'+
+  html+='<div style="margin-bottom:10px"><label style="font-size:11px;color:var(--mut)">📎 แนบสลิปโอนเงิน</label>'+
     '<input type="file" id="accSlip" accept="image/*" style="width:100%;margin-top:4px;font-size:12px"></div>';
-  html+='<button class="btn" onclick="generateAccExcel()">📥 Generate Excel 2 ไฟล์ + ส่งบัญชี</button>';
+  html+='<button class="btn" onclick="generateAccExcel()">📥 Generate Excel + ส่งบัญชี</button>';
   document.getElementById('modalBody').innerHTML=html;
   document.getElementById('wdModal').style.display='block';
 }
 
-function calcAccItem(i){
+function calcAccRow(i){
   var ppgEl=document.getElementById('ppg_'+i);
   var ppcEl=document.getElementById('ppc_'+i);
   var sub=document.getElementById('sub_'+i);
-  var ppg=Number(ppgEl.value)||0;
-  var ppc=Number(ppcEl.value)||0;
-  var wt=Number(ppgEl.dataset.wt)||0;
-  var qty=Number(ppgEl.dataset.qty)||0;
-  var amt=0;
+  var ppg=Number(ppgEl?.value)||0;
+  var ppc=Number(ppcEl?.value)||0;
+  var wt=Number(ppgEl?.dataset.wt)||0;
+  var qty=Number(ppgEl?.dataset.qty)||0;
   if(ppg>0&&ppc>0){
     sub.textContent='⚠️ กรอกแค่ 1';
-    sub.style.color='var(--err,red)';
-    document.getElementById('accTotal').textContent='กรุณาแก้ไข';
-    return;
+    sub.style.color='red';
+  } else {
+    var amt=ppg>0?ppg*wt:(ppc>0?ppc*qty:0);
+    sub.textContent=amt>0?'฿'+amt.toFixed(2):'–';
+    sub.style.color='var(--pdd)';
   }
-  if(ppg>0) amt=ppg*wt;
-  else if(ppc>0) amt=ppc*qty;
-  sub.textContent=amt>0?('฿'+amt.toFixed(2)):'–';
-  sub.style.color='var(--pdd)';
-  // รวมทั้งหมด
-  var total=0;var hasError=false;
+  // รวม
   var n=document.querySelectorAll('[id^="ppg_"]').length;
+  var total=0; var err=false;
   for(var j=0;j<n;j++){
-    var pg=Number((document.getElementById('ppg_'+j)||{}).value)||0;
-    var pc=Number((document.getElementById('ppc_'+j)||{}).value)||0;
-    var wj=Number((document.getElementById('ppg_'+j)||{}).dataset?.wt)||0;
-    var qj=Number((document.getElementById('ppg_'+j)||{}).dataset?.qty)||0;
-    if(pg>0&&pc>0){hasError=true;break;}
-    if(pg>0) total+=pg*wj;
-    else if(pc>0) total+=pc*qj;
+    var pg=Number(document.getElementById('ppg_'+j)?.value)||0;
+    var pc=Number(document.getElementById('ppc_'+j)?.value)||0;
+    var wj=Number(document.getElementById('ppg_'+j)?.dataset.wt)||0;
+    var qj=Number(document.getElementById('ppg_'+j)?.dataset.qty)||0;
+    if(pg>0&&pc>0){err=true;break;}
+    total+=pg>0?pg*wj:(pc>0?pc*qj:0);
   }
-  var totEl=document.getElementById('accTotal');
-  if(totEl) totEl.textContent=hasError?'กรุณาแก้ไข':total.toFixed(2);
+  var el=document.getElementById('accTotal');
+  if(el) el.textContent=err?'กรุณาแก้ไข':total.toFixed(2);
 }
 
-function calcAccTotal_old(){
+function calcAccTotal(){
   const items=window._accItems||[];
   let total=0;
   items.forEach(function(it,i){
@@ -967,110 +964,73 @@ async function generateAccExcel(){
   const items=window._accItems||[];
   const docs=window._accDocs||[];
   const docDates=window._accDocDates||{};
-  const today=new Date().toLocaleDateString('th-TH',{year:'numeric',month:'2-digit',day:'2-digit'});
-
-  // เก็บ ราคาต่อกรัม และคำนวณสูตรใหม่
-  // ตรวจสอบว่ามีกรอก 2 ช่องไหม
+  const now=new Date();
+  const months=['มค','กพ','มีค','เมย','พค','มิย','กค','สค','กย','ตค','พย','ธค'];
+  const thMonth=months[now.getMonth()];
+  const thDay=String(now.getDate()).padStart(2,'0');
+  const thYear=now.getFullYear()+543;
+  const todayStr=thDay+'-'+thMonth+'-'+thYear;
+  const todayFmt=fmtDate(now.toISOString());
+  // validation + คำนวณ
   var hasConflict=false;
   items.forEach(function(it,i){
-    var ppg=Number((document.getElementById('ppg_'+i)||{}).value)||0;
-    var ppc=Number((document.getElementById('ppc_'+i)||{}).value)||0;
-    if(ppg>0&&ppc>0) hasConflict=true;
-    // น้ำหนักล่าสุด
+    var ppg=Number(document.getElementById('ppg_'+i)?.value)||0;
+    var ppc=Number(document.getElementById('ppc_'+i)?.value)||0;
+    if(ppg>0&&ppc>0){hasConflict=true;return;}
     var wtLatest=Number(it.weight_actual)||Number(it.weight_per)||0;
     var totalWt=wtLatest*(it.qty||1);
     it.price_per_gram=ppg;
     it.price_per_unit=ppc;
-    // คำนวณ
-    if(ppg>0){
-      it.cost_per_unit=ppg*wtLatest;         // ราคา/ชิ้น = ราคา/g × น้ำหนักล่าสุด/ชิ้น
-      it.total_value=it.cost_per_unit*it.qty;
-    } else if(ppc>0){
-      it.cost_per_unit=ppc;                  // ราคา/ชิ้น = ราคา/ชิ้น
+    if(ppc>0){
+      it.cost_per_unit=ppc;
       it.total_value=ppc*it.qty;
+    } else if(ppg>0){
+      it.cost_per_unit=ppg*wtLatest;
+      it.total_value=it.cost_per_unit*it.qty;
     } else {
       it.cost_per_unit=0; it.total_value=0;
     }
     it.total_vat=it.total_value*1.07;
     it.net_weight_used=totalWt;
   });
-  if(hasConflict){toast('⚠️ กรุณากรอกเพียง 1 ราคาต่อ SKU (ราคาต่อกรัม หรือราคาต่อชิ้น)','err',4000);return;}
-
+  if(hasConflict){toast('⚠️ กรุณากรอกเพียง 1 ราคาต่อ SKU','err',4000);return;}
   const total=items.reduce(function(s,x){return s+x.total_vat;},0);
-  if(!confirm('ยืนยัน Generate ไฟล์ Excel + ส่งบัญชี\n\nใบเบิก: '+docs.join(', ')+'\nยอดรวม VAT: '+total.toFixed(2)+' บาท\n\n⚠️ หลังกดยืนยัน ใบเบิกเหล่านี้จะถูกล็อก แก้ไขไม่ได้อีก')) return;
+  if(!confirm('ยืนยัน Generate ไฟล์ + ส่งบัญชี\nใบเบิก: '+docs.join(', ')+'\nยอดรวม VAT: '+total.toFixed(2)+' บาท\n\n⚠️ ใบเบิกเหล่านี้จะถูกล็อก แก้ไขไม่ได้อีก')) return;
   toast('กำลัง Generate...','info',2000);
-
-  // หาวันที่ Store อนุมัติ (เอาจากใบแรก)
+  // หาวันที่ Store อนุมัติจากใบแรก
   const firstDoc=docDates[docs[0]]||{};
-  const approvedDate=firstDoc.invoice_date||firstDoc.date||'';
-  const approvedDateFmt=approvedDate?fmtDate(approvedDate):'';
-
-  // Lock ใบเบิกทั้งหมด
+  const approvedDateFmt=fmtDate(firstDoc.invoice_date||firstDoc.date||'');
+  // Lock ใบเบิก
   for(var i=0;i<docs.length;i++){
     await api('wdAction',{doc:docs[i],act:'accounting'});
   }
-
-  // ── E-Tax CSV ──
+  // สร้าง CSV
   const etaxRows=['รหัสสินค้า SKU,วันที่,จำนวนที่เพิ่มขึ้น,มูลค่ารวม,ต้นทุน/หน่วย,น้ำหนักรวม,น้ำหนักต่อชิ้น,ราคาต่อกรัมรวมVAT'];
-  items.forEach(function(it){
-    etaxRows.push([
-      it.sku_rbo,
-      today,
-      it.qty,
-      it.total_value.toFixed(2),
-      it.cost_per_unit.toFixed(4),
-      it.net_weight.toFixed(2),
-      it.weight_per,
-      it.price_per_gram
-    ].join(','));
-  });
-
-  // ── พี่ตุ่น CSV ──
   const ptRows=['รหัสสินค้า SKU,วันที่จริง,วันที่ออกใบกำกับ,จำนวนที่เพิ่มขึ้น,มูลค่ารวม VAT,ต้นทุนต่อหน่วย,หมายเหตุ,น้ำหนักรวม,น้ำหนักต่อชิ้น,ราคาต่อกรัมรวมVAT'];
   items.forEach(function(it){
-    ptRows.push([
-      it.sku_rbo,
-      approvedDateFmt,
-      today,
-      it.qty,
-      it.total_vat.toFixed(2),
-      it.cost_per_unit.toFixed(4),
-      it.category||'',
-      it.net_weight.toFixed(2),
-      it.weight_per,
-      it.price_per_gram
-    ].join(','));
+    var wtPer=Number(it.weight_actual)||Number(it.weight_per)||0;
+    etaxRows.push([it.sku_rbo,todayFmt,it.qty,it.total_value.toFixed(2),it.cost_per_unit.toFixed(4),it.net_weight_used.toFixed(2),wtPer,it.price_per_gram||''].join(','));
+    ptRows.push([it.sku_rbo,approvedDateFmt,todayFmt,it.qty,it.total_vat.toFixed(2),it.cost_per_unit.toFixed(4),it.category||'',it.net_weight_used.toFixed(2),wtPer,it.price_per_gram||''].join(','));
   });
-
-  // Download
-  // Save ลง Drive ผ่าน backend + download ไว้ด้วย
-  const thMonth=new Date().toLocaleString('th-TH',{month:'short'}).replace(' ','');
-  const etaxName='Etax_'+thMonth+'_'+today.replace(/\//g,'-');
-  const ptName='ส่งพี่ตุ่น_'+thMonth+'_'+today.replace(/\//g,'-');
+  const etaxName='Etax_'+thMonth+'_'+todayStr;
+  const ptName='ส่งพี่ตุ่น_'+thMonth+'_'+todayStr;
   function dlCSV(content,filename){
     const bom='\uFEFF';
     const blob=new Blob([bom+content],{type:'text/csv;charset=utf-8'});
-    const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
-    a.download=filename+'.csv'; a.click();
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=filename+'.csv'; a.click();
   }
   dlCSV(etaxRows.join('\n'),etaxName);
   setTimeout(function(){dlCSV(ptRows.join('\n'),ptName);},500);
-  // Save ลง Drive ด้วย
-  api('saveAccToDrive',{
-    etax_name:etaxName, etax_csv:etaxRows.join('\n'),
-    pt_name:ptName, pt_csv:ptRows.join('\n')
-  }).then(function(r){
-    if(r.ok) toast('📁 บันทึกใน Drive: Rainbow Online/เอกสารส่งบัญชี แล้ว','ok',5000);
-  });
-
+  // Save ลง Drive
+  api('saveAccToDrive',{etax_name:etaxName,etax_csv:etaxRows.join('\n'),pt_name:ptName,pt_csv:ptRows.join('\n')})
+    .then(function(r){if(r.ok) toast('📁 บันทึกใน Drive: Rainbow Online/เอกสารส่งบัญชี แล้ว','ok',5000);});
   toast('✅ Generate 2 ไฟล์แล้ว ใบเบิกล็อกแล้ว','ok',4000);
-  closeModal();
-  wdLoadTab(4); wdLoadTab(5);
+  closeModal(); wdLoadTab(4); wdLoadTab(5);
 }
 
 /* ── 5 แท็บเบิก ── */
 function wdTab(n){
-  [1,2,4,5].forEach(function(i){
+  [1,2,3,4,5].forEach(function(i){
     const p=document.getElementById('wdPane'+i);
     const t=document.getElementById('wdT'+i);
     if(p) p.style.display=i===n?'block':'none';
@@ -1084,8 +1044,7 @@ function wdTab(n){
 }
 
 async function wdLoadTab(n){
-  // แท็บ 4 = รับของ (รวม approved + received)
-  const statusMap={2:'sent',4:['approved','received'],5:'accounting'};
+  const statusMap={2:'sent',3:'approved',4:'received',5:'accounting'};
   const st=statusMap[n];
   const listId='wdList'+n;
   const el=document.getElementById(listId);
@@ -1094,12 +1053,10 @@ async function wdLoadTab(n){
   // โหลดแบบ lightweight ก่อน แล้วค่อยโหลดรูป
   const r=await api('wdList');
   if(!r.ok){el.innerHTML='<div class="empty">'+r.error+'</div>';return;}
-  const orders=r.orders.filter(function(w){
-    return Array.isArray(st)?st.includes(w.status):w.status===st;
-  });
+  const orders=r.orders.filter(function(w){return w.status===st;});
   updateBadges(r.counts||{});
   if(!orders.length){el.innerHTML='<div class="empty">ไม่มีรายการในขั้นตอนนี้</div>';return;}
-  if(n===2||n===4){
+  if(n===2||n===3){
     el.innerHTML=renderWdInline(orders,n);
   } else {
     el.innerHTML=orders.map(function(w){return wdCard(w,n);}).join('');
@@ -1118,10 +1075,10 @@ async function wdLoadTab(n){
 
 function updateBadges(counts){
   if(!counts) return;
-  [['wdB2','sent'],['wdB4','approved+received']].forEach(function(x){
+  [['wdB2','sent'],['wdB3','approved'],['wdB4','received']].forEach(function(x){
     const el=document.getElementById(x[0]);
     if(!el) return;
-    const n=x[1]==='approved+received'?(counts.approved||0)+(counts.received||0):(counts[x[1]]||0);
+    const n=counts[x[1]]||0;
     if(n>0){el.style.display='inline';el.textContent=n;}
     else el.style.display='none';
   });
