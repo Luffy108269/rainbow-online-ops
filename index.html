@@ -106,7 +106,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B2.18 · 8 ก.ค. 69 · fix อนุมัติซ้ำ+รูปตราชั่งเข้า Drive/PDF จริง';
+const BUILD = 'B2.19 · 9 ก.ค. 69 · fix รับของจำนวนแก้แล้วไม่บันทึก+รูปสินค้าแท็บ4/5+PDF regen ส่งบัญชี+สลิป';
 console.log('RB Online Ops · '+BUILD);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -1078,17 +1078,17 @@ async function generateAccExcel(){
   if(slipEl&&slipEl.files[0]){
     var slipFile=slipEl.files[0];
     slipName=slipFile.name;
-    slipB64=await new Promise(function(res){
-      var rd=new FileReader();
-      rd.onload=function(){res(rd.result.split(',')[1]);};
-      rd.readAsDataURL(slipFile);
-    });
+    slipB64=await resizeImgB64(slipFile,1280,0.85);
   }
   api('saveAccToDrive',{
+    docs:docs,
     etax_name:etaxName,etax_csv:etaxRows.join('\n'),
     pt_name:ptName,pt_csv:ptRows.join('\n'),
     slip_name:slipName,slip_b64:slipB64
-  }).then(function(r){if(r.ok) toast('📁 บันทึกใน Drive: Rainbow Online/เอกสารส่งบัญชี แล้ว','ok',5000);});
+  }).then(function(r){
+    if(r.ok) toast('📁 บันทึกใน Drive แล้ว · PDF ใบเบิกอัปเดตเป็น "ส่งบัญชีแล้ว" '+(r.regen||0)+' ใบ'+(slipName?' (แนบสลิป)':''),'ok',6000);
+    else toast('⚠️ บันทึก Drive ไม่สำเร็จ: '+r.error,'err',5000);
+  });
   toast('✅ Generate 2 ไฟล์แล้ว ใบเบิกล็อกแล้ว','ok',4000);
   closeModal(); wdLoadTab(4); wdLoadTab(5);
 }
@@ -1168,8 +1168,9 @@ function wdCard(w,tabN){
   if(tabN===3&&isLA())
     btns='<button class="btn sm" data-doc="'+doc+'" data-act="wdReceive" onclick="wdQuickAct2(this)">📦 รับของเข้าร้าน</button> '+btns;
   const imgRow=w.items.map(function(it){
+    var imgUrl=it.img||(CAT.find(function(c){return c.sku_rbo===it.sku_rbo;})||{}).img||'';
     return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--soft)">'+
-      '<div class="ph" style="width:36px;height:36px;flex-shrink:0">'+(it.img?'<img src="'+imgSrc(it.img)+'" style="width:100%;height:100%;object-fit:cover;border-radius:8px">':'📿')+'</div>'+
+      '<div class="ph" style="width:36px;height:36px;flex-shrink:0">'+(imgUrl?'<img src="'+imgSrc(imgUrl)+'" style="width:100%;height:100%;object-fit:cover;border-radius:8px">':'📿')+'</div>'+
       '<div style="flex:1"><div style="font-size:12px;font-weight:600">'+(it.sel_name||it.sku_rbo)+'</div>'+
       '<div style="font-size:10.5px;color:var(--mut)">'+it.sku_rbo+' → '+it.sku_rbws+'</div></div>'+
       '<span class="num" style="font-size:13px;color:var(--pdd)">×'+it.qty+'</span></div>';
