@@ -106,7 +106,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B2.17L6 · 8 ก.ค. 69 · E-Tax format ถูก';
+const BUILD = 'B2.17L7 · 8 ก.ค. 69 · รูปตราชั่ง+weight PDF';
 console.log('RB Online Ops · '+BUILD);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -771,6 +771,20 @@ function renderWdInline(orders, tabN){
           '<span class="num" style="font-size:14px;color:var(--pdd)">×'+it.qty+'</span>')+
       '</div>';
     }).join('');
+    // ── ช่องรูปตราชั่ง + Gross Weight (เฉพาะ Store อนุมัติ) ──
+    if(isApprove&&canAct&&w.status==='sent'){
+      html+='<div style="padding:10px 12px;border-top:1px solid var(--line);background:#FDF8FF">'+
+        '<div style="font-size:11px;font-weight:600;color:var(--pdd);margin-bottom:8px">📷 แนบรูปหลักฐานชั่งน้ำหนัก + Gross Weight</div>'+
+        '<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">'+
+          '<label style="font-size:11px;color:var(--mut);white-space:nowrap">Gross Weight (g):</label>'+
+          '<input type="number" step="0.01" placeholder="รวมบรรจุภัณฑ์" id="gross_'+doc+'" '+
+            'style="flex:1;border:1.5px solid var(--line);border-radius:8px;padding:5px 8px;font-size:13px">'+
+        '</div>'+
+        '<label style="font-size:11px;color:var(--mut)">📷 รูปตราชั่ง (แนบได้หลายรูป):</label>'+
+        '<input type="file" id="photos_'+doc+'" multiple accept="image/*" '+
+          'style="display:block;width:100%;margin-top:4px;font-size:12px">'+
+      '</div>';
+    }
     html+='</div>';
     return html;
   }).join('');
@@ -796,45 +810,40 @@ function wdRowChk(chk,doc){
 
 async function wdSubmitInline(doc,tabN){
   const isApprove=tabN===2;
-  const edits=_wdEdits[doc]||{};
-  // รวบ items จากการ์ด
   const qtyInputs=[...document.querySelectorAll('.wd-qty-input[data-doc="'+doc+'"]')];
   const wtInputs=[...document.querySelectorAll('.wd-wt-input[data-doc="'+doc+'"]')];
   const items=qtyInputs.map(function(el,i){
-    return {sku_rbo:'', qty:Number(el.value)||0, weight_actual:wtInputs[i]?Number(wtInputs[i].value)||null:null, _idx:i};
+    return {qty:Number(el.value)||0,weight_actual:wtInputs[i]?Number(wtInputs[i].value)||null:null};
   });
-  // gross weight ถ้า approve
-  var gross=0;
+  var gross=0; var photos=[];
   if(isApprove){
-    const gv=prompt('กรอก Gross Weight (g) รวมบรรจุภัณฑ์:');
-    if(gv===null) return;
-    gross=Number(gv)||0;
-  }
-  const actMsg=isApprove?'อนุมัติ':'ยืนยันรับของ';
-  if(!confirm(actMsg+' '+doc+'?')) return;
-  toast('กำลัง'+actMsg+'...','info',2000);
-  if(isApprove){
-    // Store อนุมัติ → wdApprove
-    const r=await api('wdApprove',{doc:doc,items:items,gross:gross,net_actual:'',photos:[]});
-    if(r.ok){
-      delete _wdEdits[doc];
-      wdLoadTab(2); wdLoadTab(3);
-      if(r.pdf_url){
-        toast('✅ อนุมัติแล้ว PDF บันทึกใน Drive แล้ว','ok',4000);
-        window.open(r.pdf_url,'_blank');
-      } else {
-        toast('✅ อนุมัติ '+doc+' สำเร็จ','ok',3000);
-        setTimeout(function(){printWdFull(doc);},600);
+    const gEl=document.getElementById('gross_'+doc);
+    gross=gEl?Number(gEl.value)||0:0;
+    const fEl=document.getElementById('photos_'+doc);
+    if(fEl&&fEl.files.length){
+      toast('กำลังอ่านรูปตราชั่ง...','info',1500);
+      for(var fi=0;fi<fEl.files.length;fi++){
+        var b64=await new Promise(function(res){
+          var rd=new FileReader(); rd.onload=function(){res(rd.result.split(',')[1]);}; rd.readAsDataURL(fEl.files[fi]);
+        });
+        photos.push({name:fEl.files[fi].name,mime:fEl.files[fi].type,b64:b64});
       }
+    }
+  }
+  if(!confirm((isApprove?'อนุมัติ':'ยืนยันรับของ')+' '+doc+'?')) return;
+  toast(isApprove?'กำลังอนุมัติ...':'กำลังยืนยันรับของ...','info',2000);
+  if(isApprove){
+    const r=await api('wdApprove',{doc:doc,items:items,gross:gross,net_actual:'',photos:photos.map(function(p){return p.name;})});
+    if(r.ok){
+      toast('✅ อนุมัติ '+doc+' แล้ว'+(r.pdf_url?' · PDF บันทึกใน Drive':''),'ok',4000);
+      if(r.pdf_url) window.open(r.pdf_url,'_blank');
+      else setTimeout(function(){printWdFull(doc);},600);
+      wdLoadTab(2); wdLoadTab(4);
     } else toast(r.error,'err');
   } else {
-    // Assist ยืนยันรับของ → wdReceive (ล็อก + บวกสต๊อก)
     const r=await api('wdReceive',{doc:doc,items:items});
-    if(r.ok){
-      toast('✅ ยืนยันรับของ '+doc+' สำเร็จ — สต๊อกบวกแล้ว','ok',4000);
-      delete _wdEdits[doc];
-      wdLoadTab(3); wdLoadTab(4);
-    } else toast(r.error,'err');
+    if(r.ok){toast('✅ ยืนยันรับของ '+doc+' สำเร็จ สต๊อกบวกแล้ว','ok',4000);wdLoadTab(4);}
+    else toast(r.error,'err');
   }
 }
 
