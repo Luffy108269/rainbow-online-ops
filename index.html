@@ -106,7 +106,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B2.17L8 · 8 ก.ค. 69 · qty fix+รูปPDF+FB';
+const BUILD = 'B2.18 · 8 ก.ค. 69 · fix อนุมัติซ้ำ+รูปตราชั่งเข้า Drive/PDF จริง';
 console.log('RB Online Ops · '+BUILD);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -828,28 +828,53 @@ async function wdSubmitInline(doc,tabN){
     if(fEl&&fEl.files.length){
       toast('กำลังอ่านรูปตราชั่ง...','info',1500);
       for(var fi=0;fi<fEl.files.length;fi++){
-        var b64=await new Promise(function(res){
-          var rd=new FileReader(); rd.onload=function(){res(rd.result.split(',')[1]);}; rd.readAsDataURL(fEl.files[fi]);
-        });
-        photos.push({name:fEl.files[fi].name,mime:fEl.files[fi].type,b64:b64});
+        var b64=await resizeImgB64(fEl.files[fi],1280,0.8);
+        photos.push({name:fEl.files[fi].name,mime:'image/jpeg',b64:b64});
       }
     }
   }
   if(!confirm((isApprove?'อนุมัติ':'ยืนยันรับของ')+' '+doc+'?')) return;
+  // กันกดซ้ำ: ปิดปุ่มระหว่างส่ง
+  const btnEl=document.querySelector('#wdcard_'+CSS.escape(doc)+' .wd-order-head button.btn');
+  if(btnEl){btnEl.disabled=true;btnEl.style.opacity='.5';}
   toast(isApprove?'กำลังอนุมัติ...':'กำลังยืนยันรับของ...','info',2000);
   if(isApprove){
-    const r=await api('wdApprove',{doc:doc,items:items,gross:gross,net_actual:'',photos:photos.map(function(p){return p.name;})});
+    const r=await api('wdApprove',{doc:doc,items:items,gross:gross,net_actual:'',photos:photos});
     if(r.ok){
       toast('✅ อนุมัติ '+doc+' แล้ว'+(r.pdf_url?' · PDF บันทึกใน Drive':''),'ok',4000);
       if(r.pdf_url) window.open(r.pdf_url,'_blank');
       else setTimeout(function(){printWdFull(doc);},600);
-      wdLoadTab(2); wdLoadTab(4);
-    } else toast(r.error,'err');
+      wdLoadTab(2); wdLoadTab(3); wdLoadTab(4);
+    } else {
+      toast(r.error,'err',4000);
+      wdLoadTab(2); wdLoadTab(3); // รีเฟรชล้างการ์ดค้าง (ใบที่อนุมัติไปแล้ว)
+    }
   } else {
     const r=await api('wdReceive',{doc:doc,items:items});
     if(r.ok){toast('✅ ยืนยันรับของ '+doc+' สำเร็จ สต๊อกบวกแล้ว','ok',4000);wdLoadTab(4);}
-    else toast(r.error,'err');
+    else {toast(r.error,'err',4000);wdLoadTab(3);wdLoadTab(4);}
   }
+  if(btnEl){btnEl.disabled=false;btnEl.style.opacity='';}
+}
+
+/* ── ย่อรูปก่อนส่ง (กัน payload ใหญ่ อัปโหลดเร็วขึ้น) ── */
+function resizeImgB64(file,maxPx,quality){
+  return new Promise(function(res){
+    var rd=new FileReader();
+    rd.onload=function(){
+      var img=new Image();
+      img.onload=function(){
+        var w=img.width,h=img.height;
+        if(Math.max(w,h)>maxPx){var sc=maxPx/Math.max(w,h);w=Math.round(w*sc);h=Math.round(h*sc);}
+        var cv=document.createElement('canvas');cv.width=w;cv.height=h;
+        cv.getContext('2d').drawImage(img,0,0,w,h);
+        res(cv.toDataURL('image/jpeg',quality).split(',')[1]);
+      };
+      img.onerror=function(){res(rd.result.split(',')[1]);}; // อ่านรูปไม่ได้ → ส่งต้นฉบับ
+      img.src=rd.result;
+    };
+    rd.readAsDataURL(file);
+  });
 }
 
 /* ── ระบบบัญชี ── */
