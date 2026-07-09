@@ -106,8 +106,8 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B2.24 · 9 ก.ค. 69 · ระบบตรวจ Deploy/API เองอัตโนมัติ + api กันตายเงียบ';
-const FRONT_VER = '2.24'; // ต้องตรงกับ build ใน doGet ของ backend
+const BUILD = 'B3.0 · 9 ก.ค. 69 · 🛍 บิลรับสินค้าภายนอก: คีย์บิล+บวกสต๊อก+Lot+รูปบิล+เข้า Etax';
+const FRONT_VER = '3.0'; // ต้องตรงกับ build ใน doGet ของ backend
 console.log('RB Online Ops · '+BUILD);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -300,9 +300,13 @@ console.log('RB Online Ops · '+BUILD);
       </div>
     </div>
   </div>
+  <div class="card" id="ebCard"><h2>🛍 บิลรับสินค้าภายนอก</h2>
+    <div style="font-size:11px;color:var(--mut);margin-bottom:8px">ซื้อจากร้านอื่นที่ไม่ใช่ Rainbow Wholesale — ยืนยันแล้วสต๊อกบวกทันที · สิ้นเดือนเข้าไฟล์ Etax เท่านั้น</div>
+    <button class="btn" style="margin-top:0" onclick="extOpenForm()">➕ คีย์บิลใหม่</button>
+    <div id="ebList" style="margin-top:10px"></div>
+  </div>
   <div class="card"><h2>🚧 Build ถัดไป</h2>
-    <div class="item"><div class="ph">🛍</div><div><b>บิลรับภายนอก + ใบเสร็จ/สลิป</b><small>Build 3</small></div></div>
-    <div class="item"><div class="ph">🧾</div><div><b>บัญชี 2 บริษัท + งวดภาษี</b><small>Build 3</small></div></div>
+    <div class="item"><div class="ph">🧾</div><div><b>บัญชี 2 บริษัท + งวดภาษี</b><small>Build 3 (รอสเปค)</small></div></div>
     <div class="item"><div class="ph">📬</div><div><b>เช็คสต๊อก + อ่านเมล KETSHOP</b><small>Build 4</small></div></div>
   </div>
 </div>
@@ -441,6 +445,7 @@ function enter(){
   document.getElementById('aCls').innerHTML=CLASSES.map(c=>`<option>${c}</option>`).join('');
   tab('home',document.querySelector('nav button'));
   sysCheck(); loadAll(); loadUsers(); wdDraftLoad();
+  if(isLA()) extLoadList(); else document.getElementById('ebCard').style.display='none';
 }
 async function loadAll(){
   const d=await api('dashboard');
@@ -655,12 +660,9 @@ async function openDetail(doc){
           (it.weight_actual?'<div style="font-size:10.5px;color:#2FA36B">ชั่งจริง: '+it.weight_actual+' g</div>':''))+
       '</div>'+
       '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">'+
-        (canEdit?
-          '<input type="number" id="rqty_'+i+'" value="'+it.qty+'" min="0" '+
-            'style="width:52px;text-align:center;border:1.5px solid var(--line);border-radius:8px;padding:3px;font-family:Nunito;font-weight:700;font-size:14px">'+
-          '<button data-idx="'+i+'" onclick="delDetailItem(this)" '+
-            'style="font-size:10px;border:none;background:var(--soft);color:var(--pd);border-radius:999px;padding:2px 8px;cursor:pointer">✕ ลบ</button>':
-          '<span class="num" style="font-size:15px">×'+it.qty+'</span>')+
+        // 🔒 รับของแล้ว = จำนวนล็อกถาวร (สต๊อกบวกไปแล้ว) — แก้ได้เฉพาะน้ำหนัก
+        '<span class="num" style="font-size:15px">×'+it.qty+'</span>'+
+        (canEdit?'<small style="color:var(--mut);font-size:9px">🔒 ล็อก</small>':'')+
       '</div></div>';
   }).join('');
   // รูปตราชั่ง
@@ -679,7 +681,7 @@ async function openDetail(doc){
       (w.gross_weight?'Gross Weight: <b>'+w.gross_weight+' g</b>':'')+'</div>';
   }
   var btns='';
-  if(canEdit) btns='<button class="btn o" style="margin-bottom:8px" data-doc="'+doc+'" onclick="saveReceiveEdit(this.dataset.doc)">💾 บันทึกการแก้ไข</button><br>';
+  if(canEdit) btns='<button class="btn o" style="margin-bottom:8px" data-doc="'+doc+'" onclick="saveReceiveEdit(this.dataset.doc)">💾 บันทึกน้ำหนักชั่งจริง</button><br>';
   btns+='<button class="btn" data-doc="'+doc+'" onclick="printWdFull(this.dataset.doc)">🖨 พิมพ์ PDF ใบเบิก</button>';
   html+='<div>'+btns+'</div>';
   document.getElementById('modalBody').innerHTML=html;
@@ -689,7 +691,7 @@ async function openDetail(doc){
 async function saveReceiveEdit(doc){
   const items=window._detailItems||[];
   items.forEach(function(it,i){
-    const qEl=document.getElementById('rqty_'+i);
+    const qEl=null; // จำนวนล็อกหลังรับของ — แก้ได้เฉพาะน้ำหนัก
     const wEl=document.getElementById('rwt_'+i);
     if(qEl) it.qty=Number(qEl.value)||it.qty;
     if(wEl&&wEl.value!=='') it.weight_actual=Number(wEl.value)||null;
@@ -1004,6 +1006,144 @@ function resizeImgB64(file,maxPx,quality){
   });
 }
 
+/* ═══════════ Build 3: บิลรับสินค้าภายนอก ═══════════ */
+let EBCART=[], _ebSugList=[], _ebBills=[];
+
+function extOpenForm(){
+  EBCART=[];
+  document.getElementById('modalTitle').textContent='🛍 บิลรับสินค้าภายนอก';
+  var today=new Date().toISOString().slice(0,10);
+  var html='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">'+
+    '<div><label style="font-size:11px;color:var(--mut)">ร้าน/ผู้ขาย *</label>'+
+      '<input id="ebSup" placeholder="เช่น ร้านเงินเยาวราช" style="width:100%;margin-top:2px"></div>'+
+    '<div><label style="font-size:11px;color:var(--mut)">วันที่ซื้อ</label>'+
+      '<input id="ebDate" type="date" value="'+today+'" style="width:100%;margin-top:2px"></div></div>'+
+    '<div style="margin-bottom:8px"><label style="font-size:11px;color:var(--mut)">หมายเหตุ</label>'+
+      '<input id="ebNote" placeholder="เช่น เลขที่ใบกำกับ" style="width:100%;margin-top:2px"></div>'+
+    '<label style="font-size:11px;color:var(--mut)">เพิ่มสินค้า (พิมพ์รหัส/ชื่อ)</label>'+
+    '<input id="ebQ" placeholder="พิมพ์อย่างน้อย 2 ตัวอักษร…" style="width:100%;margin-top:2px" oninput="ebSuggest()">'+
+    '<div id="ebSug"></div>'+
+    '<div id="ebLines" style="margin-top:8px"></div>'+
+    '<div style="background:var(--soft);border-radius:12px;padding:10px;margin:10px 0;font-size:13px">'+
+      'ยอดรวมบิล: <b class="num" id="ebTotal" style="color:var(--pdd);font-size:16px">0.00</b> บาท</div>'+
+    '<div style="margin-bottom:10px"><label style="font-size:11px;color:var(--mut)">📎 รูปบิล/ใบเสร็จ/สลิป (แนบได้หลายรูป)</label>'+
+      '<input type="file" id="ebPhotos" accept="image/*" multiple style="width:100%;margin-top:4px;font-size:12px"></div>'+
+    '<button class="btn" id="ebSubmitBtn" onclick="extSubmit()">✅ ยืนยันบิล + บวกสต๊อก</button>';
+  document.getElementById('modalBody').innerHTML=html;
+  document.getElementById('wdModal').style.display='block';
+}
+
+function ebSuggest(){
+  var q=document.getElementById('ebQ').value.trim().toLowerCase();
+  var box=document.getElementById('ebSug');
+  if(q.length<2){box.innerHTML='';return;}
+  _ebSugList=CAT.filter(function(c){
+    return String(c.sku_rbo).toLowerCase().indexOf(q)>-1||String(c.sel_name||'').toLowerCase().indexOf(q)>-1;
+  }).slice(0,8);
+  box.innerHTML=_ebSugList.map(function(c,i){
+    return '<div onclick="ebAdd('+i+')" style="padding:7px 10px;border-bottom:1px solid var(--soft);cursor:pointer;font-size:12px">'+
+      '<b>'+c.sku_rbo+'</b> <small style="color:var(--mut)">'+(c.sel_name||'')+'</small></div>';
+  }).join('');
+}
+
+function ebAdd(i){
+  var c=_ebSugList[i]; if(!c) return;
+  document.getElementById('ebSug').innerHTML='';
+  document.getElementById('ebQ').value='';
+  if(EBCART.some(function(x){return x.sku_rbo===c.sku_rbo;})) return;
+  EBCART.push({sku_rbo:c.sku_rbo,sel_name:c.sel_name||c.sku_rbo,qty:1,cost_per_unit:''});
+  ebRender();
+}
+
+function ebRender(){
+  document.getElementById('ebLines').innerHTML=EBCART.map(function(x,i){
+    return '<div style="display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--soft)">'+
+      '<div style="flex:1"><b style="font-size:12px">'+x.sku_rbo+'</b><br><small style="color:var(--mut);font-size:10.5px">'+x.sel_name+'</small></div>'+
+      '<input type="number" value="'+x.qty+'" min="1" placeholder="จำนวน" style="width:56px;text-align:center" '+
+        'onchange="EBCART['+i+'].qty=Number(this.value)||1;ebRender()">'+
+      '<input type="number" value="'+x.cost_per_unit+'" min="0" step="0.01" placeholder="฿/หน่วย" style="width:80px;text-align:center" '+
+        'onchange="EBCART['+i+'].cost_per_unit=this.value;ebRender()">'+
+      '<button class="x" onclick="EBCART.splice('+i+',1);ebRender()">✕</button></div>';
+  }).join('');
+  var total=EBCART.reduce(function(s,x){return s+(Number(x.qty)||0)*(Number(x.cost_per_unit)||0);},0);
+  var totEl=document.getElementById('ebTotal');
+  if(totEl) totEl.textContent=total.toFixed(2);
+}
+
+async function extSubmit(){
+  var sup=document.getElementById('ebSup').value.trim();
+  if(!sup){toast('⚠️ กรุณาระบุชื่อร้าน/ผู้ขาย','err');return;}
+  if(!EBCART.length){toast('⚠️ ยังไม่มีรายการสินค้า','err');return;}
+  for(var i=0;i<EBCART.length;i++){
+    if(!(Number(EBCART[i].cost_per_unit)>0)){toast('⚠️ กรอกต้นทุน/หน่วยของ '+EBCART[i].sku_rbo,'err');return;}
+  }
+  var total=EBCART.reduce(function(s,x){return s+Number(x.qty)*Number(x.cost_per_unit);},0);
+  if(!confirm('ยืนยันบิลจาก "'+sup+'"\n'+EBCART.length+' SKU · ยอดรวม '+total.toFixed(2)+' บาท\n\n✅ สต๊อกจะบวกทันที')) return;
+  var btn=document.getElementById('ebSubmitBtn');
+  if(btn){btn.disabled=true;btn.style.opacity='.5';}
+  var photos=[];
+  var fEl=document.getElementById('ebPhotos');
+  if(fEl&&fEl.files.length){
+    toast('กำลังอ่านรูป...','info',1500);
+    for(var fi=0;fi<fEl.files.length;fi++){
+      var b64=await resizeImgB64(fEl.files[fi],1280,0.8);
+      photos.push({name:fEl.files[fi].name,mime:'image/jpeg',b64:b64});
+    }
+  }
+  toast('กำลังบันทึกบิล...','info',2000);
+  const r=await api('extCreate',{
+    supplier:sup,date:document.getElementById('ebDate').value,
+    note:document.getElementById('ebNote').value.trim(),
+    items:EBCART,photos:photos
+  });
+  if(btn){btn.disabled=false;btn.style.opacity='';}
+  if(r.ok){
+    toast('✅ บิล '+r.bill+' บันทึกแล้ว · สต๊อกบวกแล้ว · รวม '+Number(r.total).toFixed(2)+' บาท','ok',5000);
+    closeModal(); extLoadList(); loadAll();
+  } else toast(r.error,'err',4000);
+}
+
+async function extLoadList(){
+  var box=document.getElementById('ebList'); if(!box) return;
+  const r=await api('extList');
+  if(!r.ok){box.innerHTML='<small style="color:var(--mut)">โหลดไม่สำเร็จ: '+r.error+'</small>';return;}
+  _ebBills=r.bills||[];
+  if(!_ebBills.length){box.innerHTML='<small style="color:var(--mut)">ยังไม่มีบิล</small>';return;}
+  box.innerHTML=_ebBills.slice(0,10).map(function(b,i){
+    var chip=b.status==='accounting'
+      ?'<span style="font-size:10px;background:#E8F5E9;color:#2E7D32;border-radius:999px;padding:2px 8px">ส่งบัญชีแล้ว</span>'
+      :'<span style="font-size:10px;background:#FFF3E0;color:#E67E22;border-radius:999px;padding:2px 8px">รอส่งบัญชี</span>';
+    return '<div class="item" onclick="ebDetail('+i+')" style="cursor:pointer">'+
+      '<div class="ph">🛍</div>'+
+      '<div style="flex:1"><b>'+b.bill_no+'</b> · '+b.supplier+' '+chip+
+      '<small>'+fmtDate(b.date||'')+' · '+b.items.length+' SKU · '+Number(b.total||0).toFixed(2)+' บาท · คีย์: '+(b.created_by||'')+'</small></div></div>';
+  }).join('');
+}
+
+function ebDetail(i){
+  var b=_ebBills[i]; if(!b) return;
+  document.getElementById('modalTitle').textContent='บิล '+b.bill_no;
+  var html='<div style="font-size:11px;color:var(--mut);margin-bottom:8px">'+
+    b.supplier+' · '+fmtDate(b.date||'')+' · สถานะ: <b>'+(b.status==='accounting'?'ส่งบัญชีแล้ว':'รอส่งบัญชี')+'</b>'+
+    (b.note?'<br>หมายเหตุ: '+b.note:'')+'</div>';
+  html+=b.items.map(function(it,j){
+    return '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--soft);font-size:12px">'+
+      '<div><b>'+it.sku_rbo+'</b> <small style="color:var(--mut)">'+(it.sel_name||'')+'</small></div>'+
+      '<div>×'+it.qty+' · '+Number(it.cost_per_unit).toFixed(2)+'฿ = <b>'+Number(it.total).toFixed(2)+'฿</b></div></div>';
+  }).join('');
+  html+='<div style="text-align:right;font-size:13px;margin:8px 0">รวม: <b class="num" style="color:var(--pdd);font-size:16px">'+Number(b.total||0).toFixed(2)+'</b> บาท</div>';
+  if(b.photos&&b.photos.length){
+    html+='<div style="font-size:11px;color:var(--mut);margin-bottom:4px">📎 รูปบิล/ใบเสร็จ</div><div style="display:flex;gap:6px;flex-wrap:wrap">'+
+      b.photos.map(function(p){
+        var src=drivePhotoSrc(p);
+        return src?'<a href="'+src.replace('&sz=w800','&sz=w1600')+'" target="_blank"><img src="'+src+'" style="width:90px;height:70px;object-fit:cover;border-radius:8px;border:1px solid var(--line)"></a>':'';
+      }).join('')+'</div>';
+  }
+  html+='<button class="btn o" style="margin-top:12px" onclick="closeModal()">ปิด</button>';
+  document.getElementById('modalBody').innerHTML=html;
+  document.getElementById('wdModal').style.display='block';
+}
+
 /* ── ระบบบัญชี ── */
 /* ตารางจับคู่หมวดสินค้า (กำหนดโดย Luffy): EA/ES=ต่างหู · BR ที่ใดก็ตาม(รวม FB-BR)=สร้อยข้อมือ · BA=กำไลข้อมือ · NE/NB=สร้อยคอ · AN=สร้อยข้อเท้า · PE=จี้ · SE=เซ็ต */
 function catFromSku(sku){
@@ -1019,7 +1159,9 @@ function openAccounting(){
   if(!checked.length){toast('ยังไม่ได้ติ๊กเลือกใบเบิก','warn');return;}
   // รวม items จากทุกใบที่เลือก
   toast('กำลังโหลดข้อมูล...','info',2000);
-  Promise.all(checked.map(function(doc){return api('wdDetail',{doc:doc});})).then(function(results){
+  Promise.all(checked.map(function(doc){return api('wdDetail',{doc:doc});}).concat([api('extList')])).then(function(results){
+    const extRes=results.pop(); // ตัวสุดท้ายคือ extList
+    window._accExtBills=(extRes&&extRes.ok?extRes.bills:[]).filter(function(b){return b.status==='confirmed';});
     const allItems=[];
     const docDates={};
     results.forEach(function(r){
@@ -1088,10 +1230,21 @@ function renderAccModal(docs,items){
             'oninput="calcAccRow('+i+')"></div>'+
       '</div></div>';
   }).join('');
+  // ── บิลภายนอกที่รอส่งบัญชี (เข้าเฉพาะไฟล์ Etax) ──
+  var extB=window._accExtBills||[];
+  if(extB.length){
+    html+='<div style="font-size:11px;color:var(--pdd);font-weight:600;margin:12px 0 6px">🛍 บิลภายนอกรอส่งบัญชี — ติ๊กเพื่อรวมเข้าไฟล์ Etax (ไม่เข้าไฟล์ส่งพี่ตุ่น)</div>'+
+      extB.map(function(b,i){
+        return '<label style="display:flex;gap:8px;align-items:center;background:var(--soft);border-radius:10px;padding:8px 10px;margin-bottom:6px;font-size:12px;cursor:pointer">'+
+          '<input type="checkbox" class="ext-acc-chk" data-idx="'+i+'" checked style="width:16px;height:16px;accent-color:var(--pd)">'+
+          '<div style="flex:1"><b>'+b.bill_no+'</b> · '+b.supplier+'<br><small style="color:var(--mut)">'+b.items.length+' SKU · '+Number(b.total||0).toFixed(2)+' บาท</small></div></label>';
+      }).join('');
+  }
   html+='<div style="background:var(--soft);border-radius:12px;padding:10px;margin:10px 0;font-size:13px">'+
-    'ยอดรวมที่ต้องโอน: <b class="num" style="color:var(--pdd);font-size:16px" id="accTotal">0.00</b> บาท</div>';
+    'ยอดรวมที่ต้องโอน (WS): <b class="num" style="color:var(--pdd);font-size:16px" id="accTotal">0.00</b> บาท</div>';
   html+='<div style="margin-bottom:10px"><label style="font-size:11px;color:var(--mut)">📎 แนบสลิปโอนเงิน</label>'+
-    '<input type="file" id="accSlip" accept="image/*" style="width:100%;margin-top:4px;font-size:12px"></div>';
+    '<input type="file" id="accSlip" accept="image/*" multiple style="width:100%;margin-top:4px;font-size:12px">'+
+    '<small style="color:var(--mut);font-size:10px">แนบได้หลายสลิป (โอนแยกหลายก้อนได้)</small></div>';
   html+='<button class="btn" onclick="generateAccExcel()">📥 Generate Excel + ส่งบัญชี</button>';
   document.getElementById('modalBody').innerHTML=html;
   document.getElementById('wdModal').style.display='block';
@@ -1182,7 +1335,12 @@ async function generateAccExcel(){
   });
   if(hasConflict){toast('⚠️ กรุณากรอกเพียง 1 ราคาต่อ SKU','err',4000);return;}
   const total=items.reduce(function(s,x){return s+x.total_vat;},0);
-  if(!confirm('ยืนยัน Generate ไฟล์ + ส่งบัญชี\nใบเบิก: '+docs.join(', ')+'\nยอดรวมที่ต้องโอน: '+total.toFixed(2)+' บาท\n\n⚠️ ใบเบิกเหล่านี้จะถูกล็อก แก้ไขไม่ได้อีก')) return;
+  var extBillsPre=window._accExtBills||[];
+  var extPickedPre=[...document.querySelectorAll('.ext-acc-chk:checked')].map(function(c){return extBillsPre[Number(c.dataset.idx)];}).filter(Boolean);
+  var extTotal=extPickedPre.reduce(function(s2,b){return s2+Number(b.total||0);},0);
+  if(!confirm('ยืนยัน Generate ไฟล์ + ส่งบัญชี\nใบเบิก WS: '+docs.join(', ')+' — โอน '+total.toFixed(2)+' บาท'+
+    (extPickedPre.length?('\nบิลภายนอก (Etax): '+extPickedPre.map(function(b){return b.bill_no;}).join(', ')+' — '+extTotal.toFixed(2)+' บาท'):'')+
+    '\n\n⚠️ ใบเบิก/บิลเหล่านี้จะถูกล็อก แก้ไขไม่ได้อีก')) return;
   toast('กำลัง Generate...','info',2000);
   // หาวันที่ Store อนุมัติจากใบแรก
   const firstDoc=docDates[docs[0]]||{};
@@ -1199,6 +1357,14 @@ async function generateAccExcel(){
     etaxRows.push([it.sku_rbo,todayFmt,it.qty,'',it.total_value.toFixed(2),it.cost_per_unit.toFixed(4),it.category||'','','',''].join(','));
     ptRows.push([it.sku_rbo,approvedDateFmt,todayFmt,it.qty,it.total_vat.toFixed(2),it.cost_per_unit.toFixed(4),it.category||'',it.net_weight_used.toFixed(2),wtPer.toFixed(4),it.price_per_gram||''].join(','));
   });
+  // ── บิลภายนอกที่ติ๊ก: เพิ่มแถวเข้า Etax เท่านั้น (ไม่แตะไฟล์ส่งพี่ตุ่น) ──
+  var extBills=window._accExtBills||[];
+  var extPicked=[...document.querySelectorAll('.ext-acc-chk:checked')].map(function(c){return extBills[Number(c.dataset.idx)];}).filter(Boolean);
+  extPicked.forEach(function(b){
+    (b.items||[]).forEach(function(it){
+      etaxRows.push([it.sku_rbo,fmtDate(b.date||'')||todayFmt,it.qty,'',Number(it.total).toFixed(2),Number(it.cost_per_unit).toFixed(4),catFromSku(it.sku_rbo),'','',''].join(','));
+    });
+  });
   const etaxName='Etax_'+thMonth+'_'+todayStr;
   const ptName='ส่งพี่ตุ่น_'+thMonth+'_'+todayStr;
   function dlCSV(content,filename){
@@ -1209,23 +1375,31 @@ async function generateAccExcel(){
   dlCSV(etaxRows.join('\n'),etaxName);
   setTimeout(function(){dlCSV(ptRows.join('\n'),ptName);},500);
   // Save ลง Drive
-  // อ่านสลิปโอนเงิน (ถ้ามี)
+  // อ่านสลิปโอนเงิน (แนบได้หลายใบ)
   var slipEl=document.getElementById('accSlip');
-  var slipB64=''; var slipName='';
-  if(slipEl&&slipEl.files[0]){
-    var slipFile=slipEl.files[0];
-    slipName=slipFile.name;
-    slipB64=await resizeImgB64(slipFile,1280,0.85);
+  var slips=[];
+  if(slipEl&&slipEl.files.length){
+    toast('กำลังอ่านสลิป '+slipEl.files.length+' ใบ...','info',1500);
+    for(var si=0;si<slipEl.files.length;si++){
+      var sb64=await resizeImgB64(slipEl.files[si],1280,0.85);
+      slips.push({name:slipEl.files[si].name,b64:sb64});
+    }
   }
   api('saveAccToDrive',{
     docs:docs,
     etax_name:etaxName,etax_csv:etaxRows.join('\n'),
     pt_name:ptName,pt_csv:ptRows.join('\n'),
-    slip_name:slipName,slip_b64:slipB64
+    slips:slips
   }).then(function(r){
-    if(r.ok) toast('📁 บันทึกใน Drive แล้ว · PDF ใบเบิกอัปเดตเป็น "ส่งบัญชีแล้ว" '+(r.regen||0)+' ใบ'+(slipName?' (แนบสลิป)':''),'ok',6000);
+    if(r.ok) toast('📁 บันทึกใน Drive แล้ว · PDF ใบเบิกอัปเดตเป็น "ส่งบัญชีแล้ว" '+(r.regen||0)+' ใบ'+(slips.length?' (แนบสลิป '+slips.length+' ใบ)':''),'ok',6000);
     else toast('⚠️ บันทึก Drive ไม่สำเร็จ: '+r.error,'err',5000);
   });
+  // ล็อกบิลภายนอกที่ส่งแล้ว
+  if(extPicked.length){
+    api('extMarkAcc',{bills:extPicked.map(function(b){return b.bill_no;})}).then(function(r2){
+      if(r2.ok) extLoadList();
+    });
+  }
   toast('✅ Generate 2 ไฟล์แล้ว ใบเบิกล็อกแล้ว','ok',4000);
   closeModal(); wdLoadTab(4); wdLoadTab(5);
 }
