@@ -106,7 +106,8 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B2.22 · 9 ก.ค. 69 · fix สูตรบัญชี(฿/กรัม×นน.ต่อชิ้น)+หมวดสินค้าตามSKU+fmtDateTh';
+const BUILD = 'B2.24 · 9 ก.ค. 69 · ระบบตรวจ Deploy/API เองอัตโนมัติ + api กันตายเงียบ';
+const FRONT_VER = '2.24'; // ต้องตรงกับ build ใน doGet ของ backend
 console.log('RB Online Ops · '+BUILD);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -362,7 +363,59 @@ const CMAP={CREAM:'#F5E9D7',RED:'#E05656',GREEN:'#58B37C',PINK:'#F29BB4',BLUE:'#
 const CATS='Earrings,Ring,Bangle,Bracelet,Necklace,Pendant,Anklet,Set'.split(',');
 const CLASSES='Silver Classic,Silver Premium,Silver combines with Non silver,Silver Lucky Stone,Lucky stone with Non silver,Brass Classic,Brass Premium,Stainless Steel Classic,Stainless Steel Premium,Non-Silver'.split(',');
 
-async function api(a,d={}){const b=JSON.stringify(Object.assign({action:a},S?{u:S.u,key:S.key}:{},d));const r=await fetch(API_URL,{method:'POST',body:b});return r.json();}
+async function api(a,d={}){
+  const b=JSON.stringify(Object.assign({action:a},S?{u:S.u,key:S.key}:{},d));
+  try{
+    const ctl=new AbortController();
+    const tm=setTimeout(function(){ctl.abort();},45000);
+    const r=await fetch(API_URL,{method:'POST',body:b,signal:ctl.signal});
+    clearTimeout(tm);
+    const txt=await r.text();
+    try{ return JSON.parse(txt); }
+    catch(pe){
+      // backend ตอบเป็น HTML = deployment สิทธิ์ผิด หรือ URL ชี้ผิดตัว
+      sysBanner('err','⛔ Backend ตอบกลับผิดรูปแบบ — เช็ค Apps Script Deploy: Execute as <b>Me</b> + Who has access: <b>Anyone</b>');
+      return {ok:false,error:'Backend ตอบกลับไม่ใช่ JSON (เช็คสิทธิ์ Deployment)',_net:true};
+    }
+  }catch(fe){
+    return {ok:false,error:(fe.name==='AbortError'?'Backend ตอบช้าเกิน 45 วิ':'ต่อเน็ต/URL ไม่ได้'),_net:true};
+  }
+}
+
+/* ── Banner แจ้งปัญหาระบบ (ค้างบนจอจนกว่าจะแก้) ── */
+function sysBanner(type,html){
+  var el=document.getElementById('sysBanner');
+  if(!el){
+    el=document.createElement('div'); el.id='sysBanner';
+    el.style.cssText='position:fixed;top:0;left:0;right:0;z-index:9999;padding:10px 14px;font-size:12px;line-height:1.5;text-align:center;font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,.15)';
+    document.body.appendChild(el);
+  }
+  el.style.background=type==='err'?'#C0392B':'#E67E22';
+  el.style.color='#fff';
+  el.innerHTML=html+' <span style="opacity:.8;font-weight:400">(แตะเพื่อปิด)</span>';
+  el.style.display='block';
+  el.onclick=function(){el.style.display='none';};
+}
+
+/* ── ตรวจสุขภาพระบบตอนเปิดแอป: URL ถึงไม๊ / เวอร์ชั่น backend ตรงกับหน้าจอไม๊ ── */
+async function sysCheck(){
+  try{
+    const r=await fetch(API_URL,{method:'GET'});
+    const txt=await r.text();
+    let j=null; try{j=JSON.parse(txt);}catch(e){}
+    if(!j||!j.ok){
+      sysBanner('err','⛔ API_URL ตอบกลับผิดปกติ — เช็คว่า Deploy เป็น Web app + Who has access: <b>Anyone</b>');
+      return;
+    }
+    if(String(j.build)!==FRONT_VER){
+      sysBanner('warn','⚠️ Backend เป็นเวอร์ชั่น <b>'+j.build+'</b> แต่หน้าจอเป็น <b>'+FRONT_VER+'</b> — เข้า Apps Script กด Deploy → <b>New deployment</b> แล้ว refresh');
+    } else {
+      console.log('✅ sysCheck ผ่าน: backend '+j.build+' ตรงกับ frontend');
+    }
+  }catch(e){
+    sysBanner('err','⛔ ต่อ backend ไม่ได้เลย — เช็คเน็ต หรือ API_URL ผิด');
+  }
+}
 async function doLogin(){
   const u=document.getElementById('u').value.trim(),p=document.getElementById('p').value;
   document.getElementById('lerr').textContent='กำลังตรวจสอบ…';
@@ -387,10 +440,19 @@ function enter(){
   document.getElementById('aCat').innerHTML=CATS.map(c=>`<option>${c}</option>`).join('');
   document.getElementById('aCls').innerHTML=CLASSES.map(c=>`<option>${c}</option>`).join('');
   tab('home',document.querySelector('nav button'));
-  loadAll(); loadUsers();
+  sysCheck(); loadAll(); loadUsers(); wdDraftLoad();
 }
 async function loadAll(){
   const d=await api('dashboard');
+  if(!d.ok){
+    if(String(d.error||'').indexOf('session')>-1){
+      sysBanner('warn','🔑 Session หมดอายุ — กรุณา login ใหม่');
+      localStorage.removeItem('rbo_session');
+      setTimeout(function(){location.reload();},2500);
+    } else if(!d._net){
+      sysBanner('err','⛔ โหลด Dashboard ไม่สำเร็จ: '+(d.error||''));
+    }
+  }
   if(d.ok){document.getElementById('stSku').textContent=d.totalSku;
     document.getElementById('stPend').textContent=d.pending;
     document.getElementById('stWd').textContent=d.wdWait;
@@ -442,7 +504,38 @@ function wdPick(js){
   document.getElementById('wdQ').value='';
   if(!s.sku_rbws){toast('ตัวนี้ไม่มีรหัส Wholesale — ซื้อจากภายนอกแทน','warn');return;}
   if(WDCART.some(x=>x.sku===s.sku_rbo)) return;
-  WDCART.push({sku:s.sku_rbo,ws:s.sku_rbws,loc:s.loc_rbws||'',qty:1,needLoc:!s.loc_rbws});
+  WDCART.push({sku:s.sku_rbo,ws:s.sku_rbws,loc:s.loc_rbws||'',qty:1,needLoc:!s.loc_rbws,
+    by:S.name,date:new Date().toISOString().slice(0,10)});
+  wdRender();wdDraftPush();
+}
+
+/* ── Sync Draft ขึ้น Google Sheets (คีย์สะสมข้ามวัน/ข้ามเครื่องได้ ไม่หายตอน refresh) ── */
+let _draftTimer=null;
+function wdDraftPush(){
+  clearTimeout(_draftTimer);
+  _draftTimer=setTimeout(async function(){
+    const items=WDCART.map(function(x){return {sku_rbo:x.sku,sku_rbws:x.ws,loc_rbws:x.loc||'',qty:x.qty,sel_name:'',added_by:x.by||S.name,added_date:x.date||new Date().toISOString().slice(0,10)};});
+    try{
+      const r=await api('wdDraftSync',{items:items});
+      const note=document.getElementById('wdDraftNote');
+      if(note) note.textContent=r.ok
+        ?(WDCART.length?'☁️ Draft '+WDCART.length+' รายการ — บันทึกขึ้นระบบแล้ว':'')
+        :'⚠️ บันทึกขึ้นระบบไม่สำเร็จ (เก็บในเครื่องไว้ก่อน)';
+    }catch(e){}
+  },800);
+}
+async function wdDraftLoad(){
+  try{
+    const r=await api('wdDraftList');
+    if(r.ok){
+      WDCART=(r.items||[]).map(function(it){
+        return {sku:it.sku_rbo,ws:it.sku_rbws,loc:it.loc_rbws||'',qty:Number(it.qty)||1,
+          needLoc:!it.loc_rbws,by:it.added_by||'',date:it.added_date?String(it.added_date).slice(0,10):''};
+      });
+      wdRender(); return;
+    }
+  }catch(e){}
+  try{WDCART=JSON.parse(localStorage.getItem('rbo_wd_draft')||'[]');}catch(e){WDCART=[];}
   wdRender();
 }
 function wdRender(){
@@ -459,13 +552,14 @@ function wdRender(){
       :'📿';
     const chk='<input type="checkbox" '+(x.sel?'checked':'')+' onchange="WDCART['+i+'].sel=this.checked;wdRender()" style="width:18px;height:18px;accent-color:var(--pd);flex-shrink:0;margin:0">';
     const loc=x.needLoc
-      ?'<input placeholder="Location WS (เติมได้)" style="width:160px;margin:2px 0" onchange="WDCART['+i+'].loc=this.value">'
+      ?'<input placeholder="Location WS (เติมได้)" style="width:160px;margin:2px 0" onchange="WDCART['+i+'].loc=this.value;wdDraftPush()">'
       :'<small style="color:var(--mut)">📍'+x.loc+'</small>';
+    const keyer=(x.by?'<small style="color:var(--mut);font-size:10px">✏️ '+x.by+(x.date?' · '+x.date.split('-').reverse().join('/'):'')+'</small>':'');
     return '<div class="wline">'+chk+
       '<div class="ph" style="width:40px;height:40px;flex-shrink:0">'+imgHtml+'</div>'+
-      '<div style="flex:1"><b>'+x.sku+'</b><small style="color:var(--mut)"> → '+x.ws+'</small><br>'+loc+'</div>'+
-      '<input type="number" value="'+x.qty+'" min="1" style="width:52px;text-align:center" onchange="WDCART['+i+'].qty=this.value;wdRender()">'+
-      '<button class="x" onclick="WDCART.splice('+i+',1);wdRender()">✕</button></div>';
+      '<div style="flex:1"><b>'+x.sku+'</b><small style="color:var(--mut)"> → '+x.ws+'</small><br>'+loc+(keyer?'<br>'+keyer:'')+'</div>'+
+      '<input type="number" value="'+x.qty+'" min="1" style="width:52px;text-align:center" onchange="WDCART['+i+'].qty=this.value;wdRender();wdDraftPush()">'+
+      '<button class="x" onclick="WDCART.splice('+i+',1);wdRender();wdDraftPush()">✕</button></div>';
   }).join('');
 }
 async function wdSend(){
@@ -474,7 +568,7 @@ async function wdSend(){
   const r=await api('wdCreate',{items:WDCART});
   if(r.ok){
     toast('✅ ส่งใบเบิก '+r.doc+' แล้ว — รอหน้าร้านปล่อยของ','ok',4000);
-    WDCART=[];localStorage.removeItem('rbo_wd_draft');wdRender();loadAll();wdTab(2);
+    WDCART=[];localStorage.removeItem('rbo_wd_draft');wdRender();wdDraftPush();loadAll();wdTab(2);
     setTimeout(()=>document.getElementById('wdList').scrollIntoView({behavior:'smooth'}),400);
   } else toast(r.error,'err');
 }
@@ -487,7 +581,7 @@ async function wdSendSelected(){
     toast('✅ ส่งใบเบิก '+r.doc+' ('+sel.length+' รายการ) แล้ว','ok',4000);
     WDCART=WDCART.filter(x=>!x.sel);
     localStorage.setItem('rbo_wd_draft',JSON.stringify(WDCART));
-    wdRender();loadAll();
+    wdRender();wdDraftPush();loadAll();
     setTimeout(()=>document.getElementById('wdList').scrollIntoView({behavior:'smooth'}),400);
   } else toast(r.error,'err');
 }
