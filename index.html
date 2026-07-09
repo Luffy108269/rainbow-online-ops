@@ -106,8 +106,8 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B3.5 · 9 ก.ค. 69 · เปลี่ยนชื่อแท็บเป็น In Non-RB';
-const FRONT_VER = '3.5'; // ต้องตรงกับ build ใน doGet ของ backend
+const BUILD = 'B3.6 · 9 ก.ค. 69 · In Non-RB เลือกโหมด: มี SKU แล้ว / New SKU (รันเลขโชว์ทันที)';
+const FRONT_VER = '3.6'; // ต้องตรงกับ build ใน doGet ของ backend
 console.log('RB Online Ops · '+BUILD);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -1026,9 +1026,34 @@ function extOpenForm(){
       '<input id="ebDate" type="date" value="'+today+'" style="width:100%;margin-top:2px"></div></div>'+
     '<div style="margin-bottom:8px"><label style="font-size:11px;color:var(--mut)">หมายเหตุ</label>'+
       '<input id="ebNote" placeholder="เช่น เลขที่ใบกำกับ" style="width:100%;margin-top:2px"></div>'+
-    '<label style="font-size:11px;color:var(--mut)">เพิ่มสินค้า (พิมพ์รหัส/ชื่อ)</label>'+
-    '<input id="ebQ" placeholder="พิมพ์อย่างน้อย 2 ตัวอักษร…" style="width:100%;margin-top:2px" oninput="ebSuggest()">'+
-    '<div id="ebSug"></div>'+
+    '<label style="font-size:11px;color:var(--mut)">เพิ่มสินค้า</label>'+
+    '<div style="display:flex;gap:8px;margin:4px 0 8px">'+
+      '<button type="button" id="ebModeOld" class="btn" style="flex:1;margin-top:0;padding:10px" onclick="ebMode(\'old\')">🔎 มี SKU แล้ว — พิมพ์ค้นหา</button>'+
+      '<button type="button" id="ebModeNew" class="btn o" style="flex:1;margin-top:0;padding:10px" onclick="ebMode(\'new\')">🆕 New SKU</button>'+
+    '</div>'+
+    '<div id="ebOldBox">'+
+      '<input id="ebQ" placeholder="พิมพ์รหัส RBO หรือชื่อ อย่างน้อย 2 ตัวอักษร…" style="width:100%" oninput="ebSuggest()">'+
+      '<div id="ebSug"></div>'+
+    '</div>'+
+    '<div id="ebNewBox" style="display:none;background:var(--soft);border-radius:12px;padding:10px">'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px">'+
+        '<div><label style="font-size:10.5px;color:var(--mut)">ชนิด/ประเภท</label>'+
+          '<select id="ebnCat" style="width:100%;margin-top:2px" onchange="ebnPreview()">'+CATS.map(function(c){return '<option>'+c+'</option>';}).join('')+'</select></div>'+
+        '<div><label style="font-size:10.5px;color:var(--mut)">วัสดุ (Class)</label>'+
+          '<select id="ebnCls" style="width:100%;margin-top:2px" onchange="ebnPreview()">'+CLASSES.map(function(c){return '<option>'+c+'</option>';}).join('')+'</select></div></div>'+
+      '<div style="background:#fff;border-radius:10px;padding:8px 10px;margin-bottom:6px;font-size:13px">รหัสที่ระบบรันให้: <b id="ebnPv" style="color:var(--pdd);font-size:15px">…</b></div>'+
+      '<div style="margin-bottom:6px"><label style="font-size:10.5px;color:var(--mut)">ชื่อ/รายละเอียด *</label>'+
+        '<input id="ebnName" placeholder="เช่น ต่างหูมุกน้ำจืด" style="width:100%;margin-top:2px"></div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px">'+
+        '<div><label style="font-size:10.5px;color:var(--mut)">น้ำหนัก g/ชิ้น</label>'+
+          '<input id="ebnW" type="number" step="0.01" placeholder="–" style="width:100%;margin-top:2px"></div>'+
+        '<div><label style="font-size:10.5px;color:var(--mut)">Location RBO</label>'+
+          '<input id="ebnLoc" placeholder="เช่น A-12" style="width:100%;margin-top:2px"></div></div>'+
+      '<div style="margin-bottom:8px"><label style="font-size:10.5px;color:var(--mut)">สี RBO (ราคาชุด C)</label>'+
+        '<select id="ebnColor" style="width:100%;margin-top:2px"><option value="">ไม่มีสี (ขาย A/B)</option>'+
+        (COLORS||[]).map(function(c){return '<option>'+c.color+'</option>';}).join('')+'</select></div>'+
+      '<button type="button" class="btn" style="margin-top:0;width:100%" onclick="ebnAdd()">➕ เพิ่มเข้าบิล</button>'+
+    '</div>'+
     '<div id="ebLines" style="margin-top:8px"></div>'+
     '<div style="background:var(--soft);border-radius:12px;padding:10px;margin:10px 0;font-size:13px">'+
       'ยอดรวมบิล: <b class="num" id="ebTotal" style="color:var(--pdd);font-size:16px">0.00</b> บาท</div>'+
@@ -1050,34 +1075,24 @@ function ebSuggest(){
     return '<div onclick="ebAdd('+i+')" style="padding:7px 10px;border-bottom:1px solid var(--soft);cursor:pointer;font-size:12px">'+
       '<b>'+c.sku_rbo+'</b> <small style="color:var(--mut)">'+(c.sel_name||'')+'</small></div>';
   }).join('')+
-  '<div onclick="ebNewSkuForm()" style="padding:8px 10px;cursor:pointer;font-size:12px;color:var(--pdd);font-weight:600;background:var(--soft)">🆕 ของใหม่ยังไม่มีรหัส — สร้าง SKU จากบิลนี้เลย</div>';
+  '<div onclick="ebMode(\'new\')" style="padding:8px 10px;cursor:pointer;font-size:12px;color:var(--pdd);font-weight:600;background:var(--soft)">🆕 หาไม่เจอ? สลับไปโหมด New SKU</div>';
+}
+
+function ebMode(m){
+  var oldBox=document.getElementById('ebOldBox'), newBox=document.getElementById('ebNewBox');
+  var bOld=document.getElementById('ebModeOld'), bNew=document.getElementById('ebModeNew');
+  if(m==='new'){
+    oldBox.style.display='none'; newBox.style.display='block';
+    bOld.className='btn o'; bNew.className='btn';
+    ebnPreview();
+  } else {
+    oldBox.style.display='block'; newBox.style.display='none';
+    bOld.className='btn'; bNew.className='btn o';
+  }
+  bOld.style.cssText='flex:1;margin-top:0;padding:10px'; bNew.style.cssText='flex:1;margin-top:0;padding:10px';
 }
 
 /* ── สร้าง SKU ใหม่ในบิล: กรอกแค่ หมวด+Material+ชื่อ (จำนวน/ทุน มาจากบิลอยู่แล้ว) ── */
-function ebNewSkuForm(){
-  document.getElementById('ebSug').innerHTML='';
-  var nf=document.getElementById('ebNewForm');
-  if(nf){nf.style.display='block';return;}
-  var html='<div id="ebNewForm" style="background:var(--soft);border-radius:12px;padding:10px;margin-top:8px">'+
-    '<div style="font-size:11.5px;font-weight:700;color:var(--pdd);margin-bottom:6px">🆕 สินค้าใหม่ (สร้าง SKU อัตโนมัติ)</div>'+
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px">'+
-      '<div><label style="font-size:10.5px;color:var(--mut)">หมวด</label>'+
-        '<select id="ebnCat" style="width:100%;margin-top:2px" onchange="ebnPreview()">'+CATS.map(function(c){return '<option>'+c+'</option>';}).join('')+'</select></div>'+
-      '<div><label style="font-size:10.5px;color:var(--mut)">Material/Class</label>'+
-        '<select id="ebnCls" style="width:100%;margin-top:2px" onchange="ebnPreview()">'+CLASSES.map(function(c){return '<option>'+c+'</option>';}).join('')+'</select></div></div>'+
-    '<div style="margin-bottom:6px"><label style="font-size:10.5px;color:var(--mut)">ชื่อ/รายละเอียด *</label>'+
-      '<input id="ebnName" placeholder="เช่น ต่างหูมุกน้ำจืด" style="width:100%;margin-top:2px"></div>'+
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:end;margin-bottom:8px">'+
-      '<div><label style="font-size:10.5px;color:var(--mut)">น้ำหนัก g/ชิ้น (ไม่บังคับ)</label>'+
-        '<input id="ebnW" type="number" step="0.01" placeholder="–" style="width:100%;margin-top:2px"></div>'+
-      '<div style="font-size:12px">รหัสที่จะได้: <b id="ebnPv" style="color:var(--pdd)">…</b></div></div>'+
-    '<div style="display:flex;gap:8px">'+
-      '<button class="btn" style="margin-top:0;flex:1" onclick="ebnAdd()">➕ เพิ่มเข้าบิล</button>'+
-      '<button class="btn o" style="margin-top:0;width:auto;padding:12px 16px" onclick="document.getElementById(\'ebNewForm\').style.display=\'none\'">ปิด</button></div>'+
-  '</div>';
-  document.getElementById('ebQ').insertAdjacentHTML('afterend',html);
-  ebnPreview();
-}
 async function ebnPreview(){
   var el=document.getElementById('ebnPv'); if(!el) return;
   el.textContent='…';
@@ -1093,13 +1108,15 @@ function ebnAdd(){
     category:document.getElementById('ebnCat').value,
     cls:document.getElementById('ebnCls').value,
     sel_name:name,weight:document.getElementById('ebnW').value||'',
+    loc_rbo:document.getElementById('ebnLoc').value.trim(),
+    color_rbo:document.getElementById('ebnColor').value,
     qty:1,cost_per_unit:''});
-  // weight อยู่ในบรรทัดแล้ว — แก้ต่อในตารางได้
   document.getElementById('ebnName').value='';
   document.getElementById('ebnW').value='';
-  document.getElementById('ebNewForm').style.display='none';
+  document.getElementById('ebnLoc').value='';
+  document.getElementById('ebnColor').value='';
   ebRender();
-  toast('🆕 เพิ่ม '+name+' แล้ว — รหัสจริงยืนยันตอนบันทึกบิล','ok',3000);
+  toast('🆕 เพิ่ม '+name+' ('+pv+') แล้ว — ใส่จำนวน+฿/หน่วยด้านล่าง','ok',3500);
 }
 
 function ebAdd(i){
