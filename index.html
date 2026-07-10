@@ -106,8 +106,8 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B3.6 · 9 ก.ค. 69 · In Non-RB เลือกโหมด: มี SKU แล้ว / New SKU (รันเลขโชว์ทันที)';
-const FRONT_VER = '3.6'; // ต้องตรงกับ build ใน doGet ของ backend
+const BUILD = 'B3.8 · 10 ก.ค. 69 · 💸 Expense แยกแท็บของตัวเอง (คนละเรื่องกับ In Non-RB)';
+const FRONT_VER = '3.8'; // ต้องตรงกับ build ใน doGet ของ backend
 console.log('RB Online Ops · '+BUILD);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -257,6 +257,19 @@ console.log('RB Online Ops · '+BUILD);
   </div>
 </div>
 
+<div id="exp" class="pg">
+  <div class="card" id="expCard"><h2>💸 บันทึกค่าใช้จ่าย <span class="lock">Luffy/Assist</span></h2>
+    <div style="font-size:11px;color:var(--mut);margin-bottom:8px">ค่าใช้จ่ายร้านที่ไม่ใช่สินค้า — รูปเข้า Drive อัตโนมัติ · ปิดเดือนรวมเป็น PDF ส่ง Etax ภายในวันที่ 5 เดือนถัดไป</div>
+    <button class="btn" style="margin-top:0" onclick="expOpenForm()">➕ บันทึกค่าใช้จ่าย</button>
+    <div style="display:flex;gap:8px;align-items:center;margin-top:10px">
+      <input type="month" id="expMonth" style="flex:1" onchange="expLoadList()">
+      <button class="btn o" style="margin-top:0;width:auto;padding:10px 14px" onclick="expClose()">📦 ปิดเดือน</button>
+    </div>
+    <div id="expSum" style="font-size:12px;margin-top:8px"></div>
+    <div id="expList" style="margin-top:6px"></div>
+  </div>
+</div>
+
 <div id="more" class="pg">
   <div class="card" id="setCard">
     <h2>⚙️ นำเข้าข้อมูล <span class="lock">Luffy/Assist</span></h2>
@@ -321,6 +334,7 @@ console.log('RB Online Ops · '+BUILD);
   <button data-p="wd" onclick="tab('wd',this)"><span class="i">🔄</span>เบิก</button>
   <button data-p="add" id="navAdd" onclick="tab('add',this)"><span class="i">➕</span>SKU</button>
   <button data-p="ext" id="navExt" onclick="tab('ext',this)"><span class="i">🛍</span>In Non-RB</button>
+  <button data-p="exp" id="navExp" onclick="tab('exp',this)"><span class="i">💸</span>Expense</button>
   <button data-p="more" onclick="tab('more',this)"><span class="i">✨</span>อื่นๆ</button>
 </nav>
 
@@ -443,7 +457,7 @@ function enter(){
   document.getElementById('hi').textContent='สวัสดี '+S.name+' 🌈';
   document.getElementById('hsub').textContent=new Date().toLocaleDateString('th-TH',{weekday:'long',day:'numeric',month:'short',year:'2-digit'});
   if(!isLA()){document.getElementById('navAdd').style.display='none';document.getElementById('setCard').style.display='none';
-    document.getElementById('navExt').style.display='none';}
+    document.getElementById('navExt').style.display='none';document.getElementById('navExp').style.display='none';}
   if(S.role==='storefront'){ document.getElementById('wdCreateCard').style.display='none';
     document.getElementById('wdListTitle').textContent='📋 ใบเบิกรอปล่อยของ'; }
   // เติม dropdown
@@ -451,7 +465,7 @@ function enter(){
   document.getElementById('aCls').innerHTML=CLASSES.map(c=>`<option>${c}</option>`).join('');
   tab('home',document.querySelector('nav button'));
   sysCheck(); loadAll(); loadUsers(); wdDraftLoad();
-  if(isLA()) extLoadList(); else document.getElementById('ebCard').style.display='none';
+  if(isLA()){extLoadList();expLoadList();} else document.getElementById('ebCard').style.display='none';
 }
 async function loadAll(){
   const d=await api('dashboard');
@@ -1010,6 +1024,98 @@ function resizeImgB64(file,maxPx,quality){
     };
     rd.readAsDataURL(file);
   });
+}
+
+/* ═══════════ Build 3.7: บันทึกค่าใช้จ่าย ═══════════ */
+const EXP_CATS=['ค่า Ads (หมายเหตุ ระบุ Shopee,Lazada,Tiktok)','ค่าสินค้า วัตถุดิบ','ค่าแพคเกจจิ้ง กล่องเทปกาว บับเบิ้ล แผ่นรอง','ค่าอุปกรณ์สำนักงาน กระดาษ หมึก','ค่าน้ำ ค่าไฟ ค่าโทรศัพท์ ค่าอินเตอร์เน็ต','ค่าส่งของ ค่าน้ำมันไปส่งของ','ค่าภาษี','ค่าโปรแกรม ระบบการจัดการ เครื่องPos','ค่าเงินเดือน คอมมิชชั่น','Petty Cash Week1','Petty Cash Week2','Petty Cash Week3','Petty Cash Week4','อื่นๆ'];
+const EXP_PAYS=['เงินสด','TTB QR บริษัท','SCB QR บริษัท','บัตรเครดิต Luffy','เงินThanya สำรองจ่าย'];
+
+function expOpenForm(){
+  document.getElementById('modalTitle').textContent='💸 บันทึกค่าใช้จ่าย';
+  var today=new Date().toISOString().slice(0,10);
+  var html='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">'+
+    '<div><label style="font-size:11px;color:var(--mut)">วันที่ทำรายการ</label>'+
+      '<input id="exDate" type="date" value="'+today+'" style="width:100%;margin-top:2px"></div>'+
+    '<div><label style="font-size:11px;color:var(--mut)">ราคา (บาท) *</label>'+
+      '<input id="exAmt" type="number" min="0" step="0.01" placeholder="0.00" style="width:100%;margin-top:2px"></div></div>'+
+    '<div style="margin-bottom:8px"><label style="font-size:11px;color:var(--mut)">รายการ *</label>'+
+      '<input id="exDetail" placeholder="เช่น ค่าADS SHOPEE 10000" style="width:100%;margin-top:2px"></div>'+
+    '<div style="margin-bottom:8px"><label style="font-size:11px;color:var(--mut)">หมวดรายจ่าย *</label>'+
+      '<select id="exCat" style="width:100%;margin-top:2px"><option value="">— เลือกหมวด —</option>'+
+      EXP_CATS.map(function(c){return '<option>'+c+'</option>';}).join('')+'</select></div>'+
+    '<div style="margin-bottom:8px"><label style="font-size:11px;color:var(--mut)">ช่องทางชำระเงิน</label>'+
+      '<select id="exPay" style="width:100%;margin-top:2px">'+
+      EXP_PAYS.map(function(c){return '<option>'+c+'</option>';}).join('')+'</select></div>'+
+    '<div style="margin-bottom:8px"><label style="font-size:11px;color:var(--mut)">หมายเหตุ</label>'+
+      '<input id="exNote" placeholder="เช่น ตราช้าง เบอร์10 24กล่อง" style="width:100%;margin-top:2px"></div>'+
+    '<div style="margin-bottom:10px"><label style="font-size:11px;color:var(--mut)">📎 รูปใบเสร็จ/สลิป (แนบได้หลายรูป)</label>'+
+      '<input type="file" id="exPhotos" accept="image/*" multiple style="width:100%;margin-top:4px;font-size:12px"></div>'+
+    '<button class="btn" id="exBtn" onclick="expSubmit()">💾 บันทึก</button>';
+  document.getElementById('modalBody').innerHTML=html;
+  document.getElementById('wdModal').style.display='block';
+}
+
+async function expSubmit(){
+  var detail=document.getElementById('exDetail').value.trim();
+  var amt=Number(document.getElementById('exAmt').value);
+  var cat=document.getElementById('exCat').value;
+  if(!detail){toast('⚠️ กรุณาระบุรายการ','err');return;}
+  if(!(amt>0)){toast('⚠️ กรุณาระบุราคา','err');return;}
+  if(!cat){toast('⚠️ กรุณาเลือกหมวดรายจ่าย','err');return;}
+  var btn=document.getElementById('exBtn');
+  if(btn){btn.disabled=true;btn.style.opacity='.5';}
+  var photos=[];
+  var fEl=document.getElementById('exPhotos');
+  if(fEl&&fEl.files.length){
+    toast('กำลังอ่านรูป...','info',1500);
+    for(var fi=0;fi<fEl.files.length;fi++){
+      var b64=await resizeImgB64(fEl.files[fi],1280,0.8);
+      photos.push({name:fEl.files[fi].name,mime:'image/jpeg',b64:b64});
+    }
+  }
+  const r=await api('expCreate',{
+    date:document.getElementById('exDate').value,
+    detail:detail,category:cat,amount:amt,
+    payment:document.getElementById('exPay').value,
+    note:document.getElementById('exNote').value.trim(),
+    photos:photos});
+  if(btn){btn.disabled=false;btn.style.opacity='';}
+  if(r.ok){
+    toast('✅ บันทึก '+r.exp_id+' แล้ว'+(r.photos?' · รูป '+r.photos+' ใบเข้า Drive':''),'ok',4000);
+    closeModal(); expLoadList();
+  } else toast(r.error,'err',4000);
+}
+
+async function expLoadList(){
+  var box=document.getElementById('expList'); if(!box) return;
+  var m=document.getElementById('expMonth').value||new Date().toISOString().slice(0,7);
+  document.getElementById('expMonth').value=m;
+  const r=await api('expList',{month:m});
+  if(!r.ok){box.innerHTML='<small style="color:var(--mut)">'+r.error+'</small>';return;}
+  var items=r.items||[];
+  var total=items.reduce(function(s2,x){return s2+(Number(x.amount)||0);},0);
+  document.getElementById('expSum').innerHTML=items.length
+    ?'เดือนนี้ <b>'+items.length+'</b> รายการ · รวม <b class="num" style="color:var(--pdd)">'+total.toFixed(2)+'</b> บาท'
+    :'<small style="color:var(--mut)">ยังไม่มีรายการเดือนนี้</small>';
+  box.innerHTML=items.slice(0,15).map(function(x){
+    return '<div style="display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--soft);font-size:12px">'+
+      '<div style="flex:1"><b>'+x.detail+'</b>'+(x.photos.length?' 📎'+x.photos.length:'')+
+        '<br><small style="color:var(--mut)">'+fmtDate(x.date)+' · '+String(x.category).split(' ')[0]+' '+(String(x.category).split(' ')[1]||'')+' · '+(x.payment||'')+' · '+(x.created_by||'')+'</small></div>'+
+      '<b class="num" style="white-space:nowrap">'+Number(x.amount).toFixed(2)+'</b></div>';
+  }).join('');
+}
+
+async function expClose(){
+  var m=document.getElementById('expMonth').value;
+  if(!m){toast('เลือกเดือนก่อน','err');return;}
+  var beY=Number(m.slice(0,4))+543, mNum=m.slice(5,7);
+  if(!confirm('ปิดเดือน '+mNum+'/'+beY+'?\n\n• รวมรูปทั้งเดือนเป็น PDF 1 ไฟล์ (ส่ง Etax)\n• สร้างไฟล์ Excel เก็บบริหารร้าน\n\nถ้ามีรายการเพิ่มทีหลัง กดปิดเดือนซ้ำได้ ไฟล์จะสร้างทับของเดิม')) return;
+  toast('กำลังรวมไฟล์... (รูปเยอะอาจใช้เวลาสักครู่)','info',4000);
+  const r=await api('expClose',{month:m});
+  if(r.ok){
+    toast('📦 ปิดเดือนแล้ว: '+r.count+' รายการ รวม '+Number(r.total).toFixed(2)+' บาท\n📄 '+r.pdf_name+'\n📊 '+r.csv_name,'ok',8000);
+    if(r.pdf_url) window.open(r.pdf_url,'_blank');
+  } else toast(r.error,'err',5000);
 }
 
 /* ═══════════ Build 3: บิลรับสินค้าภายนอก ═══════════ */
