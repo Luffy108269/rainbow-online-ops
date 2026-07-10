@@ -106,8 +106,8 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B3.10 · 10 ก.ค. 69 · Expense หลายรายการ/บิล + ค่าเพิ่ม/ส่วนลด + ลิงก์รูปใน Excel';
-const FRONT_VER = '3.10'; // ต้องตรงกับ build ใน doGet ของ backend
+const BUILD = 'B3.11 · 10 ก.ค. 69 · Excel Real-time: สารบัญหมวด+รายการทั้งเดือน+แท็บต่อบิลพร้อมรูป · ราคา/หน่วย×จำนวน';
+const FRONT_VER = '3.11'; // ต้องตรงกับ build ใน doGet ของ backend
 console.log('RB Online Ops · '+BUILD);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -1066,14 +1066,14 @@ function expOpenForm(){
   document.getElementById('modalBody').innerHTML=html;
   document.getElementById('wdModal').style.display='block';
   window._exAcc='Y';
-  window._exItems=[{name:'',amt:''}];
+  window._exItems=[{name:'',unit:'',qty:1}];
   window._exExtras=[];
   window._exDiscs=[];
   exRenderRows();
 }
 
 function exAddRow(kind){
-  if(kind==='items') window._exItems.push({name:'',amt:''});
+  if(kind==='items') window._exItems.push({name:'',unit:'',qty:1});
   else if(kind==='extras') window._exExtras.push({name:'',amt:''});
   else window._exDiscs.push({name:'',amt:''});
   exRenderRows();
@@ -1081,18 +1081,34 @@ function exAddRow(kind){
 function exDelRow(kind,i){
   var arr=kind==='items'?window._exItems:(kind==='extras'?window._exExtras:window._exDiscs);
   arr.splice(i,1);
-  if(kind==='items'&&!arr.length) arr.push({name:'',amt:''});
+  if(kind==='items'&&!arr.length) arr.push({name:'',unit:'',qty:1});
   exRenderRows();
 }
 function exUpd(kind,i,field,val){
   var arr=kind==='items'?window._exItems:(kind==='extras'?window._exExtras:window._exDiscs);
   if(arr[i]) arr[i][field]=val;
+  if(kind==='items'){
+    var lt=(Number(arr[i].unit)||0)*(Number(arr[i].qty)||0);
+    var el=document.getElementById('exlt_'+i);
+    if(el) el.textContent=lt?lt.toFixed(2):'';
+  }
   exCalcTotal();
 }
 function exRowHtml(kind,arr,ph,sign){
   return arr.map(function(x,i){
+    if(kind==='items'){
+      var lineTot=(Number(x.unit)||0)*(Number(x.qty)||0);
+      return '<div style="display:flex;gap:6px;align-items:center;margin-bottom:4px;flex-wrap:wrap">'+
+        '<span style="font-size:10.5px;color:var(--mut);width:18px">'+(i+1)+'.</span>'+
+        '<input value="'+String(x.name).replace(/"/g,'&quot;')+'" placeholder="'+ph+'" style="flex:1;min-width:130px" oninput="exUpd(\'items\','+i+',\'name\',this.value)">'+
+        '<input type="number" value="'+x.unit+'" min="0" step="0.01" placeholder="฿/หน่วย" title="ราคาต่อหน่วย" style="width:76px;text-align:right" oninput="exUpd(\'items\','+i+',\'unit\',this.value)">'+
+        '<span style="font-size:11px;color:var(--mut)">×</span>'+
+        '<input type="number" value="'+x.qty+'" min="1" placeholder="จำนวน" title="จำนวน" style="width:52px;text-align:center" oninput="exUpd(\'items\','+i+',\'qty\',this.value)">'+
+        '<b class="num" style="width:70px;text-align:right;font-size:12px" id="exlt_'+i+'">'+(lineTot?lineTot.toFixed(2):'')+'</b>'+
+        '<button type="button" class="x" onclick="exDelRow(\'items\','+i+')">✕</button></div>';
+    }
     return '<div style="display:flex;gap:6px;align-items:center;margin-bottom:4px">'+
-      (kind==='items'?'<span style="font-size:10.5px;color:var(--mut);width:18px">'+(i+1)+'.</span>':'<span style="font-size:12px;width:18px;text-align:center">'+sign+'</span>')+
+      '<span style="font-size:12px;width:18px;text-align:center">'+sign+'</span>'+
       '<input value="'+String(x.name).replace(/"/g,'&quot;')+'" placeholder="'+ph+'" style="flex:1" oninput="exUpd(\''+kind+'\','+i+',\'name\',this.value)">'+
       '<input type="number" value="'+x.amt+'" min="0" step="0.01" placeholder="บาท" style="width:84px;text-align:right" oninput="exUpd(\''+kind+'\','+i+',\'amt\',this.value)">'+
       '<button type="button" class="x" onclick="exDelRow(\''+kind+'\','+i+')">✕</button></div>';
@@ -1100,12 +1116,14 @@ function exRowHtml(kind,arr,ph,sign){
 }
 function exRenderRows(){
   document.getElementById('exItems').innerHTML=exRowHtml('items',window._exItems,'ชื่อรายการ เช่น กล่องไปรษณีย์ เบอร์ 0','');
+  var hd=document.getElementById('exItemsHead');
+  if(!hd){/* หัวคอลัมน์เล็กๆ ครั้งแรก */}
   document.getElementById('exExtras').innerHTML=exRowHtml('extras',window._exExtras,'ระบุ เช่น ค่ารถ','+');
   document.getElementById('exDiscs').innerHTML=exRowHtml('discs',window._exDiscs,'ระบุ เช่น โปรโมชั่น','−');
   exCalcTotal();
 }
 function exCalcTotal(){
-  var si=window._exItems.reduce(function(a,x){return a+(Number(x.amt)||0);},0);
+  var si=window._exItems.reduce(function(a,x){return a+((Number(x.unit)||0)*(Number(x.qty)||0));},0);
   var se=window._exExtras.reduce(function(a,x){return a+(Number(x.amt)||0);},0);
   var sd=window._exDiscs.reduce(function(a,x){return a+(Number(x.amt)||0);},0);
   var el=document.getElementById('exCalc'); if(!el) return;
@@ -1125,13 +1143,13 @@ function exAccMode(m){
 }
 
 async function expSubmit(){
-  var items=window._exItems.filter(function(x){return String(x.name).trim()&&Number(x.amt)>0;});
+  var items=window._exItems.filter(function(x){return String(x.name).trim()&&Number(x.unit)>0&&Number(x.qty)>0;});
   var extras=window._exExtras.filter(function(x){return String(x.name).trim()&&Number(x.amt)>0;});
   var discs=window._exDiscs.filter(function(x){return String(x.name).trim()&&Number(x.amt)>0;});
   var cat=document.getElementById('exCat').value;
-  if(!items.length){toast('⚠️ ใส่รายการอย่างน้อย 1 รายการ พร้อมราคา','err');return;}
+  if(!items.length){toast('⚠️ ใส่รายการอย่างน้อย 1 รายการ (ชื่อ + ราคา/หน่วย + จำนวน)','err');return;}
   if(!cat){toast('⚠️ กรุณาเลือกหมวดรายจ่าย','err');return;}
-  var total=items.reduce(function(a,x){return a+Number(x.amt);},0)+extras.reduce(function(a,x){return a+Number(x.amt);},0)-discs.reduce(function(a,x){return a+Number(x.amt);},0);
+  var total=items.reduce(function(a,x){return a+Number(x.unit)*Number(x.qty);},0)+extras.reduce(function(a,x){return a+Number(x.amt);},0)-discs.reduce(function(a,x){return a+Number(x.amt);},0);
   if(!(total>0)){toast('⚠️ ยอดรวมต้องมากกว่า 0 (เช็คส่วนลด)','err');return;}
   var btn=document.getElementById('exBtn');
   if(btn){btn.disabled=true;btn.style.opacity='.5';}
@@ -1153,7 +1171,7 @@ async function expSubmit(){
     photos:photos});
   if(btn){btn.disabled=false;btn.style.opacity='';}
   if(r.ok){
-    toast('✅ บันทึก '+r.exp_id+' แล้ว · ยอดรวม '+Number(r.total).toFixed(2)+' บาท'+(r.photos?' · รูป '+r.photos+' ใบเข้า Drive':''),'ok',4500);
+    toast('✅ บันทึก '+r.exp_id+' · ยอดรวม '+Number(r.total).toFixed(2)+' บาท'+(r.photos?' · รูป '+r.photos+' ใบ':'')+(r.book_url?' · 📊 Excel อัปเดตแล้ว':(r.book_error?' · ⚠️ Excel: '+r.book_error:'')),'ok',5000);
     closeModal(); expLoadList();
   } else toast(r.error,'err',4000);
 }
@@ -1166,10 +1184,12 @@ async function expLoadList(){
   if(!r.ok){box.innerHTML='<small style="color:var(--mut)">'+r.error+'</small>';return;}
   var items=r.items||[];
   var total=items.reduce(function(s2,x){return s2+(Number(x.amount)||0);},0);
+  window._expBookUrl=r.book_url||'';
+  var bookLink=r.book_url?' <a href="'+r.book_url+'" target="_blank" style="color:var(--pdd);font-weight:600;text-decoration:none">📊 เปิดไฟล์ Excel เดือนนี้</a>':'';
   var accItems=items.filter(function(x){return String(x.send_acc)!=='N';});
   var accTotal=accItems.reduce(function(s2,x){return s2+(Number(x.amount)||0);},0);
   document.getElementById('expSum').innerHTML=items.length
-    ?'เดือนนี้ <b>'+items.length+'</b> รายการ · รวม <b class="num" style="color:var(--pdd)">'+total.toFixed(2)+'</b> บาท'+
+    ?'เดือนนี้ <b>'+items.length+'</b> รายการ · รวม <b class="num" style="color:var(--pdd)">'+total.toFixed(2)+'</b> บาท'+bookLink+
       (accItems.length<items.length?'<br><small style="color:var(--mut)">ส่งบัญชี '+accItems.length+' รายการ ('+accTotal.toFixed(2)+' บาท) · ไม่ส่ง '+(items.length-accItems.length)+' รายการ</small>':'')
     :'<small style="color:var(--mut)">ยังไม่มีรายการเดือนนี้</small>';
   box.innerHTML=items.slice(0,15).map(function(x){
@@ -1189,7 +1209,7 @@ async function expClose(){
   toast('กำลังรวมไฟล์... (รูปเยอะอาจใช้เวลาสักครู่)','info',4000);
   const r=await api('expClose',{month:m});
   if(r.ok){
-    toast('📦 ปิดเดือนแล้ว\n📄 PDF ส่งบัญชี: '+r.count+' รายการ '+Number(r.total).toFixed(2)+' บาท\n📊 Excel ทั้งหมด: '+(r.count_all||r.count)+' รายการ '+Number(r.total_all||r.total).toFixed(2)+' บาท','ok',8000);
+    toast('📦 ปิดเดือนแล้ว\n📄 PDF ส่งบัญชี: '+r.count+' รายการ '+Number(r.total).toFixed(2)+' บาท\n📊 Excel: '+(r.count_all||r.count)+' รายการ '+Number(r.total_all||r.total).toFixed(2)+' บาท (สรุปอัปเดตแล้ว)','ok',8000);
     if(r.pdf_url) window.open(r.pdf_url,'_blank');
   } else toast(r.error,'err',5000);
 }
