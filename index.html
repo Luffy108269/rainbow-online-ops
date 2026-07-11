@@ -106,8 +106,8 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B3.24 · 12 ก.ค. 69 · ⭐มาริโอ้ + ช่องทางที่ขาย 11 ช่องทางติ๊กได้ + ราคาชุด A/B';
-const FRONT_VER = '3.24'; // ต้องตรงกับ build ใน doGet ของ backend
+const BUILD = 'B3.25 · 12 ก.ค. 69 · ตัวเลขมี , ทุกจุด (จอ/PDF/Excel) — ยกเว้น CSV บัญชีที่ล็อกโครง';
+const FRONT_VER = '3.25'; // ต้องตรงกับ build ใน doGet ของ backend
 console.log('RB Online Ops · '+BUILD);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -395,6 +395,10 @@ const CMAP={CREAM:'#F5E9D7',RED:'#E05656',GREEN:'#58B37C',PINK:'#F29BB4',BLUE:'#
 const CATS='Earrings,Ring,Bangle,Bracelet,Necklace,Pendant,Anklet,Set'.split(',');
 const CLASSES='Silver Classic,Silver Premium,Silver combines with Non silver,Silver Lucky Stone,Lucky stone with Non silver,Brass Classic,Brass Premium,Stainless Steel Classic,Stainless Steel Premium,Non-Silver'.split(',');
 
+/* ── ตัวเลขต้องมี , เสมอ (มาตรฐานเว็บเรา) — ยกเว้นไฟล์ CSV บัญชีที่ , เป็นตัวคั่นคอลัมน์ ── */
+function fmtN(v,dp){dp=(dp==null?2:dp);return Number(v||0).toLocaleString('en-US',{minimumFractionDigits:dp,maximumFractionDigits:dp});}
+function fmtQ(v){return Number(v||0).toLocaleString('en-US');}
+
 async function api(a,d={}){
   const b=JSON.stringify(Object.assign({action:a},S?{u:S.u,key:S.key}:{},d));
   try{
@@ -514,7 +518,7 @@ function renderCat(){
   document.getElementById('catList').innerHTML = list.length? window._catShown.map((s,i)=>`
     <div class="item" style="cursor:pointer" onclick="skuDetail(${i})"><div class="ph">${s.img?`<img src="${imgSrc(s.img)}" loading="lazy">`:'📿'}</div>
       <div><b>${s.sku_rbo}</b><small>${s.detail||''}</small><small>${s.sku_rbws?'WS: '+s.sku_rbws+' · 📍'+(s.loc_rbws||'–'):'ซื้อภายนอก'}</small></div>
-      <div class="endc">${s.color_rbo?`<span class="num">${s.color_rbo}</span>`:''}<small>คงเหลือ ${s.qty_shop||0}</small>${(isLA()&&s.cost_latest)?`<small>ทุน ${s.cost_latest}</small>`:''}</div>
+      <div class="endc">${s.color_rbo?`<span class="num">${s.color_rbo}</span>`:''}<small>คงเหลือ ${fmtQ(s.qty_shop||0)}</small>${(isLA()&&s.cost_latest)?`<small>ทุน ${fmtN(s.cost_latest)}</small>`:''}</div>
     </div>`).join('') : '<div class="empty">ไม่พบ</div>';
 }
 
@@ -546,9 +550,9 @@ function skuDetail(i,editMode){
   var html='<div style="text-align:center;margin-bottom:10px">'+
     (s.img?'<img src="'+imgSrc(s.img)+'" style="max-width:200px;max-height:200px;border-radius:14px;border:1px solid var(--line)">':'<div style="font-size:50px">📿</div>')+'</div>';
   html+='<div style="display:flex;gap:14px;justify-content:center;font-size:13px;margin-bottom:10px">'+
-    '<span>คงเหลือร้าน <b class="num">'+(s.qty_shop||0)+'</b></span>'+
-    '<span>งานแฟร์ <b class="num">'+(s.qty_fair||0)+'</b></span>'+
-    (la?'<span style="color:var(--pdd)">ทุนจริง <b class="num">'+(s.cost_latest||'–')+'</b></span>':'')+'</div>';
+    '<span>คงเหลือร้าน <b class="num">'+fmtQ(s.qty_shop||0)+'</b></span>'+
+    '<span>งานแฟร์ <b class="num">'+fmtQ(s.qty_fair||0)+'</b></span>'+
+    (la?'<span style="color:var(--pdd)">ทุนจริง <b class="num">'+(s.cost_latest?fmtN(s.cost_latest):'–')+'</b></span>':'')+'</div>';
   window._sdStar=Number(s.star)||0;
   SKU_FIELDS.forEach(function(f){
     var v=s[f[0]]!=null?String(s[f[0]]):'';
@@ -1234,7 +1238,7 @@ function exUpd(kind,i,field,val){
   if(kind==='items'){
     var lt=(Number(arr[i].unit)||0)*(Number(arr[i].qty)||0);
     var el=document.getElementById('exlt_'+i);
-    if(el) el.textContent=lt?lt.toFixed(2):'';
+    if(el) el.textContent=lt?fmtN(lt):'';
   }
   exCalcTotal();
 }
@@ -1248,7 +1252,7 @@ function exRowHtml(kind,arr,ph,sign){
         '<input type="number" value="'+x.unit+'" min="0" step="0.01" placeholder="฿/หน่วย" title="ราคาต่อหน่วย" style="width:76px;text-align:right" oninput="exUpd(\'items\','+i+',\'unit\',this.value)">'+
         '<span style="font-size:11px;color:var(--mut)">×</span>'+
         '<input type="number" value="'+x.qty+'" min="1" placeholder="จำนวน" title="จำนวน" style="width:52px;text-align:center" oninput="exUpd(\'items\','+i+',\'qty\',this.value)">'+
-        '<b class="num" style="width:70px;text-align:right;font-size:12px" id="exlt_'+i+'">'+(lineTot?lineTot.toFixed(2):'')+'</b>'+
+        '<b class="num" style="width:70px;text-align:right;font-size:12px" id="exlt_'+i+'">'+(lineTot?fmtN(lineTot):'')+'</b>'+
         '<button type="button" class="x" onclick="exDelRow(\'items\','+i+')">✕</button></div>';
     }
     return '<div style="display:flex;gap:6px;align-items:center;margin-bottom:4px">'+
@@ -1271,7 +1275,7 @@ function exCalcTotal(){
   var se=window._exExtras.reduce(function(a,x){return a+(Number(x.amt)||0);},0);
   var sd=window._exDiscs.reduce(function(a,x){return a+(Number(x.amt)||0);},0);
   var el=document.getElementById('exCalc'); if(!el) return;
-  el.innerHTML='รายการ '+si.toFixed(2)+(se?' + เพิ่มเติม '+se.toFixed(2):'')+(sd?' − ส่วนลด '+sd.toFixed(2):'')+
+  el.innerHTML='รายการ '+fmtN(si)+(se?' + เพิ่มเติม '+fmtN(se):'')+(sd?' − ส่วนลด '+fmtN(sd):'')+
     ' = ยอดรวม <b class="num" style="color:var(--pdd);font-size:16px">'+(si+se-sd).toFixed(2)+'</b> บาท';
 }
 
@@ -1315,7 +1319,7 @@ async function expSubmit(){
     photos:photos});
   if(btn){btn.disabled=false;btn.style.opacity='';}
   if(r.ok){
-    toast('✅ บันทึก '+r.exp_id+' · ยอดรวม '+Number(r.total).toFixed(2)+' บาท'+(r.photos?' · รูป '+r.photos+' ใบ':'')+(r.book_url?' · 📊 Excel อัปเดตแล้ว':(r.book_error?' · ⚠️ Excel: '+r.book_error:'')),'ok',5000);
+    toast('✅ บันทึก '+r.exp_id+' · ยอดรวม '+fmtN(r.total)+' บาท'+(r.photos?' · รูป '+r.photos+' ใบ':'')+(r.book_url?' · 📊 Excel อัปเดตแล้ว':(r.book_error?' · ⚠️ Excel: '+r.book_error:'')),'ok',5000);
     closeModal(); expLoadList();
   } else toast(r.error,'err',4000);
 }
@@ -1333,8 +1337,8 @@ async function expLoadList(){
   var accItems=items.filter(function(x){return String(x.send_acc)!=='N';});
   var accTotal=accItems.reduce(function(s2,x){return s2+(Number(x.amount)||0);},0);
   document.getElementById('expSum').innerHTML=items.length
-    ?'เดือนนี้ <b>'+items.length+'</b> รายการ · รวม <b class="num" style="color:var(--pdd)">'+total.toFixed(2)+'</b> บาท'+bookLink+
-      (accItems.length<items.length?'<br><small style="color:var(--mut)">ส่งบัญชี '+accItems.length+' รายการ ('+accTotal.toFixed(2)+' บาท) · ไม่ส่ง '+(items.length-accItems.length)+' รายการ</small>':'')
+    ?'เดือนนี้ <b>'+items.length+'</b> รายการ · รวม <b class="num" style="color:var(--pdd)">'+fmtN(total)+'</b> บาท'+bookLink+
+      (accItems.length<items.length?'<br><small style="color:var(--mut)">ส่งบัญชี '+accItems.length+' รายการ ('+fmtN(accTotal)+' บาท) · ไม่ส่ง '+(items.length-accItems.length)+' รายการ</small>':'')
     :'<small style="color:var(--mut)">ยังไม่มีรายการเดือนนี้</small>';
   window._expItemsList=items;
   box.innerHTML=items.slice(0,20).map(function(x,i){
@@ -1346,7 +1350,7 @@ async function expLoadList(){
       '<div style="flex:1"><b>'+x.detail+'</b>'+(x.photos.length?' 📎'+x.photos.length:'')+
         '<br><small style="color:var(--mut)">'+fmtDate(x.date)+' · '+String(x.category).split(' ')[0]+' '+(String(x.category).split(' ')[1]||'')+' · '+(x.payment||'')+' · '+(x.created_by||'')+'</small></div>'+
       tgl+
-      '<b class="num" style="white-space:nowrap">'+Number(x.amount).toFixed(2)+'</b></div>';
+      '<b class="num" style="white-space:nowrap">'+fmtN(x.amount)+'</b></div>';
   }).join('');
 }
 
@@ -1376,7 +1380,7 @@ async function expClose(){
   toast('กำลังรวมไฟล์... (รูปเยอะอาจใช้เวลาสักครู่)','info',4000);
   const r=await api('expClose',{month:m});
   if(r.ok){
-    toast('📦 ปิดเดือนแล้ว\n📄 PDF ส่งบัญชี: '+r.count+' รายการ '+Number(r.total).toFixed(2)+' บาท\n📊 Excel: '+(r.count_all||r.count)+' รายการ '+Number(r.total_all||r.total).toFixed(2)+' บาท (สรุปอัปเดตแล้ว)','ok',8000);
+    toast('📦 ปิดเดือนแล้ว\n📄 PDF ส่งบัญชี: '+r.count+' รายการ '+fmtN(r.total)+' บาท\n📊 Excel: '+(r.count_all||r.count)+' รายการ '+fmtN(r.total_all||r.total)+' บาท (สรุปอัปเดตแล้ว)','ok',8000);
     if(r.pdf_url) window.open(r.pdf_url,'_blank');
   } else toast(r.error,'err',5000);
 }
@@ -1533,7 +1537,7 @@ function ebRender(){
   }).join('');
   var total=EBCART.reduce(function(s,x){return s+(Number(x.qty)||0)*(Number(x.cost_per_unit)||0);},0);
   var totEl=document.getElementById('ebTotal');
-  if(totEl) totEl.textContent=total.toFixed(2);
+  if(totEl) totEl.textContent=fmtN(total);
 }
 
 async function extSubmit(){
@@ -1545,7 +1549,7 @@ async function extSubmit(){
     if(!(Number(EBCART[i].cost_per_unit)>0)){toast('⚠️ กรอกต้นทุน/หน่วยของ '+lbl,'err');return;}
   }
   var total=EBCART.reduce(function(s,x){return s+Number(x.qty)*Number(x.cost_per_unit);},0);
-  if(!confirm('ยืนยันบิลจาก "'+sup+'"\n'+EBCART.length+' SKU · ยอดรวม '+total.toFixed(2)+' บาท\n\n✅ สต๊อกจะบวกทันที')) return;
+  if(!confirm('ยืนยันบิลจาก "'+sup+'"\n'+EBCART.length+' SKU · ยอดรวม '+fmtN(total)+' บาท\n\n✅ สต๊อกจะบวกทันที')) return;
   var btn=document.getElementById('ebSubmitBtn');
   if(btn){btn.disabled=true;btn.style.opacity='.5';}
   var photos=[];
@@ -1565,7 +1569,7 @@ async function extSubmit(){
   });
   if(btn){btn.disabled=false;btn.style.opacity='';}
   if(r.ok){
-    toast('✅ บิล '+r.bill+' บันทึกแล้ว · สต๊อกบวกแล้ว · รวม '+Number(r.total).toFixed(2)+' บาท'+
+    toast('✅ บิล '+r.bill+' บันทึกแล้ว · สต๊อกบวกแล้ว · รวม '+fmtN(r.total)+' บาท'+
       (r.new_skus&&r.new_skus.length?' · 🆕 SKU ใหม่: '+r.new_skus.join(', '):''),'ok',7000);
     closeModal(); extLoadList(); loadAll();
     if(r.new_skus&&r.new_skus.length) api('catalog').then(function(c){if(c.ok){CAT=c.selections;renderCat();}}); // refresh แคตตาล็อกให้ค้นเจอของใหม่
@@ -1585,7 +1589,7 @@ async function extLoadList(){
     return '<div class="item" onclick="ebDetail('+i+')" style="cursor:pointer">'+
       '<div class="ph">🛍</div>'+
       '<div style="flex:1"><b>'+b.bill_no+'</b> · '+b.supplier+' '+chip+
-      '<small>'+fmtDate(b.date||'')+' · '+b.items.length+' SKU · '+Number(b.total||0).toFixed(2)+' บาท · คีย์: '+(b.created_by||'')+'</small></div></div>';
+      '<small>'+fmtDate(b.date||'')+' · '+b.items.length+' SKU · '+fmtN(b.total||0)+' บาท · คีย์: '+(b.created_by||'')+'</small></div></div>';
   }).join('');
 }
 
@@ -1598,9 +1602,9 @@ function ebDetail(i){
   html+=b.items.map(function(it,j){
     return '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--soft);font-size:12px">'+
       '<div><b>'+it.sku_rbo+'</b> <small style="color:var(--mut)">'+(it.sel_name||'')+'</small></div>'+
-      '<div>×'+it.qty+' · '+Number(it.cost_per_unit).toFixed(2)+'฿ = <b>'+Number(it.total).toFixed(2)+'฿</b></div></div>';
+      '<div>×'+it.qty+' · '+fmtN(it.cost_per_unit)+'฿ = <b>'+fmtN(it.total)+'฿</b></div></div>';
   }).join('');
-  html+='<div style="text-align:right;font-size:13px;margin:8px 0">รวม: <b class="num" style="color:var(--pdd);font-size:16px">'+Number(b.total||0).toFixed(2)+'</b> บาท</div>';
+  html+='<div style="text-align:right;font-size:13px;margin:8px 0">รวม: <b class="num" style="color:var(--pdd);font-size:16px">'+fmtN(b.total||0)+'</b> บาท</div>';
   if(b.photos&&b.photos.length){
     html+='<div style="font-size:11px;color:var(--mut);margin-bottom:4px">📎 รูปบิล/ใบเสร็จ</div><div style="display:flex;gap:6px;flex-wrap:wrap">'+
       b.photos.map(function(p){
@@ -1706,7 +1710,7 @@ function renderAccModal(docs,items){
       extB.map(function(b,i){
         return '<label style="display:flex;gap:8px;align-items:center;background:var(--soft);border-radius:10px;padding:8px 10px;margin-bottom:6px;font-size:12px;cursor:pointer">'+
           '<input type="checkbox" class="ext-acc-chk" data-idx="'+i+'" checked style="width:16px;height:16px;accent-color:var(--pd)">'+
-          '<div style="flex:1"><b>'+b.bill_no+'</b> · '+b.supplier+'<br><small style="color:var(--mut)">'+b.items.length+' SKU · '+Number(b.total||0).toFixed(2)+' บาท</small></div></label>';
+          '<div style="flex:1"><b>'+b.bill_no+'</b> · '+b.supplier+'<br><small style="color:var(--mut)">'+b.items.length+' SKU · '+fmtN(b.total||0)+' บาท</small></div></label>';
       }).join('');
   }
   html+='<div style="background:var(--soft);border-radius:12px;padding:10px;margin:10px 0;font-size:13px">'+
@@ -1732,7 +1736,7 @@ function calcAccRow(i){
     sub.style.color='red';
   } else {
     var amt=ppg>0?ppg*wt:(ppc>0?ppc*qty:0);
-    sub.textContent=amt>0?'฿'+amt.toFixed(2):'–';
+    sub.textContent=amt>0?'฿'+fmtN(amt):'–';
     sub.style.color='var(--pdd)';
   }
   // รวม
@@ -1747,7 +1751,7 @@ function calcAccRow(i){
     total+=pg>0?pg*wj:(pc>0?pc*qj:0);
   }
   var el=document.getElementById('accTotal');
-  if(el) el.textContent=err?'กรุณาแก้ไข':total.toFixed(2);
+  if(el) el.textContent=err?'กรุณาแก้ไข':fmtN(total);
 }
 
 function calcAccTotal(){
@@ -1760,10 +1764,10 @@ function calcAccTotal(){
     const ppg=Number(el.value)||0;
     const amt=ppg*(it.net_weight||0);
     total+=amt;
-    sub.textContent=amt>0?('฿'+amt.toFixed(2)):'–';
+    sub.textContent=amt>0?('฿'+fmtN(amt)):'–';
   });
   const el=document.getElementById('accTotal');
-  if(el) el.textContent=total.toFixed(2);
+  if(el) el.textContent=fmtN(total);
 }
 
 async function generateAccExcel(){
@@ -1807,8 +1811,8 @@ async function generateAccExcel(){
   var extBillsPre=window._accExtBills||[];
   var extPickedPre=[...document.querySelectorAll('.ext-acc-chk:checked')].map(function(c){return extBillsPre[Number(c.dataset.idx)];}).filter(Boolean);
   var extTotal=extPickedPre.reduce(function(s2,b){return s2+Number(b.total||0);},0);
-  if(!confirm('ยืนยัน Generate ไฟล์ + ส่งบัญชี\nใบเบิก WS: '+docs.join(', ')+' — โอน '+total.toFixed(2)+' บาท'+
-    (extPickedPre.length?('\nบิลภายนอก (Etax): '+extPickedPre.map(function(b){return b.bill_no;}).join(', ')+' — '+extTotal.toFixed(2)+' บาท'):'')+
+  if(!confirm('ยืนยัน Generate ไฟล์ + ส่งบัญชี\nใบเบิก WS: '+docs.join(', ')+' — โอน '+fmtN(total)+' บาท'+
+    (extPickedPre.length?('\nบิลภายนอก (Etax): '+extPickedPre.map(function(b){return b.bill_no;}).join(', ')+' — '+fmtN(extTotal)+' บาท'):'')+
     '\n\n⚠️ ใบเบิก/บิลเหล่านี้จะถูกล็อก แก้ไขไม่ได้อีก')) return;
   toast('กำลัง Generate...','info',2000);
   // หาวันที่ Store อนุมัติจากใบแรก
