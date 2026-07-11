@@ -106,8 +106,8 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B3.22 · 12 ก.ค. 69 · คัมภีร์สินค้า: กดดู/Edit/Save + อัลบั้ม/ตัวเลือก + ทุนเฉพาะ Luffy/Assist';
-const FRONT_VER = '3.22'; // ต้องตรงกับ build ใน doGet ของ backend
+const BUILD = 'B3.24 · 12 ก.ค. 69 · ⭐มาริโอ้ + ช่องทางที่ขาย 11 ช่องทางติ๊กได้ + ราคาชุด A/B';
+const FRONT_VER = '3.24'; // ต้องตรงกับ build ใน doGet ของ backend
 console.log('RB Online Ops · '+BUILD);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -241,6 +241,10 @@ console.log('RB Online Ops · '+BUILD);
     <div class="row2">
       <div><label>สี RBO (ราคาชุด C)</label><select id="aColor"><option value="">ไม่มีสี (ขาย A/B)</option></select></div>
       <div><label>จำนวนตั้งต้น</label><input id="aQty" value="0"></div>
+    </div>
+    <div class="row2">
+      <div><label>ราคาชุด A (฿)</label><input id="aPA" type="number" step="0.01"></div>
+      <div><label>ราคาชุด B (฿)</label><input id="aPB" type="number" step="0.01"></div>
     </div>
     <div class="row2">
       <div><label>ราคาทุน (L/A เท่านั้น)</label><input id="aCost"></div>
@@ -519,8 +523,22 @@ const SKU_FIELDS=[
   ['album_id','ชื่ออัลบั้ม'],['sel_name','ชื่อตัวเลือก'],['detail','รายละเอียด'],
   ['sku_rbws','SKU RBWS'],['name_rbws','ชื่อฝั่ง WS'],['weight','น้ำหนัก g/ชิ้น'],
   ['color_rbws','รหัสสี RBWS'],['loc_rbws','Location RBWS'],['loc_rbo','Location RBO'],
-  ['color_rbo','สี RBO (ราคาชุด C)'],['star','ดาว'],['barcode','บาร์โค้ด'],['web_status','สถานะเว็บ']
+  ['color_rbo','สี RBO (ราคาชุด C)'],['price_a','ราคาชุด A (฿)'],['price_b','ราคาชุด B (฿)'],
+  ['star','ดาว'],['barcode','บาร์โค้ด']
 ];
+/* ช่องทางที่ขาย — ฐานข้อมูลสำหรับ AI ทีมคอนเทนต์/การขายต่อยอด */
+const SALE_CHANNELS=[
+  ['Ketshop','#0BA5A4'],['Shopee','#EE4D2D'],['Tiktok','#111111'],['Lazada','#1A9CB7'],
+  ['Linemyshop','#06C755'],['Facebook','#1877F2'],['Instagram','#E1306C'],['Thaimart','#C0392B'],
+  ['Nex gen','#5B4B8A'],['ShopChill','#FF8A3D'],['Pantip Mall','#7659A6']
+];
+function chanChip(name,color,active,idx,clickable){
+  return '<span '+(clickable?'onclick="skuChanToggle('+idx+')" id="sdchan_'+idx+'"':'')+
+    ' style="display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:4px 10px 4px 4px;margin:3px;font-size:11px;cursor:'+(clickable?'pointer':'default')+';'+
+    (active?'background:'+color+';color:#fff;font-weight:700':'background:#F3F3F5;color:#9AA0A6')+'">'+
+    '<span style="width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;'+
+    (active?'background:rgba(255,255,255,.25);color:#fff':'background:'+color+';color:#fff;opacity:.45')+'">'+name.charAt(0)+'</span>'+name+'</span>';
+}
 function skuDetail(i,editMode){
   const s=window._catShown[i]; if(!s) return;
   document.getElementById('modalTitle').textContent='📿 '+s.sku_rbo;
@@ -531,20 +549,45 @@ function skuDetail(i,editMode){
     '<span>คงเหลือร้าน <b class="num">'+(s.qty_shop||0)+'</b></span>'+
     '<span>งานแฟร์ <b class="num">'+(s.qty_fair||0)+'</b></span>'+
     (la?'<span style="color:var(--pdd)">ทุนจริง <b class="num">'+(s.cost_latest||'–')+'</b></span>':'')+'</div>';
+  window._sdStar=Number(s.star)||0;
   SKU_FIELDS.forEach(function(f){
     var v=s[f[0]]!=null?String(s[f[0]]):'';
-    html+='<div style="display:flex;gap:8px;align-items:center;padding:5px 0;border-bottom:1px solid var(--soft);font-size:12.5px">'+
-      '<div style="width:130px;color:var(--mut)">'+f[1]+'</div>'+
-      (editMode
+    var inner;
+    if(f[0]==='star'){
+      var n=Number(v)||0;
+      var starOn='⭐', starOff='<span style="filter:grayscale(1);opacity:.3">⭐</span>';
+      if(editMode){
+        inner='<div style="flex:1;display:flex;align-items:center;gap:2px" id="sdStarRow">'+
+          [1,2,3,4,5].map(function(k){
+            return '<span onclick="skuStarPick('+k+')" id="sdstar_'+k+'" style="cursor:pointer;font-size:26px;line-height:1">'+(k<=n?starOn:starOff)+'</span>';
+          }).join('')+
+          '<small onclick="skuStarPick(0)" style="cursor:pointer;color:var(--mut);margin-left:8px">ล้าง</small></div>';
+      } else {
+        inner='<div style="flex:1;font-size:17px;letter-spacing:1px">'+(n?([1,2,3,4,5].map(function(k){return k<=n?starOn:starOff;}).join('')):'–')+'</div>';
+      }
+    } else {
+      inner=editMode
         ?'<input id="sd_'+f[0]+'" value="'+v.replace(/"/g,'&quot;')+'" style="flex:1;font-size:12.5px">'
-        :'<div style="flex:1"><b>'+(v||'–')+'</b></div>')+
-      '</div>';
+        :'<div style="flex:1"><b>'+(v||'–')+'</b></div>';
+    }
+    html+='<div style="display:flex;gap:8px;align-items:center;padding:5px 0;border-bottom:1px solid var(--soft);font-size:12.5px">'+
+      '<div style="width:130px;color:var(--mut)">'+f[1]+'</div>'+inner+'</div>';
   });
   if(editMode&&la){
     html+='<div style="display:flex;gap:8px;align-items:center;padding:5px 0;border-bottom:1px solid var(--soft);font-size:12.5px">'+
       '<div style="width:130px;color:var(--mut)">ทุนจริง (฿)</div>'+
       '<input id="sd_cost_latest" type="number" step="0.01" value="'+(s.cost_latest||'')+'" style="flex:1;font-size:12.5px"></div>';
   }
+  // ── ช่องทางที่ขาย: ติ๊กว่าลงขายที่ไหนแล้วบ้าง ──
+  window._sdChans=new Set(String(s.web_status||'').split(',').map(function(x){return x.trim();}).filter(String));
+  html+='<div style="margin-top:10px"><div style="font-size:12px;color:var(--mut);margin-bottom:4px">🛒 ช่องทางที่ขาย'+(editMode?' <small>(แตะเพื่อติ๊ก)</small>':'')+'</div><div style="display:flex;flex-wrap:wrap">';
+  if(editMode){
+    SALE_CHANNELS.forEach(function(c,idx){ html+=chanChip(c[0],c[1],window._sdChans.has(c[0]),idx,true); });
+  } else {
+    var act=SALE_CHANNELS.filter(function(c){return window._sdChans.has(c[0]);});
+    html+=act.length?act.map(function(c){return chanChip(c[0],c[1],true,0,false);}).join(''):'<small style="color:var(--mut)">ยังไม่ระบุ</small>';
+  }
+  html+='</div></div>';
   html+='<div style="display:flex;gap:8px;margin-top:14px">';
   if(editMode){
     html+='<button class="btn" style="margin-top:0;flex:1" data-i="'+i+'" onclick="skuSave(this.dataset.i)">💾 Save เข้าฐานข้อมูล</button>'+
@@ -557,13 +600,28 @@ function skuDetail(i,editMode){
   document.getElementById('modalBody').innerHTML=html;
   document.getElementById('wdModal').style.display='block';
 }
+function skuStarPick(n){
+  window._sdStar=n;
+  for(var k=1;k<=5;k++){
+    var el=document.getElementById('sdstar_'+k);
+    if(el) el.innerHTML=(k<=n?'⭐':'<span style="filter:grayscale(1);opacity:.3">⭐</span>');
+  }
+}
+function skuChanToggle(idx){
+  var name=SALE_CHANNELS[idx][0];
+  if(window._sdChans.has(name)) window._sdChans.delete(name); else window._sdChans.add(name);
+  var el=document.getElementById('sdchan_'+idx);
+  if(el) el.outerHTML=chanChip(name,SALE_CHANNELS[idx][1],window._sdChans.has(name),idx,true);
+}
 async function skuSave(i){
   const s=window._catShown[Number(i)]; if(!s) return;
   var fields={};
   SKU_FIELDS.forEach(function(f){
+    if(f[0]==='star'){ fields.star=window._sdStar||''; return; }
     var el=document.getElementById('sd_'+f[0]);
     if(el) fields[f[0]]=el.value.trim();
   });
+  fields.web_status=[...window._sdChans].join(',');
   var cEl=document.getElementById('sd_cost_latest');
   if(cEl&&cEl.value!=='') fields.cost_latest=Number(cEl.value);
   toast('กำลังบันทึก...','info',1500);
@@ -708,9 +766,10 @@ async function addSku(){
   const r=await api('addSku',{category:g('aCat'),cls:g('aCls'),sku_custom:g('aCustom'),
     album:g('aAlbum'),sel_name:g('aName'),sku_rbws:g('aWs'),weight:g('aW'),loc_rbo:g('aLocO'),loc_rbws:g('aLocW'),
     color_rbo:g('aColor'),qty:g('aQty'),cost:g('aCost'),color_rbws:g('aColW'),detail:g('aName'),
+    price_a:g('aPA'),price_b:g('aPB'),
     img_b64:imgB64,img_name:imgName});
   if(r.ok){document.getElementById('aOk').textContent='✅ สร้าง '+r.sku+' เรียบร้อย'+(r.img?' 📷 รูปเข้าฐานข้อมูลแล้ว':'');
-    ['aCustom','aAlbum','aName','aWs','aW','aLocO','aLocW','aQty','aCost','aColW'].forEach(i=>document.getElementById(i).value='');
+    ['aCustom','aAlbum','aName','aWs','aW','aLocO','aLocW','aQty','aCost','aColW','aPA','aPB'].forEach(i=>document.getElementById(i).value='');
     if(fEl) fEl.value='';
     api('catalog').then(function(c){if(c.ok){CAT=c.selections;renderCat();}});
     loadAll(); aPreview();}
