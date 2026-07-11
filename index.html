@@ -106,8 +106,8 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B3.18 · 12 ก.ค. 69 · ตารางรันเลข New SKU ตาม Luffy (EA254/ES029/RI182 + prefix ครบ 24 ตัว)';
-const FRONT_VER = '3.18'; // ต้องตรงกับ build ใน doGet ของ backend
+const BUILD = 'B3.19 · 12 ก.ค. 69 · New SKU พิมพ์รหัสเองได้ทุกจุด (คีย์ของเก่า) · เลขรันเป็นค่าแนะนำ';
+const FRONT_VER = '3.19'; // ต้องตรงกับ build ใน doGet ของ backend
 console.log('RB Online Ops · '+BUILD);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -224,7 +224,7 @@ console.log('RB Online Ops · '+BUILD);
       <div><label>Class</label><select id="aCls"></select></div>
     </div>
     <div class="hint" id="aCodeHint">รหัสจะรันอัตโนมัติตามหมวด+Class · Non-Silver พิมพ์เองในช่องล่าง</div>
-    <label>รหัสกำหนดเอง (เฉพาะ Non-Silver — อื่นๆ เว้นว่าง)</label>
+    <label>รหัสกำหนดเอง — พิมพ์เองได้ทุกหมวด เช่น คีย์ของเก่า EA001-EA253 · เว้นว่าง = ระบบรันให้</label>
     <input id="aCustom" placeholder="เว้นว่าง = ระบบรันให้">
     <label>ชื่อ/รายละเอียด</label><input id="aName" placeholder="เช่น ต่างหูตุ้มหมี มินิมอล">
     <div class="row2">
@@ -1266,7 +1266,8 @@ function extOpenForm(){
           '<select id="ebnCat" style="width:100%;margin-top:2px" onchange="ebnPreview()">'+CATS.map(function(c){return '<option>'+c+'</option>';}).join('')+'</select></div>'+
         '<div><label style="font-size:10.5px;color:var(--mut)">วัสดุ (Class)</label>'+
           '<select id="ebnCls" style="width:100%;margin-top:2px" onchange="ebnPreview()">'+CLASSES.map(function(c){return '<option>'+c+'</option>';}).join('')+'</select></div></div>'+
-      '<div style="background:#fff;border-radius:10px;padding:8px 10px;margin-bottom:6px;font-size:13px">รหัสที่ระบบรันให้: <b id="ebnPv" style="color:var(--pdd);font-size:15px">…</b></div>'+
+      '<div style="background:#fff;border-radius:10px;padding:8px 10px;margin-bottom:6px;font-size:13px">รหัสที่ระบบรันให้: <b id="ebnPv" style="color:var(--pdd);font-size:15px">…</b>'+
+        '<input id="ebnCustom" placeholder="หรือพิมพ์รหัสเอง (ของเก่า) เช่น EA045" style="width:100%;margin-top:6px;font-size:12px"></div>'+
       '<div style="margin-bottom:6px"><label style="font-size:10.5px;color:var(--mut)">ชื่อ/รายละเอียด *</label>'+
         '<input id="ebnName" placeholder="เช่น ต่างหูมุกน้ำจืด" style="width:100%;margin-top:2px"></div>'+
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px">'+
@@ -1328,8 +1329,12 @@ async function ebnPreview(){
 function ebnAdd(){
   var name=document.getElementById('ebnName').value.trim();
   if(!name){toast('⚠️ กรุณาใส่ชื่อสินค้า','err');return;}
-  var pv=document.getElementById('ebnPv').dataset.sku||'ใหม่';
-  EBCART.push({is_new:true,sku_rbo:'',preview:pv,
+  var custom=document.getElementById('ebnCustom').value.trim().toUpperCase();
+  if(custom&&CAT.some(function(c){return String(c.sku_rbo).toUpperCase()===custom;})){
+    toast('⚠️ รหัส '+custom+' มีอยู่แล้วในระบบ — ถ้าเป็นตัวเดิม ใช้โหมด 🔎 ค้นหาแทน','err',4500);return;
+  }
+  var pv=custom||document.getElementById('ebnPv').dataset.sku||'ใหม่';
+  EBCART.push({is_new:true,sku_rbo:'',sku_custom:custom,preview:pv,
     category:document.getElementById('ebnCat').value,
     cls:document.getElementById('ebnCls').value,
     sel_name:name,weight:document.getElementById('ebnW').value||'',
@@ -1340,8 +1345,9 @@ function ebnAdd(){
   document.getElementById('ebnW').value='';
   document.getElementById('ebnLoc').value='';
   document.getElementById('ebnColor').value='';
+  document.getElementById('ebnCustom').value='';
   ebRender();
-  toast('🆕 เพิ่ม '+name+' ('+pv+') แล้ว — ใส่จำนวน+฿/หน่วยด้านล่าง','ok',3500);
+  toast('🆕 เพิ่ม '+name+' ('+pv+(custom?' — รหัสกำหนดเอง':'')+') แล้ว — ใส่จำนวน+฿/หน่วยด้านล่าง','ok',3500);
 }
 
 function ebAdd(i){
