@@ -106,8 +106,8 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B3.19 · 12 ก.ค. 69 · New SKU พิมพ์รหัสเองได้ทุกจุด (คีย์ของเก่า) · เลขรันเป็นค่าแนะนำ';
-const FRONT_VER = '3.19'; // ต้องตรงกับ build ใน doGet ของ backend
+const BUILD = 'B3.21 · 12 ก.ค. 69 · เลขรันโชว์สดหน้า Add SKU + รูปสินค้าต่อชิ้นใน New SKU (บิล Non-RB) เข้าฐานข้อมูล';
+const FRONT_VER = '3.21'; // ต้องตรงกับ build ใน doGet ของ backend
 console.log('RB Online Ops · '+BUILD);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -220,10 +220,10 @@ console.log('RB Online Ops · '+BUILD);
   <div class="card">
     <h2>➕ Add New SKU <span class="lock">Luffy/Assist</span></h2>
     <div class="row2">
-      <div><label>หมวด</label><select id="aCat"></select></div>
-      <div><label>Class</label><select id="aCls"></select></div>
+      <div><label>หมวด</label><select id="aCat" onchange="aPreview()"></select></div>
+      <div><label>Class</label><select id="aCls" onchange="aPreview()"></select></div>
     </div>
-    <div class="hint" id="aCodeHint">รหัสจะรันอัตโนมัติตามหมวด+Class · Non-Silver พิมพ์เองในช่องล่าง</div>
+    <div style="background:var(--soft);border-radius:10px;padding:8px 12px;margin:6px 0;font-size:13px">รหัสที่ระบบรันให้: <b id="aPv" style="color:var(--pdd);font-size:16px">—</b> <small style="color:var(--mut)">· อยากใช้เลขอื่น พิมพ์ในช่องล่างได้เลย</small></div>
     <label>รหัสกำหนดเอง — พิมพ์เองได้ทุกหมวด เช่น คีย์ของเก่า EA001-EA253 · เว้นว่าง = ระบบรันให้</label>
     <input id="aCustom" placeholder="เว้นว่าง = ระบบรันให้">
     <label>ชื่อ/รายละเอียด</label><input id="aName" placeholder="เช่น ต่างหูตุ้มหมี มินิมอล">
@@ -244,6 +244,8 @@ console.log('RB Online Ops · '+BUILD);
       <div><label>รหัสสี RBWS</label><input id="aColW"></div>
     </div>
     <div class="err" id="aErr"></div>
+    <label>📷 รูปสินค้า (ถ่าย/เลือกจากเครื่อง — เข้าฐานข้อมูลทันที)</label>
+    <input type="file" id="aImg" accept="image/*" style="width:100%;font-size:12px">
     <button class="btn" onclick="addSku()">บันทึก SKU ใหม่</button>
     <div class="hint" id="aOk"></div>
   </div>
@@ -465,6 +467,7 @@ function enter(){
   document.getElementById('aCls').innerHTML=CLASSES.map(c=>`<option>${c}</option>`).join('');
   tab('home',document.querySelector('nav button'));
   sysCheck(); loadAll(); loadUsers(); wdDraftLoad();
+  setTimeout(function(){if(isLA())aPreview();},2500); // รอ dropdown โหลดเสร็จ
   if(isLA()){extLoadList();expLoadList();} else document.getElementById('ebCard').style.display='none';
 }
 async function loadAll(){
@@ -620,15 +623,31 @@ async function wdAct(doc,act){
   if(r.ok){loadAll();} else toast(r.error,'err');
 }
 /* ── Add SKU ── */
+async function aPreview(){
+  var el=document.getElementById('aPv'); if(!el) return;
+  el.textContent='…';
+  const r=await api('skuPreview',{category:document.getElementById('aCat').value,cls:document.getElementById('aCls').value});
+  el.textContent=r.ok?r.sku:'—';
+}
 async function addSku(){
   const g=id=>document.getElementById(id).value.trim();
   document.getElementById('aErr').textContent='';
+  var imgB64='',imgName='';
+  const fEl=document.getElementById('aImg');
+  if(fEl&&fEl.files[0]){
+    toast('กำลังอ่านรูปสินค้า...','info',1500);
+    imgB64=await resizeImgB64(fEl.files[0],1000,0.82);
+    imgName=fEl.files[0].name;
+  }
   const r=await api('addSku',{category:g('aCat'),cls:g('aCls'),sku_custom:g('aCustom'),
     sel_name:g('aName'),sku_rbws:g('aWs'),weight:g('aW'),loc_rbo:g('aLocO'),loc_rbws:g('aLocW'),
-    color_rbo:g('aColor'),qty:g('aQty'),cost:g('aCost'),color_rbws:g('aColW'),detail:g('aName')});
-  if(r.ok){document.getElementById('aOk').textContent='✅ สร้าง '+r.sku+' เรียบร้อย';
+    color_rbo:g('aColor'),qty:g('aQty'),cost:g('aCost'),color_rbws:g('aColW'),detail:g('aName'),
+    img_b64:imgB64,img_name:imgName});
+  if(r.ok){document.getElementById('aOk').textContent='✅ สร้าง '+r.sku+' เรียบร้อย'+(r.img?' 📷 รูปเข้าฐานข้อมูลแล้ว':'');
     ['aCustom','aName','aWs','aW','aLocO','aLocW','aQty','aCost','aColW'].forEach(i=>document.getElementById(i).value='');
-    loadAll();}
+    if(fEl) fEl.value='';
+    api('catalog').then(function(c){if(c.ok){CAT=c.selections;renderCat();}});
+    loadAll(); aPreview();}
   else document.getElementById('aErr').textContent=r.error;
 }
 /* ── Modal + PDF ใบเบิก ── */
@@ -1278,6 +1297,8 @@ function extOpenForm(){
       '<div style="margin-bottom:8px"><label style="font-size:10.5px;color:var(--mut)">สี RBO (ราคาชุด C)</label>'+
         '<select id="ebnColor" style="width:100%;margin-top:2px"><option value="">ไม่มีสี (ขาย A/B)</option>'+
         (COLORS||[]).map(function(c){return '<option>'+c.color+'</option>';}).join('')+'</select></div>'+
+      '<div style="margin-bottom:8px"><label style="font-size:10.5px;color:var(--mut)">📷 รูปสินค้า (เข้าฐานข้อมูลทันที)</label>'+
+        '<input type="file" id="ebnImg" accept="image/*" style="width:100%;margin-top:2px;font-size:12px"></div>'+
       '<button type="button" class="btn" style="margin-top:0;width:100%" onclick="ebnAdd()">➕ เพิ่มเข้าบิล</button>'+
     '</div>'+
     '<div id="ebLines" style="margin-top:8px"></div>'+
@@ -1326,7 +1347,7 @@ async function ebnPreview(){
   el.textContent=r.ok?r.sku:'?';
   el.dataset.sku=r.ok?r.sku:'';
 }
-function ebnAdd(){
+async function ebnAdd(){
   var name=document.getElementById('ebnName').value.trim();
   if(!name){toast('⚠️ กรุณาใส่ชื่อสินค้า','err');return;}
   var custom=document.getElementById('ebnCustom').value.trim().toUpperCase();
@@ -1334,7 +1355,14 @@ function ebnAdd(){
     toast('⚠️ รหัส '+custom+' มีอยู่แล้วในระบบ — ถ้าเป็นตัวเดิม ใช้โหมด 🔎 ค้นหาแทน','err',4500);return;
   }
   var pv=custom||document.getElementById('ebnPv').dataset.sku||'ใหม่';
-  EBCART.push({is_new:true,sku_rbo:'',sku_custom:custom,preview:pv,
+  var imgB64='',imgName='';
+  var imgEl=document.getElementById('ebnImg');
+  if(imgEl&&imgEl.files[0]){
+    toast('กำลังอ่านรูปสินค้า...','info',1200);
+    imgB64=await resizeImgB64(imgEl.files[0],1000,0.82);
+    imgName=imgEl.files[0].name;
+  }
+  EBCART.push({is_new:true,sku_rbo:'',sku_custom:custom,preview:pv,img_b64:imgB64,img_name:imgName,
     category:document.getElementById('ebnCat').value,
     cls:document.getElementById('ebnCls').value,
     sel_name:name,weight:document.getElementById('ebnW').value||'',
@@ -1346,6 +1374,7 @@ function ebnAdd(){
   document.getElementById('ebnLoc').value='';
   document.getElementById('ebnColor').value='';
   document.getElementById('ebnCustom').value='';
+  var imgEl2=document.getElementById('ebnImg'); if(imgEl2) imgEl2.value='';
   ebRender();
   toast('🆕 เพิ่ม '+name+' ('+pv+(custom?' — รหัสกำหนดเอง':'')+') แล้ว — ใส่จำนวน+฿/หน่วยด้านล่าง','ok',3500);
 }
@@ -1361,7 +1390,7 @@ function ebAdd(i){
 
 function ebRender(){
   document.getElementById('ebLines').innerHTML=EBCART.map(function(x,i){
-    var skuLabel=x.is_new?'🆕 '+(x.preview||'ใหม่')+' <small style="color:var(--mut);font-weight:400">('+x.category+' · '+x.cls+')</small>':x.sku_rbo;
+    var skuLabel=x.is_new?'🆕 '+(x.preview||'ใหม่')+(x.img_b64?' 📷':'')+' <small style="color:var(--mut);font-weight:400">('+x.category+' · '+x.cls+')</small>':x.sku_rbo;
     return '<div style="display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--soft)">'+
       '<div style="flex:1"><b style="font-size:12px">'+skuLabel+'</b><br><small style="color:var(--mut);font-size:10.5px">'+x.sel_name+'</small></div>'+
       '<input type="number" value="'+x.qty+'" min="1" placeholder="จำนวน" title="จำนวน" style="width:50px;text-align:center" '+
