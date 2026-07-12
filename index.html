@@ -106,7 +106,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B3.36 · 12 ก.ค. 69 · สร้างคอลัมน์ราคาในชีตอัตโนมัติทันทีที่เปิดเว็บ/กดเมนู (แก้เคสมองไม่เห็นตาราง A/B)';
+const BUILD = 'B3.37 · 12 ก.ค. 69 · รายการสินค้าโชว์ราคาระบุเอง (฿xx) แทนที่ว่าง สำหรับตัวไม่มีสี';
 const FRONT_VER = '3.26'; // ต้องตรงกับ build ใน doGet ของ backend
 console.log('RB Online Ops · '+BUILD);
 </script>
@@ -672,7 +672,7 @@ function renderCat(){
   document.getElementById('catList').innerHTML = list.length? window._catShown.map((s,i)=>`
     <div class="item" style="cursor:pointer" onclick="skuDetail(${i})"><div class="ph">${s.img?`<img src="${imgSrc(s.img)}" loading="lazy">`:'📿'}</div>
       <div><b>${s.sku_rbo}</b><small>${s.detail||''}</small><small>${s.sku_rbws?'WS: '+s.sku_rbws+' · 📍'+(s.loc_rbws||'–'):'ซื้อภายนอก'}</small></div>
-      <div class="endc">${s.color_rbo?`<span class="num">${s.color_rbo}</span>`:''}<small>คงเหลือ ${fmtQ(s.qty_shop||0)}</small>${(isLA()&&s.cost_latest)?`<small>ทุน ${fmtN(s.cost_latest)}</small>`:''}</div>
+      <div class="endc">${s.color_rbo?`<span class="num">${s.color_rbo}</span>`:(s.price_base?`<span class="num">฿${fmtN(s.price_base)}</span>`:'')}<small>คงเหลือ ${fmtQ(s.qty_shop||0)}</small>${(isLA()&&s.cost_latest)?`<small>ทุน ${fmtN(s.cost_latest)}</small>`:''}</div>
     </div>`).join('') : '<div class="empty">ไม่พบ</div>';
 }
 
