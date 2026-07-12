@@ -106,8 +106,8 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B3.28 · 12 ก.ค. 69 · ราคาฐานชุด C ตัวเดียว (สี/กรอกเอง) → A/B สูตรเดียวกัน (รอสูตร)';
-const FRONT_VER = '3.28'; // ต้องตรงกับ build ใน doGet ของ backend
+const BUILD = 'B3.30 · 12 ก.ค. 69 · ราคาแนะนำจากทุน×2.5 ทุกฟอร์ม (New SKU / In Non-RB / คัมภีร์ Edit) · สีแนะนำปัดขึ้นตามกลุ่มสีเสมอ (380→490) · คัมภีร์เลือกสี/แก้ฐานคำนวณออโต้';
+const FRONT_VER = '3.26'; // ต้องตรงกับ build ใน doGet ของ backend
 console.log('RB Online Ops · '+BUILD);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -239,18 +239,27 @@ console.log('RB Online Ops · '+BUILD);
       <div><label>Location RBWS</label><input id="aLocW"></div>
     </div>
     <div class="row2">
-      <div><label>สี RBO (ราคาชุด C)</label><select id="aColor" onchange="toggleAB_a()"><option value="">ไม่มีสี (ขาย A/B)</option></select></div>
-      <div><label>จำนวนตั้งต้น</label><input id="aQty" value="0"></div>
-    </div>
-    <div id="aPriceAB">
-      <label style="color:var(--pdd)">ราคา โปรดระบุ (฿) * — ใช้เป็นฐานคำนวณชุด A/B อัตโนมัติ</label>
-      <input id="aPC" type="number" step="0.01" placeholder="เช่น 590">
-    </div>
-    <div id="aPriceNote" class="hint" style="display:none">💡 มีสีชุด C — ราคา A/B คำนวณออโต้จากราคาชุด C ของสีนั้น (สูตรเดียวกัน)</div>
-    <div class="row2">
-      <div><label>ราคาทุน (L/A เท่านั้น)</label><input id="aCost"></div>
+      <div><label>ราคาทุน (L/A เท่านั้น)</label><input id="aCost" oninput="aCostSuggest()"></div>
       <div><label>รหัสสี RBWS</label><input id="aColW"></div>
     </div>
+    <div class="hint" id="aCostHint" style="margin-top:-2px"></div>
+    <div class="row2">
+      <div><label>สี RBO (ราคาชุด C)</label><select id="aColor" onchange="aPriceCalc(true)"><option value="">ไม่มีสี (ขาย A/B)</option></select></div>
+      <div><label>จำนวนตั้งต้น</label><input id="aQty" value="0"></div>
+    </div>
+    <div class="row2" id="aBaseWrap">
+      <div><label>ราคาระบุเอง (฿) → คำนวณราคาขาย</label><input id="aBase" type="number" step="0.01" placeholder="ใส่ราคาฐาน" oninput="aPriceCalc()"></div>
+      <div></div>
+    </div>
+    <div class="row2">
+      <div><label>ป้ายเหลือง A (฿)</label><input id="aPA" type="number" step="0.01" oninput="aListCalc()"></div>
+      <div><label>ป้ายเหลือง B (฿)</label><input id="aPB" type="number" step="0.01" oninput="aListCalc()"></div>
+    </div>
+    <div class="row2">
+      <div><label>ตั้งขายก่อนลด A (฿)</label><input id="aLA" type="number" step="0.01"></div>
+      <div><label>ตั้งขายก่อนลด B (฿)</label><input id="aLB" type="number" step="0.01"></div>
+    </div>
+    <div class="hint" id="aPHint" style="margin-top:-2px"></div>
     <div class="err" id="aErr"></div>
     <label>📷 รูปสินค้า (ถ่าย/เลือกจากเครื่อง — เข้าฐานข้อมูลทันที)</label>
     <input type="file" id="aImg" accept="image/*" style="width:100%;font-size:12px">
@@ -392,6 +401,135 @@ document.addEventListener('visibilitychange', ()=>{
   }
 });
 let CAT=[], COLORS=[], WDCART=[];
+/* B3.28: ราคา 3 ชั้น — ฐาน(สี C/ระบุเอง) → ป้ายเหลือง(×1.4/×1.2) → ตั้งขายก่อนลด(×1.5) · ค่าจากชีต Config */
+let PCFG={mult_a:1.4, mult_b:1.2, mult_list:1.5, mult_cost:2.5, round:'5'};
+function calcPrice(base,mult){
+  var v=Number(base)*Number(mult);
+  if(!isFinite(v)||v<=0) return '';
+  var m=String(PCFG.round||'5');
+  if(m==='5'){ v=Math.ceil(v/5)*5; }                    // ค่ามาตรฐาน: ปัดขึ้นเสมอให้ลงท้าย 5/0 (10,15,...,95)
+  else if(m==='9'){ v=Math.ceil(v/10)*10-1; }           // ปัดขึ้นลงท้าย 9
+  else if(m==='0'){ v=Math.round(v*100)/100; }          // ทศนิยม 2 ตำแหน่ง
+  else { v=Math.round(v); }                              // ปัดจำนวนเต็ม
+  return v;
+}
+function colorBase_(colorName){
+  var c=(COLORS||[]).find(function(x){return String(x.color)===String(colorName);});
+  return c?Number(c.price):'';
+}
+/* คำนวณครบ 3 ชั้น: base → ป้ายเหลือง A/B → ตั้งขาย A/B */
+function applyABCalc_(base,idA,idB,idLA,idLB,idHint,force){
+  var pa=calcPrice(base,PCFG.mult_a), pb=calcPrice(base,PCFG.mult_b);
+  var la=(pa!=='')?calcPrice(pa,PCFG.mult_list):'', lb=(pb!=='')?calcPrice(pb,PCFG.mult_list):'';
+  var eA=document.getElementById(idA), eB=document.getElementById(idB);
+  var eLA=document.getElementById(idLA), eLB=document.getElementById(idLB);
+  var eH=document.getElementById(idHint);
+  if(!eA||!eB) return;
+  if(pa!==''){ eA.value=pa; eB.value=pb; if(eLA)eLA.value=la; if(eLB)eLB.value=lb; }
+  else if(force){ eA.value=''; eB.value=''; if(eLA)eLA.value=''; if(eLB)eLB.value=''; }
+  if(eH) eH.textContent = (pa!=='')
+    ? ('ฐาน '+base+' → ป้ายเหลือง A ×'+PCFG.mult_a+'='+pa+' · B ×'+PCFG.mult_b+'='+pb+' → ตั้งขาย ×'+PCFG.mult_list+' = A '+la+' · B '+lb+' ฿ (ปัดขึ้นลงท้าย 5/0 · แก้ทับมือได้ · เปลี่ยนตัวคูณในชีต Config)')
+    : '';
+}
+/* ผู้ใช้แก้ป้ายเหลืองเองด้วยมือ → คำนวณราคาตั้งขายใหม่จากค่าที่แก้ */
+function listFromYellow_(idA,idB,idLA,idLB){
+  var pa=document.getElementById(idA).value, pb=document.getElementById(idB).value;
+  var eLA=document.getElementById(idLA), eLB=document.getElementById(idLB);
+  if(eLA) eLA.value=(pa!=='')?calcPrice(pa,PCFG.mult_list):'';
+  if(eLB) eLB.value=(pb!=='')?calcPrice(pb,PCFG.mult_list):'';
+}
+function aPriceCalc(fromColor){
+  var col=document.getElementById('aColor').value;
+  var wrap=document.getElementById('aBaseWrap');
+  var base;
+  if(col){ if(wrap) wrap.style.display='none'; base=colorBase_(col); }
+  else   { if(wrap) wrap.style.display='';     base=document.getElementById('aBase').value; }
+  applyABCalc_(base,'aPA','aPB','aLA','aLB','aPHint',!!fromColor);
+}
+function aListCalc(){ listFromYellow_('aPA','aPB','aLA','aLB'); }
+function ebnPriceCalc(fromColor){
+  var col=document.getElementById('ebnColor').value;
+  var wrap=document.getElementById('ebnBaseWrap');
+  var base;
+  if(col){ if(wrap) wrap.style.display='none'; base=colorBase_(col); }
+  else   { if(wrap) wrap.style.display='';     base=(document.getElementById('ebnBase')||{}).value; }
+  applyABCalc_(base,'ebnPA','ebnPB','ebnLA','ebnLB','ebnPHint',!!fromColor);
+}
+function ebnListCalc(){ listFromYellow_('ebnPA','ebnPB','ebnLA','ebnLB'); }
+/* B3.30: ราคาแนะนำจากทุน = ทุน × mult_cost → ปัดขึ้นลงท้าย 5/0 */
+function costSuggest_(cost){ return calcPrice(cost,PCFG.mult_cost); }
+/* B3.30: สีแนะนำต้องปัดขึ้นเสมอ — เอาสีที่ราคา ≥ ราคาคำนวณตัวแรก (380 → GREY 490 ไม่ใช่ 350) */
+function colorUp_(price){
+  if(!(COLORS||[]).length||price===''||!isFinite(Number(price))) return null;
+  var cands=(COLORS||[]).map(function(c){return {color:String(c.color),price:Number(c.price)};})
+    .filter(function(c){return isFinite(c.price)&&c.price>=Number(price);})
+    .sort(function(a,b){return a.price-b.price;});
+  return cands.length?cands[0]:null; // null = เกินสีสูงสุด
+}
+/* สร้างข้อความแนะนำจากทุน — ใช้ร่วมกันทุกฟอร์ม (useColorFn/useBaseFn = ชื่อฟังก์ชันตอนแตะใช้) */
+function costSuggestHTML_(cost,useColorFn,useBaseFn){
+  var raw=costSuggest_(cost);
+  if(raw==='') return '';
+  var up=colorUp_(raw);
+  if(up) return '💡 ทุน '+cost+' ×'+PCFG.mult_cost+' = '+raw+' → <b>แนะนำขายสี '+up.color+' '+up.price+' ฿</b> (ปัดขึ้นตามกลุ่มสีเสมอ) — '+
+    '<a href="javascript:void(0)" onclick="'+useColorFn+'(&quot;'+up.color+'&quot;)" style="color:var(--pdd);font-weight:700">แตะเพื่อใช้</a> (หรือใส่ราคาเองได้ตามใจ)';
+  return '💡 ทุน '+cost+' ×'+PCFG.mult_cost+' = '+raw+' ฿ — เกินสีสูงสุด → <b>แนะนำขาย A/B ราคาระบุเอง '+raw+' ฿</b> — '+
+    '<a href="javascript:void(0)" onclick="'+useBaseFn+'('+raw+')" style="color:var(--pdd);font-weight:700">แตะเพื่อใช้</a> (หรือใส่ราคาเองได้ตามใจ)';
+}
+function aCostSuggest(){
+  var box=document.getElementById('aCostHint'); if(!box) return;
+  box.innerHTML=costSuggestHTML_(document.getElementById('aCost').value,'aUseColor','aUseBase');
+}
+function aUseColor(color){
+  document.getElementById('aColor').value=color;
+  aPriceCalc(true);
+  toast('เลือกสี '+color+' แล้วคำนวณราคาให้ครบแล้ว','ok',2500);
+}
+function aUseBase(v){
+  document.getElementById('aColor').value='';
+  document.getElementById('aBase').value=v;
+  aPriceCalc();
+  toast('ใช้ราคาระบุเอง '+v+' ฿ แล้วคำนวณราคาให้ครบแล้ว','ok',2500);
+}
+function ebnCostSuggest(){
+  var box=document.getElementById('ebnCostHint'); if(!box) return;
+  box.innerHTML=costSuggestHTML_((document.getElementById('ebnCost')||{}).value,'ebnUseColor','ebnUseBase');
+}
+function ebnUseColor(color){
+  document.getElementById('ebnColor').value=color;
+  ebnPriceCalc(true);
+  toast('เลือกสี '+color+' แล้วคำนวณราคาให้ครบแล้ว','ok',2500);
+}
+function ebnUseBase(v){
+  document.getElementById('ebnColor').value='';
+  var b=document.getElementById('ebnBase'); if(b) b.value=v;
+  ebnPriceCalc();
+  toast('ใช้ราคาระบุเอง '+v+' ฿ แล้วคำนวณราคาให้ครบแล้ว','ok',2500);
+}
+/* B3.30: คัมภีร์สินค้า (หน้า Edit) — สูตรเดียวกันทุกที่ */
+function sdCostSuggest(){
+  var box=document.getElementById('sdCostHint'); if(!box) return;
+  box.innerHTML=costSuggestHTML_((document.getElementById('sd_cost_latest')||{}).value,'sdUseColor','sdUseBase');
+}
+function sdUseColor(color){
+  var el=document.getElementById('sd_color_rbo'); if(!el) return;
+  el.value=color;
+  sdPriceCalc(true);
+  toast('เลือกสี '+color+' แล้วคำนวณราคาให้ครบแล้ว','ok',2500);
+}
+function sdUseBase(v){
+  var el=document.getElementById('sd_color_rbo'); if(el) el.value='';
+  var b=document.getElementById('sd_price_base'); if(b) b.value=v;
+  sdPriceCalc();
+  toast('ใช้ราคาระบุเอง '+v+' ฿ แล้วคำนวณราคาให้ครบแล้ว','ok',2500);
+}
+function sdPriceCalc(fromColor){
+  var colEl=document.getElementById('sd_color_rbo'); if(!colEl) return;
+  var col=colEl.value;
+  var base=col?colorBase_(col):((document.getElementById('sd_price_base')||{}).value);
+  applyABCalc_(base,'sd_price_a','sd_price_b','sd_price_list_a','sd_price_list_b','sdPHint',!!fromColor);
+}
+function sdListCalc(){ listFromYellow_('sd_price_a','sd_price_b','sd_price_list_a','sd_price_list_b'); }
 const CMAP={CREAM:'#F5E9D7',RED:'#E05656',GREEN:'#58B37C',PINK:'#F29BB4',BLUE:'#6FA8DC',YELLOW:'#FFD84D',GREY:'#B9BFC9',PURPLE:'#9B7FD4'};
 const CATS='Earrings,Ring,Bangle,Bracelet,Necklace,Pendant,Anklet,Set'.split(',');
 const CLASSES='Silver Classic,Silver Premium,Silver combines with Non silver,Silver Lucky Stone,Lucky stone with Non silver,Brass Classic,Brass Premium,Stainless Steel Classic,Stainless Steel Premium,Non-Silver'.split(',');
@@ -497,8 +635,10 @@ async function loadAll(){
     document.getElementById('stPend').textContent=d.pending;
     document.getElementById('stWd').textContent=d.wdWait;
     COLORS=d.colors;
+    if(d.priceCfg) PCFG=d.priceCfg;
     document.getElementById('colorDots').innerHTML=d.colors.map(c=>`<span class="dot" style="background:${CMAP[c.color]||'#ccc'};color:${['CREAM','YELLOW'].includes(c.color)?'#7a6320':'#fff'}">${c.price}</span>`).join('');
     document.getElementById('aColor').innerHTML='<option value="">ไม่มีสี (ขาย A/B)</option>'+d.colors.map(c=>`<option>${c.color}</option>`).join('');
+    aPriceCalc();
   }
   const c=await api('catalog');
   if(c.ok){CAT=c.selections;renderCat();}
@@ -528,7 +668,9 @@ const SKU_FIELDS=[
   ['album_id','ชื่ออัลบั้ม'],['sel_name','ชื่อตัวเลือก'],['detail','รายละเอียด'],
   ['sku_rbws','SKU RBWS'],['name_rbws','ชื่อฝั่ง WS'],['weight','น้ำหนัก g/ชิ้น'],
   ['color_rbws','รหัสสี RBWS'],['loc_rbws','Location RBWS'],['loc_rbo','Location RBO'],
-  ['color_rbo','สี RBO (ราคาชุด C)'],['price_c','ราคา C กรอกเอง (ไม่มีสี)'],['price_a','ราคาชุด A (฿)'],['price_b','ราคาชุด B (฿)'],
+  ['color_rbo','สี RBO (ราคาชุด C)'],['price_base','ราคาระบุเอง (฿)'],
+  ['price_a','ป้ายเหลือง A (฿)'],['price_b','ป้ายเหลือง B (฿)'],
+  ['price_list_a','ตั้งขายก่อนลด A (฿)'],['price_list_b','ตั้งขายก่อนลด B (฿)'],
   ['star','ดาว'],['barcode','บาร์โค้ด']
 ];
 /* ช่องทางที่ขาย — ฐานข้อมูลสำหรับ AI ทีมคอนเทนต์/การขายต่อยอด */
@@ -579,24 +721,28 @@ function skuDetail(i,editMode){
         opts+='<option'+sel+'>'+c.color+'</option>';
       });
       if(v&&!seen) opts+='<option selected>'+v+'</option>';
-      inner='<select id="sd_'+f[0]+'" style="flex:1;font-size:12.5px" onchange="sdToggleAB()">'+opts+'</select>';
-      /* หมายเหตุ: เมื่อได้สูตรจาก Luffy → เลือกสี C แล้วคำนวณราคา A/B ออโต้ที่ตรงนี้ */
+      inner='<select id="sd_'+f[0]+'" onchange="sdPriceCalc(true)" style="flex:1;font-size:12.5px">'+opts+'</select>';
+      /* B3.30: เลือกสี C แล้วคำนวณ ป้ายเหลือง A/B + ตั้งขาย ออโต้ */
     } else {
+      var oi='';
+      if(editMode){
+        if(f[0]==='price_base') oi=' type="number" step="0.01" oninput="sdPriceCalc()"';
+        else if(f[0]==='price_a'||f[0]==='price_b') oi=' type="number" step="0.01" oninput="sdListCalc()"';
+        else if(f[0]==='price_list_a'||f[0]==='price_list_b') oi=' type="number" step="0.01"';
+      }
       inner=editMode
-        ?'<input id="sd_'+f[0]+'" value="'+v.replace(/"/g,'&quot;')+'" style="flex:1;font-size:12.5px">'
+        ?'<input id="sd_'+f[0]+'"'+oi+' value="'+v.replace(/"/g,'&quot;')+'" style="flex:1;font-size:12.5px">'
         :'<div style="flex:1"><b>'+(v||'–')+'</b></div>';
     }
-    if(editMode&&(f[0]==='price_a'||f[0]==='price_b')){
-      inner='<div style="flex:1;color:var(--mut)"><b>'+(v||'–')+'</b> <small>คำนวณออโต้จากราคา C (รอสูตร)</small></div>';
-    }
-    var rowId=(editMode&&(f[0]==='price_c'))?' id="sdRow_'+f[0]+'"':'';
-    html+='<div'+rowId+' style="display:flex;gap:8px;align-items:center;padding:5px 0;border-bottom:1px solid var(--soft);font-size:12.5px">'+
+    html+='<div style="display:flex;gap:8px;align-items:center;padding:5px 0;border-bottom:1px solid var(--soft);font-size:12.5px">'+
       '<div style="width:130px;color:var(--mut)">'+f[1]+'</div>'+inner+'</div>';
   });
+  if(editMode) html+='<div class="hint" id="sdPHint" style="padding:4px 0"></div>';
   if(editMode&&la){
     html+='<div style="display:flex;gap:8px;align-items:center;padding:5px 0;border-bottom:1px solid var(--soft);font-size:12.5px">'+
       '<div style="width:130px;color:var(--mut)">ทุนจริง (฿)</div>'+
-      '<input id="sd_cost_latest" type="number" step="0.01" value="'+(s.cost_latest||'')+'" style="flex:1;font-size:12.5px"></div>';
+      '<input id="sd_cost_latest" type="number" step="0.01" value="'+(s.cost_latest||'')+'" oninput="sdCostSuggest()" style="flex:1;font-size:12.5px"></div>'+
+      '<div class="hint" id="sdCostHint" style="padding:4px 0"></div>';
   }
   // ── ช่องทางที่ขาย: ติ๊กว่าลงขายที่ไหนแล้วบ้าง ──
   window._sdChans=new Set(String(s.web_status||'').split(',').map(function(x){return x.trim();}).filter(String));
@@ -619,12 +765,6 @@ function skuDetail(i,editMode){
   html+='</div>';
   document.getElementById('modalBody').innerHTML=html;
   document.getElementById('wdModal').style.display='block';
-}
-function sdToggleAB(){
-  var sel=document.getElementById('sd_color_rbo');
-  var noColor=sel?!sel.value:true;
-  var row=document.getElementById('sdRow_price_c');
-  if(row) row.style.display=noColor?'flex':'none';
 }
 function skuStarPick(n){
   window._sdStar=n;
@@ -773,11 +913,6 @@ async function wdAct(doc,act){
   if(r.ok){loadAll();} else toast(r.error,'err');
 }
 /* ── Add SKU ── */
-function toggleAB_a(){
-  var noColor=!document.getElementById('aColor').value;
-  document.getElementById('aPriceAB').style.display=noColor?'block':'none';
-  document.getElementById('aPriceNote').style.display=noColor?'none':'block';
-}
 async function aPreview(){
   var el=document.getElementById('aPv'); if(!el) return;
   el.textContent='…';
@@ -797,10 +932,14 @@ async function addSku(){
   const r=await api('addSku',{category:g('aCat'),cls:g('aCls'),sku_custom:g('aCustom'),
     album:g('aAlbum'),sel_name:g('aName'),sku_rbws:g('aWs'),weight:g('aW'),loc_rbo:g('aLocO'),loc_rbws:g('aLocW'),
     color_rbo:g('aColor'),qty:g('aQty'),cost:g('aCost'),color_rbws:g('aColW'),detail:g('aName'),
-    price_c:g('aPC'),
+    price_a:g('aPA'),price_b:g('aPB'),
+    price_base:g('aBase'),price_list_a:g('aLA'),price_list_b:g('aLB'),
     img_b64:imgB64,img_name:imgName});
   if(r.ok){document.getElementById('aOk').textContent='✅ สร้าง '+r.sku+' เรียบร้อย'+(r.img?' 📷 รูปเข้าฐานข้อมูลแล้ว':'');
-    ['aCustom','aAlbum','aName','aWs','aW','aLocO','aLocW','aQty','aCost','aColW','aPC'].forEach(i=>document.getElementById(i).value='');
+    ['aCustom','aAlbum','aName','aWs','aW','aLocO','aLocW','aQty','aCost','aColW','aPA','aPB','aBase','aLA','aLB'].forEach(i=>document.getElementById(i).value='');
+    document.getElementById('aPHint').textContent='';
+    var ach=document.getElementById('aCostHint'); if(ach) ach.innerHTML='';
+    aPriceCalc();
     if(fEl) fEl.value='';
     api('catalog').then(function(c){if(c.ok){CAT=c.selections;renderCat();}});
     loadAll(); aPreview();}
@@ -1453,13 +1592,25 @@ function extOpenForm(){
           '<input id="ebnW" type="number" step="0.01" placeholder="–" style="width:100%;margin-top:2px"></div>'+
         '<div><label style="font-size:10.5px;color:var(--mut)">Location RBO</label>'+
           '<input id="ebnLoc" placeholder="เช่น A-12" style="width:100%;margin-top:2px"></div></div>'+
+      '<div style="margin-bottom:6px"><label style="font-size:10.5px;color:var(--mut)">ราคาทุน/ชิ้น (฿) — จะเติมช่อง ฿/หน่วยในบิลให้เลย</label>'+
+        '<input id="ebnCost" type="number" step="0.01" placeholder="ใส่ทุนเพื่อดูราคาแนะนำ" oninput="ebnCostSuggest()" style="width:100%;margin-top:2px"></div>'+
+      '<div id="ebnCostHint" style="font-size:10px;color:var(--mut);margin-bottom:8px"></div>'+
       '<div style="margin-bottom:8px"><label style="font-size:10.5px;color:var(--mut)">สี RBO (ราคาชุด C)</label>'+
-        '<select id="ebnColor" style="width:100%;margin-top:2px" onchange="toggleAB_ebn()"><option value="">ไม่มีสี (ขาย A/B)</option>'+
+        '<select id="ebnColor" onchange="ebnPriceCalc(true)" style="width:100%;margin-top:2px"><option value="">ไม่มีสี (ขาย A/B)</option>'+
         (COLORS||[]).map(function(c){return '<option>'+c.color+'</option>';}).join('')+'</select></div>'+
-      '<div id="ebnPriceAB" style="margin-bottom:8px">'+
-        '<label style="font-size:10.5px;color:var(--pdd);font-weight:700">ราคา โปรดระบุ (฿) * — ฐานคำนวณชุด A/B</label>'+
-        '<input id="ebnPC" type="number" step="0.01" placeholder="เช่น 590" style="width:100%;margin-top:2px"></div>'+
-      '<div id="ebnPriceNote" style="display:none;font-size:10.5px;color:var(--mut);margin-bottom:8px">💡 มีสีชุด C — ราคา A/B คำนวณออโต้จากราคาชุด C ของสีนั้น (สูตรเดียวกัน)</div>'+
+      '<div id="ebnBaseWrap" style="margin-bottom:8px"><label style="font-size:10.5px;color:var(--mut)">ราคาระบุเอง (฿) → คำนวณราคาขาย</label>'+
+        '<input id="ebnBase" type="number" step="0.01" placeholder="ใส่ราคาฐาน" oninput="ebnPriceCalc()" style="width:100%;margin-top:2px"></div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px">'+
+        '<div><label style="font-size:10.5px;color:var(--mut)">ป้ายเหลือง A (฿)</label>'+
+          '<input id="ebnPA" type="number" step="0.01" placeholder="โปรดระบุ" oninput="ebnListCalc()" style="width:100%;margin-top:2px"></div>'+
+        '<div><label style="font-size:10.5px;color:var(--mut)">ป้ายเหลือง B (฿)</label>'+
+          '<input id="ebnPB" type="number" step="0.01" placeholder="โปรดระบุ" oninput="ebnListCalc()" style="width:100%;margin-top:2px"></div></div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:4px">'+
+        '<div><label style="font-size:10.5px;color:var(--mut)">ตั้งขายก่อนลด A (฿)</label>'+
+          '<input id="ebnLA" type="number" step="0.01" style="width:100%;margin-top:2px"></div>'+
+        '<div><label style="font-size:10.5px;color:var(--mut)">ตั้งขายก่อนลด B (฿)</label>'+
+          '<input id="ebnLB" type="number" step="0.01" style="width:100%;margin-top:2px"></div></div>'+
+      '<div id="ebnPHint" style="font-size:10px;color:var(--mut);margin-bottom:8px"></div>'+
       '<div style="margin-bottom:8px"><label style="font-size:10.5px;color:var(--mut)">📷 รูปสินค้า (เข้าฐานข้อมูลทันที)</label>'+
         '<input type="file" id="ebnImg" accept="image/*" style="width:100%;margin-top:2px;font-size:12px"></div>'+
       '<button type="button" class="btn" style="margin-top:0;width:100%" onclick="ebnAdd()">➕ เพิ่มเข้าบิล</button>'+
@@ -1472,6 +1623,7 @@ function extOpenForm(){
     '<button class="btn" id="ebSubmitBtn" onclick="extSubmit()">✅ ยืนยันบิล + บวกสต๊อก</button>';
   document.getElementById('modalBody').innerHTML=html;
   document.getElementById('wdModal').style.display='block';
+  ebnPriceCalc(); /* B3.27: ตั้งสถานะช่องราคาตั้งต้น/สูตร A-B ตอนเปิดฟอร์ม */
 }
 
 function ebSuggest(){
@@ -1488,12 +1640,6 @@ function ebSuggest(){
   '<div onclick="ebMode(\'new\')" style="padding:8px 10px;cursor:pointer;font-size:12px;color:var(--pdd);font-weight:600;background:var(--soft)">🆕 หาไม่เจอ? สลับไปโหมด New SKU</div>';
 }
 
-function toggleAB_ebn(){
-  var noColor=!document.getElementById('ebnColor').value;
-  var ab=document.getElementById('ebnPriceAB'), nt=document.getElementById('ebnPriceNote');
-  if(ab) ab.style.display=noColor?'block':'none';
-  if(nt) nt.style.display=noColor?'none':'block';
-}
 function ebMode(m){
   var oldBox=document.getElementById('ebOldBox'), newBox=document.getElementById('ebNewBox');
   var bOld=document.getElementById('ebModeOld'), bNew=document.getElementById('ebModeNew');
@@ -1538,14 +1684,26 @@ async function ebnAdd(){
     sel_name:name,weight:document.getElementById('ebnW').value||'',
     loc_rbo:document.getElementById('ebnLoc').value.trim(),
     color_rbo:document.getElementById('ebnColor').value,
-    price_c:document.getElementById('ebnPC').value,
-    qty:1,cost_per_unit:''});
+    price_a:document.getElementById('ebnPA').value,
+    price_b:document.getElementById('ebnPB').value,
+    price_base:(document.getElementById('ebnBase')||{}).value||'',
+    price_list_a:(document.getElementById('ebnLA')||{}).value||'',
+    price_list_b:(document.getElementById('ebnLB')||{}).value||'',
+    qty:1,cost_per_unit:((document.getElementById('ebnCost')||{}).value||'')});
   document.getElementById('ebnName').value='';
   document.getElementById('ebnAlbum').value='';
   document.getElementById('ebnW').value='';
   document.getElementById('ebnLoc').value='';
   document.getElementById('ebnColor').value='';
-  document.getElementById('ebnPC').value='';
+  document.getElementById('ebnPA').value='';
+  document.getElementById('ebnPB').value='';
+  var ebnBaseEl=document.getElementById('ebnBase'); if(ebnBaseEl) ebnBaseEl.value='';
+  var ebnCostEl=document.getElementById('ebnCost'); if(ebnCostEl) ebnCostEl.value='';
+  var ebnCHintEl=document.getElementById('ebnCostHint'); if(ebnCHintEl) ebnCHintEl.innerHTML='';
+  var ebnLAEl=document.getElementById('ebnLA'); if(ebnLAEl) ebnLAEl.value='';
+  var ebnLBEl=document.getElementById('ebnLB'); if(ebnLBEl) ebnLBEl.value='';
+  var ebnHintEl=document.getElementById('ebnPHint'); if(ebnHintEl) ebnHintEl.textContent='';
+  ebnPriceCalc();
   document.getElementById('ebnCustom').value='';
   var imgEl2=document.getElementById('ebnImg'); if(imgEl2) imgEl2.value='';
   ebRender();
@@ -2006,8 +2164,6 @@ function wdCard(w,tabN){
     '<div class="wcard-btns" style="margin-top:8px">'+btns+'</div></div>';
 }
 function wdQuickAct2(btn){wdQuickAct(btn.dataset.doc,btn.dataset.act);}
-function wdQuickAct2(btn){wdQuickAct(btn.dataset.doc,btn.dataset.act);}
-function wdQuickAct2(btn){wdQuickAct(btn.dataset.doc,btn.dataset.act);}
 
 async function confirmAccounting(doc){
   toast('⚠️ เมื่อส่งบัญชีแล้ว จะแก้ไขใบเบิกนี้ไม่ได้อีก','warn',0);
@@ -2020,8 +2176,6 @@ async function confirmAccounting(doc){
     }
   },300);
 }
-
-function wdUpdateBadge(){}  // compat shim
 
 /* ── Sub-tab เบิก ── */
 
