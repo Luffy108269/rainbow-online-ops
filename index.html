@@ -106,8 +106,8 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B3.26 · 12 ก.ค. 69 · ราคาขาย A/B ใน New SKU ทั้ง 2 ฟอร์ม + สี RBO ดร็อปดาวในคัมภีร์';
-const FRONT_VER = '3.26'; // ต้องตรงกับ build ใน doGet ของ backend
+const BUILD = 'B3.28 · 12 ก.ค. 69 · ราคาฐานชุด C ตัวเดียว (สี/กรอกเอง) → A/B สูตรเดียวกัน (รอสูตร)';
+const FRONT_VER = '3.28'; // ต้องตรงกับ build ใน doGet ของ backend
 console.log('RB Online Ops · '+BUILD);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -239,13 +239,14 @@ console.log('RB Online Ops · '+BUILD);
       <div><label>Location RBWS</label><input id="aLocW"></div>
     </div>
     <div class="row2">
-      <div><label>สี RBO (ราคาชุด C)</label><select id="aColor"><option value="">ไม่มีสี (ขาย A/B)</option></select></div>
+      <div><label>สี RBO (ราคาชุด C)</label><select id="aColor" onchange="toggleAB_a()"><option value="">ไม่มีสี (ขาย A/B)</option></select></div>
       <div><label>จำนวนตั้งต้น</label><input id="aQty" value="0"></div>
     </div>
-    <div class="row2">
-      <div><label>ราคาชุด A (฿)</label><input id="aPA" type="number" step="0.01"></div>
-      <div><label>ราคาชุด B (฿)</label><input id="aPB" type="number" step="0.01"></div>
+    <div id="aPriceAB">
+      <label style="color:var(--pdd)">ราคา โปรดระบุ (฿) * — ใช้เป็นฐานคำนวณชุด A/B อัตโนมัติ</label>
+      <input id="aPC" type="number" step="0.01" placeholder="เช่น 590">
     </div>
+    <div id="aPriceNote" class="hint" style="display:none">💡 มีสีชุด C — ราคา A/B คำนวณออโต้จากราคาชุด C ของสีนั้น (สูตรเดียวกัน)</div>
     <div class="row2">
       <div><label>ราคาทุน (L/A เท่านั้น)</label><input id="aCost"></div>
       <div><label>รหัสสี RBWS</label><input id="aColW"></div>
@@ -527,7 +528,7 @@ const SKU_FIELDS=[
   ['album_id','ชื่ออัลบั้ม'],['sel_name','ชื่อตัวเลือก'],['detail','รายละเอียด'],
   ['sku_rbws','SKU RBWS'],['name_rbws','ชื่อฝั่ง WS'],['weight','น้ำหนัก g/ชิ้น'],
   ['color_rbws','รหัสสี RBWS'],['loc_rbws','Location RBWS'],['loc_rbo','Location RBO'],
-  ['color_rbo','สี RBO (ราคาชุด C)'],['price_a','ราคาชุด A (฿)'],['price_b','ราคาชุด B (฿)'],
+  ['color_rbo','สี RBO (ราคาชุด C)'],['price_c','ราคา C กรอกเอง (ไม่มีสี)'],['price_a','ราคาชุด A (฿)'],['price_b','ราคาชุด B (฿)'],
   ['star','ดาว'],['barcode','บาร์โค้ด']
 ];
 /* ช่องทางที่ขาย — ฐานข้อมูลสำหรับ AI ทีมคอนเทนต์/การขายต่อยอด */
@@ -578,14 +579,18 @@ function skuDetail(i,editMode){
         opts+='<option'+sel+'>'+c.color+'</option>';
       });
       if(v&&!seen) opts+='<option selected>'+v+'</option>';
-      inner='<select id="sd_'+f[0]+'" style="flex:1;font-size:12.5px">'+opts+'</select>';
+      inner='<select id="sd_'+f[0]+'" style="flex:1;font-size:12.5px" onchange="sdToggleAB()">'+opts+'</select>';
       /* หมายเหตุ: เมื่อได้สูตรจาก Luffy → เลือกสี C แล้วคำนวณราคา A/B ออโต้ที่ตรงนี้ */
     } else {
       inner=editMode
         ?'<input id="sd_'+f[0]+'" value="'+v.replace(/"/g,'&quot;')+'" style="flex:1;font-size:12.5px">'
         :'<div style="flex:1"><b>'+(v||'–')+'</b></div>';
     }
-    html+='<div style="display:flex;gap:8px;align-items:center;padding:5px 0;border-bottom:1px solid var(--soft);font-size:12.5px">'+
+    if(editMode&&(f[0]==='price_a'||f[0]==='price_b')){
+      inner='<div style="flex:1;color:var(--mut)"><b>'+(v||'–')+'</b> <small>คำนวณออโต้จากราคา C (รอสูตร)</small></div>';
+    }
+    var rowId=(editMode&&(f[0]==='price_c'))?' id="sdRow_'+f[0]+'"':'';
+    html+='<div'+rowId+' style="display:flex;gap:8px;align-items:center;padding:5px 0;border-bottom:1px solid var(--soft);font-size:12.5px">'+
       '<div style="width:130px;color:var(--mut)">'+f[1]+'</div>'+inner+'</div>';
   });
   if(editMode&&la){
@@ -614,6 +619,12 @@ function skuDetail(i,editMode){
   html+='</div>';
   document.getElementById('modalBody').innerHTML=html;
   document.getElementById('wdModal').style.display='block';
+}
+function sdToggleAB(){
+  var sel=document.getElementById('sd_color_rbo');
+  var noColor=sel?!sel.value:true;
+  var row=document.getElementById('sdRow_price_c');
+  if(row) row.style.display=noColor?'flex':'none';
 }
 function skuStarPick(n){
   window._sdStar=n;
@@ -762,6 +773,11 @@ async function wdAct(doc,act){
   if(r.ok){loadAll();} else toast(r.error,'err');
 }
 /* ── Add SKU ── */
+function toggleAB_a(){
+  var noColor=!document.getElementById('aColor').value;
+  document.getElementById('aPriceAB').style.display=noColor?'block':'none';
+  document.getElementById('aPriceNote').style.display=noColor?'none':'block';
+}
 async function aPreview(){
   var el=document.getElementById('aPv'); if(!el) return;
   el.textContent='…';
@@ -781,10 +797,10 @@ async function addSku(){
   const r=await api('addSku',{category:g('aCat'),cls:g('aCls'),sku_custom:g('aCustom'),
     album:g('aAlbum'),sel_name:g('aName'),sku_rbws:g('aWs'),weight:g('aW'),loc_rbo:g('aLocO'),loc_rbws:g('aLocW'),
     color_rbo:g('aColor'),qty:g('aQty'),cost:g('aCost'),color_rbws:g('aColW'),detail:g('aName'),
-    price_a:g('aPA'),price_b:g('aPB'),
+    price_c:g('aPC'),
     img_b64:imgB64,img_name:imgName});
   if(r.ok){document.getElementById('aOk').textContent='✅ สร้าง '+r.sku+' เรียบร้อย'+(r.img?' 📷 รูปเข้าฐานข้อมูลแล้ว':'');
-    ['aCustom','aAlbum','aName','aWs','aW','aLocO','aLocW','aQty','aCost','aColW','aPA','aPB'].forEach(i=>document.getElementById(i).value='');
+    ['aCustom','aAlbum','aName','aWs','aW','aLocO','aLocW','aQty','aCost','aColW','aPC'].forEach(i=>document.getElementById(i).value='');
     if(fEl) fEl.value='';
     api('catalog').then(function(c){if(c.ok){CAT=c.selections;renderCat();}});
     loadAll(); aPreview();}
@@ -1438,13 +1454,12 @@ function extOpenForm(){
         '<div><label style="font-size:10.5px;color:var(--mut)">Location RBO</label>'+
           '<input id="ebnLoc" placeholder="เช่น A-12" style="width:100%;margin-top:2px"></div></div>'+
       '<div style="margin-bottom:8px"><label style="font-size:10.5px;color:var(--mut)">สี RBO (ราคาชุด C)</label>'+
-        '<select id="ebnColor" style="width:100%;margin-top:2px"><option value="">ไม่มีสี (ขาย A/B)</option>'+
+        '<select id="ebnColor" style="width:100%;margin-top:2px" onchange="toggleAB_ebn()"><option value="">ไม่มีสี (ขาย A/B)</option>'+
         (COLORS||[]).map(function(c){return '<option>'+c.color+'</option>';}).join('')+'</select></div>'+
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">'+
-        '<div><label style="font-size:10.5px;color:var(--mut)">ราคาขายชุด A (฿)</label>'+
-          '<input id="ebnPA" type="number" step="0.01" placeholder="โปรดระบุ" style="width:100%;margin-top:2px"></div>'+
-        '<div><label style="font-size:10.5px;color:var(--mut)">ราคาขายชุด B (฿)</label>'+
-          '<input id="ebnPB" type="number" step="0.01" placeholder="โปรดระบุ" style="width:100%;margin-top:2px"></div></div>'+
+      '<div id="ebnPriceAB" style="margin-bottom:8px">'+
+        '<label style="font-size:10.5px;color:var(--pdd);font-weight:700">ราคา โปรดระบุ (฿) * — ฐานคำนวณชุด A/B</label>'+
+        '<input id="ebnPC" type="number" step="0.01" placeholder="เช่น 590" style="width:100%;margin-top:2px"></div>'+
+      '<div id="ebnPriceNote" style="display:none;font-size:10.5px;color:var(--mut);margin-bottom:8px">💡 มีสีชุด C — ราคา A/B คำนวณออโต้จากราคาชุด C ของสีนั้น (สูตรเดียวกัน)</div>'+
       '<div style="margin-bottom:8px"><label style="font-size:10.5px;color:var(--mut)">📷 รูปสินค้า (เข้าฐานข้อมูลทันที)</label>'+
         '<input type="file" id="ebnImg" accept="image/*" style="width:100%;margin-top:2px;font-size:12px"></div>'+
       '<button type="button" class="btn" style="margin-top:0;width:100%" onclick="ebnAdd()">➕ เพิ่มเข้าบิล</button>'+
@@ -1473,6 +1488,12 @@ function ebSuggest(){
   '<div onclick="ebMode(\'new\')" style="padding:8px 10px;cursor:pointer;font-size:12px;color:var(--pdd);font-weight:600;background:var(--soft)">🆕 หาไม่เจอ? สลับไปโหมด New SKU</div>';
 }
 
+function toggleAB_ebn(){
+  var noColor=!document.getElementById('ebnColor').value;
+  var ab=document.getElementById('ebnPriceAB'), nt=document.getElementById('ebnPriceNote');
+  if(ab) ab.style.display=noColor?'block':'none';
+  if(nt) nt.style.display=noColor?'none':'block';
+}
 function ebMode(m){
   var oldBox=document.getElementById('ebOldBox'), newBox=document.getElementById('ebNewBox');
   var bOld=document.getElementById('ebModeOld'), bNew=document.getElementById('ebModeNew');
@@ -1517,16 +1538,14 @@ async function ebnAdd(){
     sel_name:name,weight:document.getElementById('ebnW').value||'',
     loc_rbo:document.getElementById('ebnLoc').value.trim(),
     color_rbo:document.getElementById('ebnColor').value,
-    price_a:document.getElementById('ebnPA').value,
-    price_b:document.getElementById('ebnPB').value,
+    price_c:document.getElementById('ebnPC').value,
     qty:1,cost_per_unit:''});
   document.getElementById('ebnName').value='';
   document.getElementById('ebnAlbum').value='';
   document.getElementById('ebnW').value='';
   document.getElementById('ebnLoc').value='';
   document.getElementById('ebnColor').value='';
-  document.getElementById('ebnPA').value='';
-  document.getElementById('ebnPB').value='';
+  document.getElementById('ebnPC').value='';
   document.getElementById('ebnCustom').value='';
   var imgEl2=document.getElementById('ebnImg'); if(imgEl2) imgEl2.value='';
   ebRender();
