@@ -106,7 +106,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B3.32 · 12 ก.ค. 69 · ราคาเห็นได้ทุก role · สูตร/วิธีคำนวณ+ทุน+หมายเหตุทุน เห็นเฉพาะ Luffy/Assist · เพิ่มช่องหมายเหตุต้นทุน';
+const BUILD = 'B3.35 · 12 ก.ค. 69 · เมนู 💰 RB ราคา: + คำนวณทับเฉพาะสี (ตอนเปลี่ยนราคาสี) + ล้างรูปแบบสีเก่า CREAM 99→CREAM';
 const FRONT_VER = '3.26'; // ต้องตรงกับ build ใน doGet ของ backend
 console.log('RB Online Ops · '+BUILD);
 </script>
@@ -417,8 +417,16 @@ function calcPrice(base,mult){
   return v;
 }
 function colorBase_(colorName){
-  var c=(COLORS||[]).find(function(x){return String(x.color)===String(colorName);});
-  return c?Number(c.price):'';
+  var s=String(colorName||'').trim();
+  if(!s) return '';
+  var c=(COLORS||[]).find(function(x){return String(x.color)===s;});
+  if(c) return Number(c.price);
+  /* B3.33: รองรับค่าเก่าแบบ 'CREAM 99' — ลอง match คำแรก แล้วค่อยดึงเลขท้าย */
+  var tok=s.split(/\s+/)[0];
+  c=(COLORS||[]).find(function(x){return String(x.color)===tok;});
+  if(c) return Number(c.price);
+  var m=s.match(/(\d+(?:\.\d+)?)\s*$/);
+  return m?Number(m[1]):'';
 }
 /* คำนวณครบ 3 ชั้น: base → ป้ายเหลือง A/B → ตั้งขาย A/B */
 function applyABCalc_(base,idA,idB,idLA,idLB,idHint,force){
