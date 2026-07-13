@@ -106,7 +106,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B3.42 · 12 ก.ค. 69 · หน้าสรุปเดือน: เพิ่มต้นทุนสินค้าเข้า (เบิก RBWS + Non-RB + New SKU จากชีต Lots) เห็นยอดจริงทั้งเดือน';
+const BUILD = 'B3.44 · 12 ก.ค. 69 · สูตรใหม่: เหลือง A = ฐาน÷0.6 (ค่าธรรมเนียม 40%) · B = ฐาน÷0.8 (20%) — หักค่าธรรมเนียมแล้วเหลือ ≈ ฐานเสมอ';
 const FRONT_VER = '3.26'; // ต้องตรงกับ build ใน doGet ของ backend
 console.log('RB Online Ops · '+BUILD);
 </script>
@@ -439,9 +439,15 @@ function applyABCalc_(base,idA,idB,idLA,idLB,idHint,force){
   if(!eA||!eB) return;
   if(pa!==''){ eA.value=pa; eB.value=pb; if(eLA)eLA.value=la; if(eLB)eLB.value=lb; }
   else if(force){ eA.value=''; eB.value=''; if(eLA)eLA.value=''; if(eLB)eLB.value=''; }
-  if(eH) eH.textContent = (pa!=='')
-    ? ('ฐาน '+base+' → ป้ายเหลือง A ×'+PCFG.mult_a+'='+pa+' · B ×'+PCFG.mult_b+'='+pb+' → ตั้งขาย ×'+PCFG.mult_list+' = A '+la+' · B '+lb+' ฿ (ปัดขึ้นลงท้าย 5/0 · แก้ทับมือได้ · เปลี่ยนตัวคูณในชีต Config)')
-    : '';
+  if(eH){
+    if(pa!==''){
+      var netA=(PCFG.fee_a!=null)?Math.round(pa*(1-PCFG.fee_a/100)):null;
+      var netB=(PCFG.fee_b!=null)?Math.round(pb*(1-PCFG.fee_b/100)):null;
+      eH.textContent='ฐาน '+base+' → เหลือง A '+pa+(netA!=null?' (หักค่าธรรมเนียม '+PCFG.fee_a+'% เหลือ '+netA+')':'')+
+        ' · B '+pb+(netB!=null?' (หัก '+PCFG.fee_b+'% เหลือ '+netB+')':'')+
+        ' → ตั้งขาย ×'+PCFG.mult_list+' = A '+la+' · B '+lb+' ฿ (แก้ทับมือได้ · เปลี่ยน % ในชีต Config: price_fee_a/b)';
+    } else eH.textContent='';
+  }
 }
 /* ผู้ใช้แก้ป้ายเหลืองเองด้วยมือ → คำนวณราคาตั้งขายใหม่จากค่าที่แก้ */
 function listFromYellow_(idA,idB,idLA,idLB){
