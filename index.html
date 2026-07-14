@@ -106,7 +106,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B3.46 · 12 ก.ค. 69 · นำเข้า JSON: ตัวที่มีแล้วข้ามเร็ว ไม่อัปเดตซ้ำ · งาน import รอได้ 4 นาที';
+const BUILD = 'B3.48 · 12 ก.ค. 69 · login ไม่สนตัวเล็ก/ใหญ่ (Nokky=nokky) · ทุกคนเปลี่ยนรหัสผ่านตัวเองได้ในแท็บอื่นๆ';
 const FRONT_VER = '3.26'; // ต้องตรงกับ build ใน doGet ของ backend
 console.log('RB Online Ops · '+BUILD);
 </script>
@@ -305,6 +305,14 @@ console.log('RB Online Ops · '+BUILD);
     <div id="jsonProg"></div>
   </div>
   <div class="card" id="userCard" style="display:none">
+    <h2>🔑 เปลี่ยนรหัสผ่านของฉัน</h2>
+    <label>รหัสผ่านเดิม</label><input id="mpOld" type="password" autocomplete="current-password">
+    <label>รหัสผ่านใหม่ (อย่างน้อย 4 ตัว)</label><input id="mpNew" type="password" autocomplete="new-password">
+    <label>ยืนยันรหัสผ่านใหม่</label><input id="mpNew2" type="password" autocomplete="new-password">
+    <button class="btn" onclick="myPassChange()">เปลี่ยนรหัสผ่าน</button>
+    <div class="err" id="mpErr"></div>
+  </div>
+  <div class="card">
     <h2>👤 จัดการผู้ใช้ <span class="lock">Luffy เท่านั้น</span></h2>
     <div id="userList"><div class="empty">กำลังโหลด…</div></div>
     <div style="margin-top:10px;border-top:1px solid var(--line);padding-top:12px">
@@ -1306,8 +1314,14 @@ function renderWdInline(orders, tabN){
             return imgUrl?'<img src="'+imgSrc(imgUrl)+'" style="width:100%;height:100%;object-fit:cover">':'📿';
           }())+'</div>'+
         '<div style="flex:1;min-width:0">'+
-          '<div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(it.sel_name||it.sku_rbo)+'</div>'+
-          '<div style="font-size:10.5px;color:var(--mut)">'+it.sku_rbo+'</div>'+
+          (function(){
+            var catRow=CAT.find(function(c){return c.sku_rbo===it.sku_rbo;})||{};
+            var ws=it.sku_rbws||catRow.sku_rbws||'';
+            var lw=it.loc_rbws||catRow.loc_rbws||'';
+            return '<div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(it.sel_name||it.sku_rbo)+'</div>'+
+              '<div style="font-size:10.5px;color:var(--mut)">'+it.sku_rbo+(ws?' → <b>'+ws+'</b>':'')+'</div>'+
+              (lw?'<div style="font-size:10.5px;color:var(--pdd);font-weight:600">📍 '+lw+'</div>':'');
+          }())+
         '</div>'+
         (canAct?
           '<div style="display:flex;flex-direction:column;gap:3px;align-items:flex-end">'+
@@ -2293,6 +2307,21 @@ function wdUpdateBadge(count){
   if(!b) return;
   if(count>0){b.style.display='inline';b.textContent=count;}
   else b.style.display='none';
+}
+/* B3.48: เปลี่ยนรหัสผ่านตัวเอง — ทุก role */
+async function myPassChange(){
+  var o=document.getElementById('mpOld').value, n=document.getElementById('mpNew').value, n2=document.getElementById('mpNew2').value;
+  var err=document.getElementById('mpErr'); err.textContent='';
+  if(!o||!n){ err.textContent='กรอกรหัสเดิมและรหัสใหม่ให้ครบ'; return; }
+  if(n.length<4){ err.textContent='รหัสใหม่ต้องยาวอย่างน้อย 4 ตัวอักษร'; return; }
+  if(n!==n2){ err.textContent='รหัสใหม่ 2 ช่องไม่ตรงกัน'; return; }
+  toast('กำลังเปลี่ยนรหัสผ่าน...','info',1500);
+  const r=await api('myPass',{oldpass:o,newpass:n});
+  if(r.ok){
+    S.key=r.key; saveSession(S); /* อัปเดต session ทันที ไม่ต้อง login ใหม่ */
+    ['mpOld','mpNew','mpNew2'].forEach(function(i){document.getElementById(i).value='';});
+    toast('✅ เปลี่ยนรหัสผ่านแล้ว ใช้รหัสใหม่ในการเข้าครั้งถัดไป','ok',3500);
+  } else err.textContent=r.error||'เปลี่ยนไม่สำเร็จ';
 }
 /* ── จัดการผู้ใช้ ── */
 const ROLE_TH={master:'Master',assist:'Assist Mgr',admin:'Admin',graphic:'Graphic',storefront:'หน้าร้าน WS'};
