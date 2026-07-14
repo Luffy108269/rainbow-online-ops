@@ -126,7 +126,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B3.54 · 12 ก.ค. 69 · Desktop layout อัตโนมัติ: จอ ≥1024px เต็มจอ+เมนูซ้าย+คัมภีร์ 2-3 คอลัมน์ · มือถือเหมือนเดิมทุกพิกเซล';
+const BUILD = 'B3.55 · 12 ก.ค. 69 · จุดสีหน้าแรกกลับมามีสี+กดกรองคัมภีร์ได้ · คัมภีร์โชว์ครบทุกตัว (เดิมตัด 80) · เบิกรูปเด้งเองเมื่อโหลดเสร็จ + ✖No photo';
 const FRONT_VER = '3.26'; // ต้องตรงกับ build ใน doGet ของ backend
 console.log('RB Online Ops · '+BUILD);
 </script>
@@ -168,6 +168,7 @@ console.log('RB Online Ops · '+BUILD);
   <div class="card">
     <h2>📿 คัมภีร์สินค้า</h2>
     <input id="catQ" placeholder="ค้นหา: รหัส RBO / รายละเอียด…" oninput="renderCat()">
+    <div id="catColorChip"></div>
     <div id="catList"><div class="empty">กำลังโหลด…</div></div>
   </div>
 </div>
@@ -687,12 +688,19 @@ async function loadAll(){
     COLORS=d.colors;
     CLASSINFO=d.classes||[]; /* B3.39 */
     if(d.priceCfg) PCFG=d.priceCfg;
-    document.getElementById('colorDots').innerHTML=d.colors.map(c=>`<span class="dot" style="background:${CMAP[c.color]||'#ccc'};color:${['CREAM','YELLOW'].includes(c.color)?'#7a6320':'#fff'}">${c.price}</span>`).join('');
+    /* B3.55: เทียบสีแบบ normalize (กัน 'CREAM 99'/ตัวเล็ก) + กดจุดสีแล้วเปิดคัมภีร์กรองสีนั้นทันที */
+    const FALLBACK_DOT=['#C9A96E','#8FBF9F','#E8A0BF','#A0B8E8','#D4A5D9','#9FCFCF'];
+    document.getElementById('colorDots').innerHTML=d.colors.map((c,ci)=>{
+      const tok=String(c.color||'').trim().split(/\s+/)[0].toUpperCase();
+      const bg=CMAP[tok]||FALLBACK_DOT[ci%FALLBACK_DOT.length];
+      const fg=['CREAM','YELLOW'].includes(tok)?'#7a6320':'#fff';
+      return `<span class="dot" style="background:${bg};color:${fg};cursor:pointer" title="ดูสินค้าสี ${tok}" onclick="catColorGo('${tok}')">${c.price}</span>`;
+    }).join('');
     document.getElementById('aColor').innerHTML='<option value="">ไม่มีสี (ขาย A/B)</option>'+d.colors.map(c=>`<option>${c.color}</option>`).join('');
     aPriceCalc();
   }
   const c=await api('catalog');
-  if(c.ok){CAT=c.selections;renderCat();}
+  if(c.ok){CAT=c.selections;renderCat();wdRender();} /* B3.55: รูปในหน้าเบิกเด้งทันทีที่ฐานสินค้ามา */
   if(isLA()){const p=await api('pendingList');
     if(p.ok&&p.list.length){document.getElementById('pendCard').style.display='block';
       document.getElementById('pendList').innerHTML=p.list.slice(0,15).map(x=>`
@@ -703,12 +711,29 @@ async function loadAll(){
     }}
   wdLoad();
 }
+/* B3.55: กดจุดสีหน้าแรก → เปิดคัมภีร์พร้อมกรองสีนั้น */
+function catColorGo(color){
+  window._catColor=String(color||'');
+  document.getElementById('catQ').value='';
+  tab('prod',document.querySelector('nav button[data-p="prod"]'));
+  renderCat();
+}
+function catColorClear(){ window._catColor=''; renderCat(); }
+function noPhoto_(){ return '<span style="font-size:8.5px;color:var(--mut);text-align:center;line-height:1.2">✖<br>No photo</span>'; }
 function renderCat(){
   const q=(document.getElementById('catQ').value||'').toLowerCase();
-  const list=CAT.filter(s=>!q||String(s.sku_rbo).toLowerCase().includes(q)||String(s.detail).toLowerCase().includes(q));
-  window._catShown=list.slice(0,80);
+  const colF=String(window._catColor||'').toUpperCase();
+  const list=CAT.filter(s=>{
+    if(colF){ const tok=String(s.color_rbo||'').trim().split(/\s+/)[0].toUpperCase(); if(tok!==colF) return false; }
+    return !q||String(s.sku_rbo).toLowerCase().includes(q)||String(s.detail).toLowerCase().includes(q)||String(s.sku_rbws||'').toLowerCase().includes(q);
+  });
+  window._catShown=list; /* B3.55: โชว์ทั้งหมด (เดิมตัดที่ 80) — รูปโหลดแบบ lazy อยู่แล้วไม่หน่วง */
+  const chip=document.getElementById('catColorChip');
+  if(chip) chip.innerHTML=colF
+    ?'<span style="display:inline-flex;align-items:center;gap:6px;background:#FCE4EC;color:var(--pdd);font-weight:700;font-size:11.5px;border-radius:999px;padding:4px 12px;margin:6px 0">🎨 กรองสี '+colF+' ('+list.length+' ตัว) <span onclick="catColorClear()" style="cursor:pointer">✕ ล้าง</span></span>'
+    :'<small style="color:var(--mut)">ทั้งหมด '+list.length+' ตัว</small>';
   document.getElementById('catList').innerHTML = list.length? window._catShown.map((s,i)=>`
-    <div class="item" style="cursor:pointer" onclick="skuDetail(${i})"><div class="ph">${s.img?`<img src="${imgSrc(s.img)}" loading="lazy">`:'📿'}</div>
+    <div class="item" style="cursor:pointer" onclick="skuDetail(${i})"><div class="ph">${s.img?`<img src="${imgSrc(s.img)}" loading="lazy">`:noPhoto_()}</div>
       <div><b>${s.sku_rbo}</b><small>${s.detail||''}</small><small>${s.sku_rbws?'WS: '+s.sku_rbws+' · 📍'+(s.loc_rbws||'–'):'ซื้อภายนอก'}</small></div>
       <div class="endc">${s.color_rbo?`<span class="num">${s.color_rbo}</span>`:(s.price_base?`<span class="num">฿${fmtN(s.price_base)}</span>`:'')}<small>คงเหลือ ${fmtQ(s.qty_shop||0)}</small>${(isLA()&&s.cost_latest)?`<small>ทุน ${fmtN(s.cost_latest)}</small>`:''}</div>
     </div>`).join('') : '<div class="empty">ไม่พบ</div>';
@@ -948,7 +973,7 @@ function wdSuggest(){
     const el=document.getElementById('wdSug');
     if(r.ok&&r.hit.length){
       el.innerHTML=r.hit.map((s,i)=>`<div class="item" onclick='wdPick(${JSON.stringify(JSON.stringify(s))})'>
-        <div class="ph">${s.img?`<img src="${imgSrc(s.img)}">`:'📿'}</div>
+        <div class="ph">${s.img?`<img src="${imgSrc(s.img)}" loading="lazy">`:noPhoto_()}</div>
         <div><b>${s.sku_rbo}</b><small>${s.sku_rbws?'WS: '+s.sku_rbws:'⚠ ไม่มีฝั่ง WS เบิกไม่ได้'} · 📍${s.loc_rbws||'ว่าง'}</small></div></div>`).join('');
       el.style.display='block';
     } else {el.innerHTML='<div class="empty">ไม่พบ</div>';el.style.display='block';}
@@ -1029,8 +1054,8 @@ function wdRender(){
     // หารูปจาก CAT
     const catItem=CAT.find(function(c){return c.sku_rbo===x.sku;});
     const imgHtml=catItem&&catItem.img
-      ?'<img src="'+imgSrc(catItem.img)+'" style="width:100%;height:100%;object-fit:cover;border-radius:10px">'
-      :'📿';
+      ?'<img src="'+imgSrc(catItem.img)+'" loading="lazy" style="width:100%;height:100%;object-fit:cover;border-radius:10px">'
+      :(CAT.length?noPhoto_():'⏳'); /* B3.55: ฐานยังไม่มา=⏳ · มีฐานแต่ไม่มีรูป=No photo */
     const chk='<input type="checkbox" '+(x.sel?'checked':'')+' onchange="WDCART['+i+'].sel=this.checked;wdRender()" style="width:18px;height:18px;accent-color:var(--pd);flex-shrink:0;margin:0">';
     const loc=x.needLoc
       ?'<input placeholder="Location WS (เติมได้)" style="width:160px;margin:2px 0" onchange="WDCART['+i+'].loc=this.value;wdDraftPush()">'
