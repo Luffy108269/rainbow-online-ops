@@ -106,7 +106,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B3.52 · 12 ก.ค. 69 · FIX จริง: role อื่นในโหมด Edit เห็นเฉพาะ รูป+Location เป็นช่องกรอก ที่เหลืออ่านอย่างเดียว (รอบก่อน gate ไม่ติด)';
+const BUILD = 'B3.53 · 12 ก.ค. 69 · FIX: การ์ดจัดการผู้ใช้กลับไปซ่อนเฉพาะ Luffy · การ์ดเปลี่ยนรหัสตัวเองโชว์ทุกคน (B3.48 แทรกสลับที่กัน)';
 const FRONT_VER = '3.26'; // ต้องตรงกับ build ใน doGet ของ backend
 console.log('RB Online Ops · '+BUILD);
 </script>
@@ -304,7 +304,7 @@ console.log('RB Online Ops · '+BUILD);
     <button class="btn o" onclick="upJson()">นำเข้าไฟล์ JSON ที่เลือกทั้งหมด</button>
     <div id="jsonProg"></div>
   </div>
-  <div class="card" id="userCard" style="display:none">
+  <div class="card">
     <h2>🔑 เปลี่ยนรหัสผ่านของฉัน</h2>
     <label>รหัสผ่านเดิม</label><input id="mpOld" type="password" autocomplete="current-password">
     <label>รหัสผ่านใหม่ (อย่างน้อย 4 ตัว)</label><input id="mpNew" type="password" autocomplete="new-password">
@@ -312,7 +312,7 @@ console.log('RB Online Ops · '+BUILD);
     <button class="btn" onclick="myPassChange()">เปลี่ยนรหัสผ่าน</button>
     <div class="err" id="mpErr"></div>
   </div>
-  <div class="card">
+  <div class="card" id="userCard" style="display:none">
     <h2>👤 จัดการผู้ใช้ <span class="lock">Luffy เท่านั้น</span></h2>
     <div id="userList"><div class="empty">กำลังโหลด…</div></div>
     <div style="margin-top:10px;border-top:1px solid var(--line);padding-top:12px">
