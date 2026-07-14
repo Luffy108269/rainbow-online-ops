@@ -126,7 +126,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B3.55 · 12 ก.ค. 69 · จุดสีหน้าแรกกลับมามีสี+กดกรองคัมภีร์ได้ · คัมภีร์โชว์ครบทุกตัว (เดิมตัด 80) · เบิกรูปเด้งเองเมื่อโหลดเสร็จ + ✖No photo';
+const BUILD = 'B3.56 · 12 ก.ค. 69 · เพิ่มสีมาตรฐาน ORANGE (990) และ BROWN (1290)';
 const FRONT_VER = '3.26'; // ต้องตรงกับ build ใน doGet ของ backend
 console.log('RB Online Ops · '+BUILD);
 </script>
@@ -578,7 +578,7 @@ function sdPriceCalc(fromColor){
   applyABCalc_(base,'sd_price_a','sd_price_b','sd_price_list_a','sd_price_list_b','sdPHint',!!fromColor);
 }
 function sdListCalc(){ listFromYellow_('sd_price_a','sd_price_b','sd_price_list_a','sd_price_list_b'); }
-const CMAP={CREAM:'#F5E9D7',RED:'#E05656',GREEN:'#58B37C',PINK:'#F29BB4',BLUE:'#6FA8DC',YELLOW:'#FFD84D',GREY:'#B9BFC9',PURPLE:'#9B7FD4'};
+const CMAP={CREAM:'#F5E9D7',RED:'#E05656',GREEN:'#58B37C',PINK:'#F29BB4',BLUE:'#6FA8DC',YELLOW:'#FFD84D',GREY:'#B9BFC9',PURPLE:'#9B7FD4',ORANGE:'#F59A4D',BROWN:'#9C6B4A'}; /* B3.56: 990=Orange · 1290=Brown */
 const CATS='Earrings,Ring,Bangle,Bracelet,Necklace,Pendant,Anklet,Set'.split(',');
 const CLASSES='Silver Classic,Silver Premium,Silver combines with Non silver,Silver Lucky Stone,Lucky stone with Non silver,Brass Classic,Brass Premium,Stainless Steel Classic,Stainless Steel Premium,Non-Silver'.split(',');
 
