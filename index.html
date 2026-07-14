@@ -106,7 +106,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B3.49 · 12 ก.ค. 69 · PDF ใบเบิก: รูปตราชั่ง/สลิปคงสัดส่วนตามที่ถ่ายจริง แนวตั้งแสดงเต็มใบ ไม่โดน crop';
+const BUILD = 'B3.51 · 12 ก.ค. 69 · ทุก role: ดูคัมภีร์ + Edit ได้เฉพาะ รูปสินค้า/Location RBWS/Location RBO (บังคับสิทธิ์ที่เซิร์ฟเวอร์)';
 const FRONT_VER = '3.26'; // ต้องตรงกับ build ใน doGet ของ backend
 console.log('RB Online Ops · '+BUILD);
 </script>
@@ -827,8 +827,8 @@ function skuDetail(i,editMode){
   /* B3.32: ราคาเห็นได้ทุก role · สูตร (hint/แนะนำ) มีเฉพาะโหมด Edit ซึ่งเปิดได้แค่ Luffy/Assist · ทุน+หมายเหตุทุน เฉพาะ Luffy/Assist */
   html+='<div style="margin-top:10px;border:1.5px dashed #E4C878;background:#FFFBEF;border-radius:12px;padding:8px 12px">'+
     '<div style="font-size:12px;font-weight:700;color:#8a6d1f;margin-bottom:2px">💰 ราคาขาย</div>';
-  PRICE_FIELDS.forEach(function(f){ html+=sdFieldRow_(f,s,editMode); });
-  if(editMode) html+='<div class="hint" id="sdPHint" style="padding:4px 0"></div>';
+  PRICE_FIELDS.forEach(function(f){ html+=sdFieldRow_(f,s,editMode&&la); }); /* B3.51 */
+  if(editMode&&la) html+='<div class="hint" id="sdPHint" style="padding:4px 0"></div>';
   if(la){
     html+='<div style="font-size:11px;font-weight:700;color:#8a6d1f;margin-top:6px">🔒 ต้นทุน — เห็นเฉพาะ Luffy/Assist</div>'+
       '<div style="display:flex;gap:8px;align-items:center;padding:5px 0;font-size:12.5px">'+
@@ -862,7 +862,7 @@ function skuDetail(i,editMode){
     html+='<button class="btn" style="margin-top:0;flex:1" data-i="'+i+'" onclick="skuSave(this.dataset.i)">💾 Save เข้าฐานข้อมูล</button>'+
       '<button class="btn o" style="margin-top:0;width:auto;padding:12px 16px" data-i="'+i+'" onclick="skuDetail(Number(this.dataset.i))">ยกเลิก</button>';
   } else {
-    if(la) html+='<button class="btn" style="margin-top:0;flex:1" data-i="'+i+'" onclick="skuDetail(Number(this.dataset.i),true)">✏️ Edit</button>';
+    html+='<button class="btn" style="margin-top:0;flex:1" data-i="'+i+'" onclick="skuDetail(Number(this.dataset.i),true)">✏️ Edit'+(la?'':' (รูป/Location)')+'</button>'; /* B3.51: ทุก role แก้ รูป+Location ได้ */
     html+='<button class="btn o" style="margin-top:0;'+(la?'width:auto;padding:12px 16px':'flex:1')+'" onclick="closeModal()">ปิด</button>';
   }
   html+='</div>';
@@ -933,14 +933,38 @@ function wdSuggest(){
     } else {el.innerHTML='<div class="empty">ไม่พบ</div>';el.style.display='block';}
   },350);
 }
+/* B3.50: แก้จำนวนด้วยมือ — entry ของวันนี้ถูกปรับให้ยอดรวมตรงตามที่พิมพ์ ประวัติวันก่อนไม่โดนแตะ */
+function wdQtySet(i,val){
+  var x=WDCART[i]; if(!x) return;
+  var today=new Date().toISOString().slice(0,10);
+  x.qty=Math.max(1,Number(val)||1);
+  if(x.hist&&x.hist.length){
+    var prior=x.hist.filter(function(h){return !(h.d===today&&h.by===S.name);});
+    var sumPrior=prior.reduce(function(a,h){return a+Number(h.q||0);},0);
+    var delta=x.qty-sumPrior;
+    x.hist=delta!==0?prior.concat([{q:delta,by:S.name,d:today}]):prior;
+    if(x.hist.length<=1){ x.hist=null; } /* เหลือรายการเดียว = ไม่ต้องโชว์ breakdown */
+  }
+  wdRender();wdDraftPush();
+}
 function wdPick(js){
   const s=JSON.parse(js);
   document.getElementById('wdSug').style.display='none';
   document.getElementById('wdQ').value='';
   if(!s.sku_rbws){toast('ตัวนี้ไม่มีรหัส Wholesale — ซื้อจากภายนอกแทน','warn');return;}
-  if(WDCART.some(x=>x.sku===s.sku_rbo)) return;
+  const today=new Date().toISOString().slice(0,10);
+  const ex=WDCART.find(x=>x.sku===s.sku_rbo);
+  if(ex){
+    /* B3.50: คีย์ตัวเดิมซ้ำ (เช่นคนละวัน) = เพิ่มจำนวน + เก็บประวัติว่าใครเพิ่มเท่าไหร่วันไหน */
+    if(!ex.hist||!ex.hist.length) ex.hist=[{q:Number(ex.qty)||0,by:ex.by||S.name,d:ex.date||today}];
+    var te=ex.hist.find(function(h){return h.d===today&&h.by===S.name;});
+    if(te) te.q=Number(te.q)+1; else ex.hist.push({q:1,by:S.name,d:today});
+    ex.qty=ex.hist.reduce(function(a,h){return a+Number(h.q||0);},0);
+    toast(s.sku_rbo+' มีในรายการอยู่แล้ว — เพิ่มเป็น '+ex.qty+' ชิ้น (ดูที่มาใต้บรรทัด)','ok',3000);
+    wdRender();wdDraftPush();return;
+  }
   WDCART.push({sku:s.sku_rbo,ws:s.sku_rbws,loc:s.loc_rbws||'',qty:1,needLoc:!s.loc_rbws,
-    by:S.name,date:new Date().toISOString().slice(0,10)});
+    by:S.name,date:today});
   wdRender();wdDraftPush();
 }
 
@@ -949,7 +973,7 @@ let _draftTimer=null;
 function wdDraftPush(){
   clearTimeout(_draftTimer);
   _draftTimer=setTimeout(async function(){
-    const items=WDCART.map(function(x){return {sku_rbo:x.sku,sku_rbws:x.ws,loc_rbws:x.loc||'',qty:x.qty,sel_name:'',added_by:x.by||S.name,added_date:x.date||new Date().toISOString().slice(0,10)};});
+    const items=WDCART.map(function(x){return {sku_rbo:x.sku,sku_rbws:x.ws,loc_rbws:x.loc||'',qty:x.qty,sel_name:'',added_by:x.by||S.name,added_date:x.date||new Date().toISOString().slice(0,10),hist:(x.hist&&x.hist.length)?JSON.stringify(x.hist):''};});
     try{
       const r=await api('wdDraftSync',{items:items});
       const note=document.getElementById('wdDraftNote');
@@ -964,8 +988,9 @@ async function wdDraftLoad(){
     const r=await api('wdDraftList');
     if(r.ok){
       WDCART=(r.items||[]).map(function(it){
+        var hh=null; try{ hh=it.hist?JSON.parse(it.hist):null; }catch(e){}
         return {sku:it.sku_rbo,ws:it.sku_rbws,loc:it.loc_rbws||'',qty:Number(it.qty)||1,
-          needLoc:!it.loc_rbws,by:it.added_by||'',date:it.added_date?String(it.added_date).slice(0,10):''};
+          needLoc:!it.loc_rbws,by:it.added_by||'',date:it.added_date?String(it.added_date).slice(0,10):'',hist:hh};
       });
       wdRender(); return;
     }
@@ -990,10 +1015,14 @@ function wdRender(){
       ?'<input placeholder="Location WS (เติมได้)" style="width:160px;margin:2px 0" onchange="WDCART['+i+'].loc=this.value;wdDraftPush()">'
       :'<small style="color:var(--mut)">📍'+x.loc+'</small>';
     const keyer=(x.by?'<small style="color:var(--mut);font-size:10px">✏️ '+x.by+(x.date?' · '+x.date.split('-').reverse().join('/'):'')+'</small>':'');
+    /* B3.50: แสดงที่มาจำนวนเมื่อคีย์สะสมหลายครั้ง เช่น 12/07 Luffy 10 + 14/07 Luffy 10 = รวม 20 */
+    const histLine=(x.hist&&x.hist.length>1)
+      ?'<br><small style="color:var(--pdd);font-size:10px;font-weight:600">📊 '+x.hist.map(function(h){return h.d.split('-').reverse().slice(0,2).join('/')+' '+(h.by||'')+' '+(Number(h.q)>=0&&x.hist.indexOf(h)>0?'+':'')+h.q;}).join(' · ')+' = รวม '+x.qty+'</small>'
+      :'';
     return '<div class="wline">'+chk+
       '<div class="ph" style="width:40px;height:40px;flex-shrink:0">'+imgHtml+'</div>'+
-      '<div style="flex:1"><b>'+x.sku+'</b><small style="color:var(--mut)"> → '+x.ws+'</small><br>'+loc+(keyer?'<br>'+keyer:'')+'</div>'+
-      '<input type="number" value="'+x.qty+'" min="1" style="width:52px;text-align:center" onchange="WDCART['+i+'].qty=this.value;wdRender();wdDraftPush()">'+
+      '<div style="flex:1"><b>'+x.sku+'</b><small style="color:var(--mut)"> → '+x.ws+'</small><br>'+loc+(keyer?'<br>'+keyer:'')+histLine+'</div>'+
+      '<input type="number" value="'+x.qty+'" min="1" style="width:52px;text-align:center" onchange="wdQtySet('+i+',this.value)">'+
       '<button class="x" onclick="WDCART.splice('+i+',1);wdRender();wdDraftPush()">✕</button></div>';
   }).join('');
 }
@@ -1295,6 +1324,7 @@ function renderWdInline(orders, tabN){
       '<input type="checkbox" class="wd-sel-all wd-sku-chk" data-doc="'+doc+'" onchange="wdSelectAll(this)" style="margin:0">'+
       '<b class="num" style="font-size:13px">'+doc+'</b>'+
       '<small style="color:var(--mut)">'+w.items.length+' SKU · '+w.created_by+' · '+fmtDate(w.date)+'</small>'+
+      (w.pdf_url?'<button class="btn o" style="width:auto;margin:0;padding:5px 12px;font-size:11px" onclick="window.open(\''+w.pdf_url+'\',\'_blank\')">📄 ดู/พิมพ์ PDF</button>':'')+
       (canAct?
         '<button class="btn sm" style="margin-left:auto" data-doc="'+doc+'" data-tab="'+tabN+'" onclick="wdSubmitInline(this.dataset.doc,Number(this.dataset.tab))">'+
         (isApprove?'✅ อนุมัติ':'📦 ยืนยันรับของ')+
@@ -1636,13 +1666,50 @@ async function expLoadList(){
       (isAcc?'background:#FCE4EC;color:var(--pdd);font-weight:700':'background:#ECEFF1;color:#607D8B')+
       '" title="กดเพื่อสลับ">'+(isAcc?'🧾 ส่งบัญชี':'🔒 ไม่ส่ง')+'</span>';
     return '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--soft);font-size:12px">'+
-      '<div style="flex:1"><b>'+x.detail+'</b>'+(x.photos.length?' 📎'+x.photos.length:'')+
+      '<div style="flex:1"><b>'+x.detail+'</b> <span onclick="expPhotos('+i+')" style="cursor:pointer;color:var(--pdd);font-weight:700" title="ดู/เพิ่มรูป">📎'+x.photos.length+'</span>'+
         '<br><small style="color:var(--mut)">'+fmtDate(x.date)+' · '+String(x.category).split(' ')[0]+' '+(String(x.category).split(' ')[1]||'')+' · '+(x.payment||'')+' · '+(x.created_by||'')+'</small></div>'+
       tgl+
       '<b class="num" style="white-space:nowrap">'+fmtN(x.amount)+'</b></div>';
   }).join('');
 }
 
+/* B3.50: ดูรูปบิล + บันทึกต่อรูป (เซฟเมื่อไหร่ โดยใคร) + เพิ่มรูปภายหลัง (Luffy/Assist) */
+function expPhotos(i){
+  var x=(window._expItemsList||[])[i]; if(!x) return;
+  var ph=x.photos||[];
+  var html='<div style="font-size:12px;color:var(--mut);margin-bottom:8px">'+x.detail+' · '+fmtDate(x.date)+' · '+fmtN(x.amount)+' บาท</div>';
+  if(ph.length){
+    html+=ph.map(function(p,k){
+      return '<div style="margin-bottom:12px"><img src="'+p.url+'" style="max-width:100%;border-radius:10px;border:1px solid var(--line)">'+
+        '<div style="font-size:10.5px;color:var(--mut);margin-top:2px">รูปที่ '+(k+1)+
+        (p.at?(' · 🕐 เซฟเข้าระบบ '+p.at+' · โดย '+(p.by||'–')):' · แนบตอนสร้างบิล (ก่อนมีระบบบันทึกเวลา)')+'</div></div>';
+    }).join('');
+  } else html+='<div class="empty">ยังไม่มีรูปแนบ</div>';
+  if(isLA()){
+    html+='<div style="margin-top:8px;border-top:1px dashed var(--line);padding-top:10px">'+
+      '<label style="font-size:11px;color:var(--mut)">➕ เพิ่มรูป (เลือกได้หลายรูป — บันทึกเวลา+ผู้เซฟให้อัตโนมัติ)</label>'+
+      '<input type="file" id="expAddImg" accept="image/*" multiple style="width:100%;font-size:11.5px;margin-top:4px">'+
+      '<button class="btn" style="margin-top:8px" onclick="expAddPhotosGo(\''+x.exp_id+'\')">อัพโหลดรูปที่เลือก</button></div>';
+  }
+  document.getElementById('modalTitle').textContent='📎 รูปแนบ · '+x.exp_id;
+  document.getElementById('modalBody').innerHTML=html;
+  document.getElementById('wdModal').style.display='block';
+}
+async function expAddPhotosGo(expId){
+  var fEl=document.getElementById('expAddImg');
+  if(!fEl||!fEl.files.length){ toast('ยังไม่ได้เลือกรูป','warn'); return; }
+  toast('กำลังอ่านรูป '+fEl.files.length+' รูป...','info',2000);
+  var arr=[];
+  for(var k=0;k<fEl.files.length;k++){
+    var b=await resizeImgB64(fEl.files[k],1000,0.82);
+    if(b) arr.push({b64:b,name:fEl.files[k].name});
+  }
+  if(!arr.length){ toast('อ่านรูปไม่สำเร็จ','err'); return; }
+  toast('กำลังอัพโหลด '+arr.length+' รูป...','info',2500);
+  const r=await api('expAddPhotos',{exp_id:expId,photos:arr});
+  if(r.ok){ toast('✅ เพิ่มรูปแล้ว '+r.added+' รูป (รวมทั้งบิล '+r.total+' รูป)','ok',3500); closeModal(); expLoadList(); }
+  else toast(r.error||'เพิ่มรูปไม่สำเร็จ','err',4000);
+}
 async function expToggle(i){
   var x=(window._expItemsList||[])[i]; if(!x) return;
   var to=String(x.send_acc)==='N'?'Y':'N';
