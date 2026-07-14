@@ -83,6 +83,26 @@ nav button.on{background:var(--pd);color:#fff;font-weight:600}
 .toast.warn{background:#E8B931;color:#fff}
 @keyframes toastIn{from{opacity:0;transform:scale(.85)}to{opacity:1;transform:scale(1)}}
 
+/* ══ B3.54: Desktop layout — จอกว้าง ≥1024px เต็มจอ + เมนูซ้าย · จอมือถือเหมือนเดิมทุกพิกเซล ══ */
+@media (min-width:1024px){
+  body{max-width:1160px;padding:0 32px 60px 132px;font-size:14.5px}
+  /* เมนูล่าง → แถบซ้ายแนวตั้ง */
+  nav{left:22px;top:50%;bottom:auto;transform:translateY(-50%);width:92px;max-width:92px;
+    flex-direction:column;border-radius:26px;padding:12px 8px;gap:4px;min-height:auto}
+  nav button{flex:0 0 auto;width:100%;font-size:10.5px;padding:9px 2px;gap:3px}
+  nav button .i{font-size:21px}
+  /* คัมภีร์สินค้า 2 คอลัมน์ */
+  #catList{display:grid;grid-template-columns:1fr 1fr;gap:0 18px;align-items:start}
+  /* การ์ดหายใจขึ้นบนจอใหญ่ */
+  .card{padding:18px 20px;margin:14px 6px}
+  /* modal กว้างขึ้น (ทับ inline style) */
+  #wdModal>div{max-width:680px !important}
+  .toast{max-width:420px}
+}
+@media (min-width:1400px){
+  #catList{grid-template-columns:1fr 1fr 1fr}
+}
+
 @media print{
   body>*:not(#pdfFrame){display:none!important}
   #pdfFrame{display:block!important;position:fixed;inset:0;width:100%;height:100%;border:none}
@@ -106,7 +126,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B3.53 · 12 ก.ค. 69 · FIX: การ์ดจัดการผู้ใช้กลับไปซ่อนเฉพาะ Luffy · การ์ดเปลี่ยนรหัสตัวเองโชว์ทุกคน (B3.48 แทรกสลับที่กัน)';
+const BUILD = 'B3.54 · 12 ก.ค. 69 · Desktop layout อัตโนมัติ: จอ ≥1024px เต็มจอ+เมนูซ้าย+คัมภีร์ 2-3 คอลัมน์ · มือถือเหมือนเดิมทุกพิกเซล';
 const FRONT_VER = '3.26'; // ต้องตรงกับ build ใน doGet ของ backend
 console.log('RB Online Ops · '+BUILD);
 </script>
