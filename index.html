@@ -155,7 +155,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B3.68 · 15 ก.ค. 69 · คัมภีร์: SKU ใหญ่กึ่งกลาง 24px · กล่องแนะนำจากทุนจัดใหม่เป็นบล็อกอ่านง่าย ตัวใหญ่ ป้ายสีชัด';
+const BUILD = 'B3.69 · 15 ก.ค. 69 · ไอคอน nav ใหม่ 🌈💎📦 · จุด Mix สายรุ้งพาสเทล = กรองสินค้าราคาระบุเองทั้งหมด';
 const FRONT_VER = '3.26'; // ต้องตรงกับ build ใน doGet ของ backend
 console.log('RB Online Ops · '+BUILD);
 </script>
@@ -410,11 +410,11 @@ console.log('RB Online Ops · '+BUILD);
 </div>
 
 <nav id="nav">
-  <button data-p="home" onclick="tab('home',this)"><span class="i">🏠</span>หน้าแรก</button>
-  <button data-p="prod" onclick="tab('prod',this)"><span class="i">📿</span>สินค้า</button>
+  <button data-p="home" onclick="tab('home',this)"><span class="i">🌈</span>หน้าแรก</button>
+  <button data-p="prod" onclick="tab('prod',this)"><span class="i">💎</span>สินค้า</button>
   <button data-p="wd" onclick="tab('wd',this)"><span class="i">🔄</span>เบิก</button>
   <button data-p="add" id="navAdd" onclick="tab('add',this)"><span class="i">➕</span>SKU</button>
-  <button data-p="ext" id="navExt" onclick="tab('ext',this)"><span class="i">🛍</span>In Non-RB</button>
+  <button data-p="ext" id="navExt" onclick="tab('ext',this)"><span class="i">📦</span>In Non-RB</button>
   <button data-p="exp" id="navExp" onclick="tab('exp',this)"><span class="i">💸</span>Expense</button>
   <button data-p="more" onclick="tab('more',this)"><span class="i">⚙️</span>Setting</button>
 </nav>
@@ -739,7 +739,9 @@ async function loadAll(){
     if(d.priceCfg) PCFG=d.priceCfg;
     /* B3.55: เทียบสีแบบ normalize (กัน 'CREAM 99'/ตัวเล็ก) + กดจุดสีแล้วเปิดคัมภีร์กรองสีนั้นทันที */
     const FALLBACK_DOT=['#C9A96E','#8FBF9F','#E8A0BF','#A0B8E8','#D4A5D9','#9FCFCF'];
-    document.getElementById('colorDots').innerHTML=d.colors.map((c,ci)=>{
+    /* B3.69: จุด Mix สายรุ้งพาสเทล = ดูสินค้าราคาระบุเองทั้งหมด (ไม่มีสี) */
+    var mixDot='<span class="dot" style="background:linear-gradient(135deg,#FFD1DC,#FFE4B5,#FFFACD,#D4F4DD,#CDEFFF,#E3D1FF);color:#9a5a7a;font-weight:800;cursor:pointer" title="สินค้าราคาระบุเอง (ไม่มีสี)" onclick="catColorGo(\'MIX\')">Mix</span>';
+    document.getElementById('colorDots').innerHTML=mixDot+d.colors.map((c,ci)=>{
       const tok=String(c.color||'').trim().split(/\s+/)[0].toUpperCase();
       const bg=CMAP[tok]||FALLBACK_DOT[ci%FALLBACK_DOT.length];
       const fg=['CREAM','YELLOW'].includes(tok)?'#7a6320':'#fff';
@@ -780,13 +782,20 @@ function renderCat(){
   if(q&&window._catColor) window._catColor='';
   const colF=String(window._catColor||'').toUpperCase();
   const list=CAT.filter(s=>{
-    if(colF){ const tok=String(s.color_rbo||'').trim().split(/\s+/)[0].toUpperCase(); if(tok!==colF) return false; }
+    if(colF){
+      if(colF==='MIX'){ /* B3.69: Mix = ราคาระบุเอง ไม่มีสี */
+        if(String(s.color_rbo||'').trim()) return false;
+        if(!(s.price_base&&Number(s.price_base)>0)) return false;
+      } else {
+        const tok=String(s.color_rbo||'').trim().split(/\s+/)[0].toUpperCase(); if(tok!==colF) return false;
+      }
+    }
     return !q||String(s.sku_rbo).toLowerCase().includes(q)||String(s.detail).toLowerCase().includes(q)||String(s.sku_rbws||'').toLowerCase().includes(q);
   });
   window._catShown=list; /* B3.55: โชว์ทั้งหมด (เดิมตัดที่ 80) — รูปโหลดแบบ lazy อยู่แล้วไม่หน่วง */
   const chip=document.getElementById('catColorChip');
   if(chip) chip.innerHTML=colF
-    ?'<span style="display:inline-flex;align-items:center;gap:6px;background:#FCE4EC;color:var(--pdd);font-weight:700;font-size:11.5px;border-radius:999px;padding:4px 12px;margin:6px 0">🎨 กรองสี '+colF+' ('+list.length+' ตัว) <span onclick="catColorClear()" style="cursor:pointer">✕ ล้าง</span></span>'
+    ?'<span style="display:inline-flex;align-items:center;gap:6px;background:#FCE4EC;color:var(--pdd);font-weight:700;font-size:11.5px;border-radius:999px;padding:4px 12px;margin:6px 0">🎨 '+(colF==='MIX'?'ราคาระบุเอง (Mix)':'กรองสี '+colF)+' ('+list.length+' ตัว) <span onclick="catColorClear()" style="cursor:pointer">✕ ล้าง</span></span>'
     :'<small style="color:var(--mut)">ทั้งหมด '+list.length+' ตัว</small>';
   document.getElementById('catList').innerHTML = list.length? window._catShown.map((s,i)=>`
     <div class="item" style="cursor:pointer" onclick="skuDetail(${i})"><div class="ph">${s.img?`<img src="${imgSrc(s.img)}" loading="lazy">`:noPhoto_()}</div>
