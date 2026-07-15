@@ -126,7 +126,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B3.62 · 12 ก.ค. 69 · Expense list UI: ชื่อบิลตัดเกิน 40 ตัว+แสดง ... · layout grid ไม่พัง · เลขบิล EXP โชว์ทุกแถว';
+const BUILD = 'B3.62 · 15 ก.ค. 69 · Expense list UI: ชื่อบิลตัดเกิน 40 ตัว+แสดง ... · layout grid ไม่พัง · เลขบิล EXP โชว์ทุกแถว';
 const FRONT_VER = '3.26'; // ต้องตรงกับ build ใน doGet ของ backend
 console.log('RB Online Ops · '+BUILD);
 </script>
@@ -3046,8 +3046,8 @@ function tab(id,btn){
   document.getElementById(id).classList.add('on');
   document.querySelectorAll('nav button').forEach(b=>b.classList.remove('on'));
   btn.classList.add('on');window.scrollTo(0,0);
-  /* B3.60 fix: เปิดหน้าสินค้าใหม่ → ล้างตัวกรองสีเสมอ → เห็นสินค้าครบ */
-  if(id==='prod'){ window._catColor=''; renderCat(); }
+  /* B3.62 fix: เปิดหน้าสินค้า → ล้างสีกรอง · ถ้า CAT โหลดแล้วค่อย render (กันแสดง 0 ตัว) */
+  if(id==='prod'){ window._catColor=''; if(window.CAT&&CAT.length) renderCat(); }
 }
 document.getElementById('bstamp').textContent='เวอร์ชั่น: '+BUILD;
 if(S) enter();
