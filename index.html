@@ -3037,10 +3037,14 @@ function closePdf(){
   document.getElementById('pdfFrame').src='';
 }
 
-function tab(id,btn){document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
+function tab(id,btn){
+  document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
   document.getElementById(id).classList.add('on');
   document.querySelectorAll('nav button').forEach(b=>b.classList.remove('on'));
-  btn.classList.add('on');window.scrollTo(0,0);}
+  btn.classList.add('on');window.scrollTo(0,0);
+  /* B3.60 fix: เปิดหน้าสินค้าใหม่ → ล้างตัวกรองสีเสมอ → เห็นสินค้าครบ */
+  if(id==='prod'){ window._catColor=''; renderCat(); }
+}
 document.getElementById('bstamp').textContent='เวอร์ชั่น: '+BUILD;
 if(S) enter();
 </script>
