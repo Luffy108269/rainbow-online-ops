@@ -126,7 +126,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B3.63 · 15 ก.ค. 69 · สินค้าโหลด parallel ไม่รอ dashboard · catColorGo ไม่โดน tab() ล้างสี';
+const BUILD = 'B3.64 · 15 ก.ค. 69 · FIX ต้นเหตุใหญ่: ลบอ้างอิง stPend ที่ตายแล้ว (ทำให้ dashboard พังทั้งบล็อก: จุดสี/สี/สูตร/คัมภีร์/เบิกไม่โหลด)';
 const FRONT_VER = '3.26'; // ต้องตรงกับ build ใน doGet ของ backend
 console.log('RB Online Ops · '+BUILD);
 </script>
@@ -684,10 +684,12 @@ async function loadAll(){
       sysBanner('err','⛔ โหลด Dashboard ไม่สำเร็จ: '+(d.error||''));
     }
   }
-  if(d.ok){document.getElementById('stSku').textContent=d.totalSku;
-    document.getElementById('stPend').textContent=d.pending;
-    document.getElementById('stWd').textContent=d.wdWait;
-    if(d.ksQueue!=null){ document.getElementById('stKs').textContent=d.ksQueue; } /* B3.57 */
+  if(d.ok){
+    /* B3.64: setTxt กัน null — element หายไปตัวเดียวต้องไม่ทำให้ทั้งหน้าพัง (บทเรียนจาก stPend) */
+    function setTxt(id,v){ var e=document.getElementById(id); if(e) e.textContent=v; }
+    setTxt('stSku',d.totalSku);
+    setTxt('stWd',d.wdWait);
+    setTxt('stKs',d.ksQueue!=null?d.ksQueue:'0');
     COLORS=d.colors;
     CLASSINFO=d.classes||[]; /* B3.39 */
     if(d.priceCfg) PCFG=d.priceCfg;
