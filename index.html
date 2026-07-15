@@ -155,7 +155,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B3.67 · 15 ก.ค. 69 · Desktop polish: ฟอนต์ใหญ่คมชัดทั้งระบบ · Ketshop modal จัด grid ใหม่ · แถบบนอัปเดตทันทีหลังยืนยัน';
+const BUILD = 'B3.68 · 15 ก.ค. 69 · คัมภีร์: SKU ใหญ่กึ่งกลาง 24px · กล่องแนะนำจากทุนจัดใหม่เป็นบล็อกอ่านง่าย ตัวใหญ่ ป้ายสีชัด';
 const FRONT_VER = '3.26'; // ต้องตรงกับ build ใน doGet ของ backend
 console.log('RB Online Ops · '+BUILD);
 </script>
@@ -402,7 +402,7 @@ console.log('RB Online Ops · '+BUILD);
 <div id="wdModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;overflow:auto;padding:16px">
   <div style="background:#fff;border-radius:20px;max-width:480px;margin:0 auto;padding:16px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-      <h2 style="font-size:15px;color:var(--pdd)" id="modalTitle">ใบเบิก</h2>
+      <h2 style="font-size:15px;color:var(--pdd);flex:1;min-width:0" id="modalTitle">ใบเบิก</h2>
       <button onclick="closeModal()" style="font-family:'Prompt';border:none;background:var(--soft);color:var(--pd);border-radius:999px;padding:6px 14px;font-size:13px;cursor:pointer">✕ ปิด</button>
     </div>
     <div id="modalBody"></div>
@@ -550,10 +550,25 @@ function costSuggestHTML_(cost,useColorFn,useBaseFn){
   var raw=costSuggest_(cost);
   if(raw==='') return '';
   var up=colorUp_(raw);
-  if(up) return '💡 ทุน '+cost+' ×'+PCFG.mult_cost+' = '+raw+' → <b>แนะนำขายสี '+up.color+' '+up.price+' ฿</b> (ปัดขึ้นตามกลุ่มสีเสมอ) — '+
-    '<a href="javascript:void(0)" onclick="'+useColorFn+'(&quot;'+up.color+'&quot;)" style="color:var(--pdd);font-weight:700">แตะเพื่อใช้</a> (หรือใส่ราคาเองได้ตามใจ)';
-  return '💡 ทุน '+cost+' ×'+PCFG.mult_cost+' = '+raw+' ฿ — เกินสีสูงสุด → <b>แนะนำขาย A/B ราคาระบุเอง '+raw+' ฿</b> — '+
-    '<a href="javascript:void(0)" onclick="'+useBaseFn+'('+raw+')" style="color:var(--pdd);font-weight:700">แตะเพื่อใช้</a> (หรือใส่ราคาเองได้ตามใจ)';
+  /* B3.68: จัดบล็อกแนะนำให้อ่านง่าย ตัวใหญ่ เป็นระเบียบ */
+  var head='<div style="font-size:12px;color:var(--mut)">ทุนจริง '+fmtN(cost)+' × '+PCFG.mult_cost+' = <b style="color:var(--ink)">'+fmtN(raw)+' ฿</b></div>';
+  if(up){
+    var dotBg=(typeof CMAP!=='undefined'&&CMAP[String(up.color).toUpperCase()])||'#ccc';
+    return '<div style="background:#FFF6E8;border:1.5px dashed #E4B878;border-radius:12px;padding:10px 14px;margin:6px 0">'+head+
+      '<div style="display:flex;align-items:center;gap:10px;margin-top:6px;flex-wrap:wrap">'+
+        '<span style="font-size:13px;font-weight:700">💡 แนะนำขายสี</span>'+
+        '<span style="display:inline-flex;align-items:center;gap:6px;background:'+dotBg+';color:#fff;font-weight:800;font-size:15px;border-radius:999px;padding:5px 16px">'+up.color+' '+fmtN(up.price)+' ฿</span>'+
+        '<a href="javascript:void(0)" onclick="'+useColorFn+'(&quot;'+up.color+'&quot;)" style="font-size:13.5px;color:var(--pdd);font-weight:800;text-decoration:underline">👆 แตะเพื่อใช้</a>'+
+      '</div>'+
+      '<div style="font-size:11px;color:var(--mut);margin-top:5px">ปัดขึ้นตามกลุ่มสีเสมอ · หรือใส่ราคาระบุเองได้ตามใจ</div></div>';
+  }
+  return '<div style="background:#FFF6E8;border:1.5px dashed #E4B878;border-radius:12px;padding:10px 14px;margin:6px 0">'+head+
+    '<div style="display:flex;align-items:center;gap:10px;margin-top:6px;flex-wrap:wrap">'+
+      '<span style="font-size:13px;font-weight:700">💡 เกินสีสูงสุด → ขาย A/B ราคาระบุเอง</span>'+
+      '<span style="font-size:15px;font-weight:800;color:var(--pdd)">'+fmtN(raw)+' ฿</span>'+
+      '<a href="javascript:void(0)" onclick="'+useBaseFn+'('+raw+')" style="font-size:13.5px;color:var(--pdd);font-weight:800;text-decoration:underline">👆 แตะเพื่อใช้</a>'+
+    '</div>'+
+    '<div style="font-size:11px;color:var(--mut);margin-top:5px">หรือใส่ราคาระบุเองได้ตามใจ</div></div>';
 }
 function aCostSuggest(){
   var box=document.getElementById('aCostHint'); if(!box) return;
@@ -1199,7 +1214,8 @@ function sdFieldRow_(f,s,editMode){
 }
 function skuDetail(i,editMode){
   const s=window._catShown[i]; if(!s) return;
-  document.getElementById('modalTitle').textContent='📿 '+s.sku_rbo;
+  /* B3.68: SKU ใหญ่ กึ่งกลาง โดดเด่น */
+  document.getElementById('modalTitle').innerHTML='<span style="display:block;text-align:center;font-size:24px;font-weight:800;letter-spacing:1px;color:var(--pdd)">'+s.sku_rbo+'</span>';
   var la=isLA();
   var html='<div style="text-align:center;margin-bottom:10px">'+
     (s.img?'<img src="'+imgSrc(s.img)+'" style="max-width:200px;max-height:200px;border-radius:14px;border:1px solid var(--line)">':'<div style="font-size:50px">📿</div>')+'</div>';
