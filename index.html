@@ -126,7 +126,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B3.56 · 12 ก.ค. 69 · เพิ่มสีมาตรฐาน ORANGE (990) และ BROWN (1290)';
+const BUILD = 'B3.58 · 12 ก.ค. 69 · เช็คสต็อก 2 mode ร้าน/แฟร์ · เลือกทั้งหมดหรือบาง SKU · แก้จำนวน inline+Save · Export Ketshop CSV 19col';
 const FRONT_VER = '3.26'; // ต้องตรงกับ build ใน doGet ของ backend
 console.log('RB Online Ops · '+BUILD);
 </script>
@@ -149,7 +149,7 @@ console.log('RB Online Ops · '+BUILD);
 
 <div class="sheet" id="stats"><div class="stat-row">
   <div class="stat" style="cursor:pointer" onclick="tab('prod',document.querySelector('[data-p=prod]'))"><span class="num" id="stSku">–</span><small>SKU ทั้งหมด</small></div>
-  <div class="stat" style="cursor:pointer" onclick="tab('prod',document.querySelector('[data-p=prod]'))"><span class="num" id="stPend">–</span><small>รอกำหนดรหัส</small></div>
+  <div class="stat" style="cursor:pointer" onclick="ksQueueOpen()"><span class="num" id="stKs" style="color:var(--pdd)">–</span><small>รอเพิ่ม Ketshop</small></div>
   <div class="stat" style="cursor:pointer" onclick="tab('wd',document.querySelector('[data-p=wd]'))"><span class="num" id="stWd">–</span><small>ใบเบิกค้าง</small></div>
 </div></div>
 
@@ -315,6 +315,8 @@ console.log('RB Online Ops · '+BUILD);
 <div id="more" class="pg">
   <div class="card" id="setCard">
     <h2>⚙️ นำเข้าข้อมูล <span class="lock">Luffy/Assist</span></h2>
+    <button class="btn o" onclick="openImportExist()" style="margin-bottom:8px">📥 นำเข้า SKU ที่มีอยู่แล้ว (ไม่แตะบัญชี)</button>
+    <button class="btn o" onclick="stockOpen()">📊 เช็คสต็อก / Export Ketshop</button>
     <label>📷 อัปโหลดรูปสินค้า — เลือกไฟล์ img_107SKU.zip ทั้งก้อนได้เลย ระบบแตกไฟล์เอง</label>
     <input type="file" id="imgFiles" multiple accept="image/*,.zip">
     <button class="btn o" onclick="upImgs()">อัปโหลดรูปทั้งหมด → ระบบจับคู่กับ SKU เอง</button>
@@ -385,7 +387,7 @@ console.log('RB Online Ops · '+BUILD);
   <button data-p="add" id="navAdd" onclick="tab('add',this)"><span class="i">➕</span>SKU</button>
   <button data-p="ext" id="navExt" onclick="tab('ext',this)"><span class="i">🛍</span>In Non-RB</button>
   <button data-p="exp" id="navExp" onclick="tab('exp',this)"><span class="i">💸</span>Expense</button>
-  <button data-p="more" onclick="tab('more',this)"><span class="i">✨</span>อื่นๆ</button>
+  <button data-p="more" onclick="tab('more',this)"><span class="i">⚙️</span>Setting</button>
 </nav>
 
 <script>
@@ -685,6 +687,7 @@ async function loadAll(){
   if(d.ok){document.getElementById('stSku').textContent=d.totalSku;
     document.getElementById('stPend').textContent=d.pending;
     document.getElementById('stWd').textContent=d.wdWait;
+    if(d.ksQueue!=null){ document.getElementById('stKs').textContent=d.ksQueue; } /* B3.57 */
     COLORS=d.colors;
     CLASSINFO=d.classes||[]; /* B3.39 */
     if(d.priceCfg) PCFG=d.priceCfg;
@@ -793,6 +796,225 @@ function classInfo(name){
   html+='<button class="btn" style="margin-top:12px" onclick="skuDetail(window._sdIdx,false)">← กลับหน้าสินค้า</button>';
   document.getElementById('modalTitle').textContent='📦 Class: '+name;
   document.getElementById('modalBody').innerHTML=html;
+}
+/* ══════════════ B3.57: Ketshop Queue ══════════════ */
+var KS_SEL=[]; var KS_PICKED=new Set(); var KS_HIST=[];
+async function ksQueueOpen(){
+  document.getElementById('modalTitle').textContent='📦 รอเพิ่มใน Ketshop';
+  document.getElementById('modalBody').innerHTML='<div class="empty">กำลังโหลด...</div>';
+  document.getElementById('wdModal').style.display='block';
+  const r=await api('ksQueueList');
+  if(!r.ok){document.getElementById('modalBody').innerHTML='<div class="empty">'+r.error+'</div>';return;}
+  KS_SEL=r.pending||[]; KS_HIST=r.history||[]; KS_PICKED=new Set(); ksRender();
+}
+function ksRender(){
+  var html='';
+  if(KS_SEL.length){
+    html+='<div style="display:flex;gap:8px;margin-bottom:8px">'+
+      '<button class="btn" onclick="KS_SEL.forEach(x=>KS_PICKED.add(x.queue_id));ksRender()">ติ๊กทั้งหมด</button>'+
+      '<button class="btn o" onclick="KS_PICKED.clear();ksRender()">ล้าง</button>'+
+      '<button class="btn" style="background:var(--pdd)" onclick="ksExport()">📄 Export PDF ('+KS_PICKED.size+')</button></div>';
+    KS_SEL.forEach(function(x){
+      var chk=KS_PICKED.has(x.queue_id);
+      html+='<div style="display:flex;gap:10px;align-items:center;padding:8px 4px;border-bottom:1px solid var(--soft)">'+
+        '<input type="checkbox"'+(chk?' checked':'')+' onchange="if(this.checked)KS_PICKED.add(\''+x.queue_id+'\');else KS_PICKED.delete(\''+x.queue_id+'\');ksRender()" style="width:18px;height:18px;flex-shrink:0">'+
+        '<div class="ph" style="width:46px;height:46px;flex-shrink:0">'+(x.img?'<img src="'+imgSrc(x.img)+'" loading="lazy" style="width:100%;height:100%;object-fit:cover;border-radius:8px">':noPhoto_())+'</div>'+
+        '<div style="flex:1;min-width:0"><b>'+x.sku_rbo+'</b><br><small>'+(x.album_id||'')+(x.sel_name?' · '+x.sel_name:'')+'</small><br>'+
+          '<small style="color:var(--mut)">จาก '+String(x.doc_nos||'').split(',').length+' ใบเบิก · '+x.queued_at+'</small></div>'+
+        '<div style="text-align:right;min-width:56px"><span style="font-size:26px;font-weight:900;color:var(--pdd);line-height:1">+'+x.qty_added+'</span><br><small>ชิ้น</small></div>'+
+        (x.pdf_url?'<a href="'+x.pdf_url+'" target="_blank" style="font-size:11px;color:var(--pdd)"> 📄</a>':'')+
+        (x.status==='exported'?'<button class="btn o" style="padding:4px 8px;font-size:11px;white-space:nowrap;margin-left:4px" onclick="ksConfirmOne(\''+x.queue_id+'\')">✅ Ketshop แล้ว</button>':'')+'</div>';
+    });
+  } else html+='<div class="empty">ไม่มีรายการค้าง 🎉</div>';
+  if(KS_HIST.length){
+    html+='<div style="font-size:11px;font-weight:700;color:var(--mut);margin-top:12px">ประวัติล่าสุด</div>';
+    KS_HIST.slice(0,10).forEach(function(x){
+      html+='<div style="font-size:11px;color:var(--mut);padding:3px 0;border-bottom:1px solid var(--soft)">'+
+        x.sku_rbo+' +'+x.qty_added+'ชิ้น · '+(x.status==='confirmed'?'✅ '+x.confirmed_at+' โดย '+x.confirmed_by:'📄 '+x.exported_at+' โดย '+x.exported_by)+
+        (x.pdf_url?' <a href="'+x.pdf_url+'" target="_blank">PDF</a>':'')+'</div>';
+    });
+  }
+  document.getElementById('modalBody').innerHTML=html;
+}
+async function ksExport(){
+  if(!KS_PICKED.size){toast('ยังไม่ได้เลือกรายการ','warn');return;}
+  var items=KS_SEL.filter(x=>KS_PICKED.has(x.queue_id));
+  var now=new Date();
+  var thDate=now.toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric'})+' '+now.toLocaleTimeString('th-TH')+' น.';
+  var h='<html><head><meta charset="utf-8"><style>body{font-family:Arial,sans-serif;padding:20px;font-size:12pt}h2{color:#E05696}table{width:100%;border-collapse:collapse;margin-top:10px}td,th{border:1px solid #ccc;padding:8px 10px;vertical-align:middle}th{background:#FCE4EC}.qty{font-size:26pt;font-weight:900;color:#E05696;text-align:center}.meta{font-size:10pt;color:#888}</style></head><body>';
+  h+='<h2>📦 Export Ketshop — Rainbow Online</h2><p class="meta">Generate โดย <b>'+S.name+'</b> · '+thDate+'</p>';
+  h+='<table><tr><th>รูป</th><th>RBO SKU</th><th>ชื่ออัลบั้ม</th><th>ชื่อตัวเลือก</th><th>จำนวนที่เพิ่ม</th></tr>';
+  for(var i=0;i<items.length;i++){
+    var x=items[i]; var imgTag='';
+    if(x.img){try{var resp=await fetch(imgSrc(x.img));var bl=await resp.blob();var b64=await new Promise(function(res){var rd=new FileReader();rd.onload=function(e){res(e.target.result);};rd.readAsDataURL(bl);});imgTag='<img src="'+b64+'" style="width:70px;height:70px;object-fit:cover;border-radius:8px">';}catch(e){imgTag='';}}
+    h+='<tr><td>'+imgTag+'</td><td><b>'+x.sku_rbo+'</b></td><td>'+(x.album_id||'–')+'</td><td>'+(x.sel_name||'–')+'</td><td class="qty">+'+x.qty_added+'</td></tr>';
+  }
+  h+='</table><p class="meta" style="margin-top:14px">หลังเพิ่มสินค้าใน Ketshop แล้ว กดปุ่ม "✅ Ketshop แล้ว" ในแต่ละรายการเพื่อยืนยัน</p></body></html>';
+  toast('กำลัง generate PDF...','info',3000);
+  const r=await api('ksSavePdf',{queue_ids:[...KS_PICKED],html:h});
+  if(r.ok){window.open(r.pdf_url,'_blank');await ksQueueOpen();}
+  else toast(r.error,'err',4000);
+}
+async function ksConfirmOne(qid){
+  const r=await api('ksConfirm',{queue_ids:[qid]});
+  if(r.ok){toast('✅ ยืนยันแล้ว บันทึกเวลาและผู้กด','ok',3000);await ksQueueOpen();}
+  else toast(r.error,'err');
+}
+/* ══════════════ B3.57: นำเข้า SKU ที่มีอยู่แล้ว ══════════════ */
+function openImportExist(){
+  document.getElementById('modalTitle').textContent='📥 นำเข้า SKU ที่มีอยู่แล้ว (ไม่แตะบัญชี)';
+  var colOpts='<option value="">ไม่มีสี (ขาย A/B)</option>'+(COLORS||[]).map(function(c){return '<option>'+c.color+'</option>';}).join('');
+  var clsOpts='<option value="">— ยังไม่ระบุ —</option>'+CLASSES.map(function(c){return '<option>'+c+'</option>';}).join('');
+  document.getElementById('modalBody').innerHTML=
+    '<div style="font-size:11.5px;background:#FFF9C4;border-radius:10px;padding:8px 12px;margin-bottom:10px">💡 <b>ไม่แตะบัญชี</b> ไม่สร้าง Lot ไม่ส่ง Ketshop Queue — บันทึกเข้าฐานข้อมูลเท่านั้น</div>'+
+    '<label>รหัส SKU RBO (ระบุเอง)</label><input id="ie_sku" placeholder="เช่น EA999">'+
+    '<label>ชื่ออัลบั้ม</label><input id="ie_album">'+
+    '<label>ชื่อตัวเลือก</label><input id="ie_sel">'+
+    '<label>รายละเอียด</label><input id="ie_detail">'+
+    '<label>SKU RBWS</label><input id="ie_ws">'+
+    '<label>น้ำหนัก g/ชิ้น</label><input id="ie_w" type="number" step="0.01">'+
+    '<label>Location RBWS</label><input id="ie_lr">'+
+    '<label>Location RBO</label><input id="ie_lo">'+
+    '<label>รหัสสี RBWS</label><input id="ie_cw">'+
+    '<label>Class (แพ็ค)</label><select id="ie_cls">'+clsOpts+'</select>'+
+    '<label>สี RBO</label><select id="ie_color" onchange="ieCalc(true)">'+colOpts+'</select>'+
+    '<div id="ie_baseWrap"><label>ราคาระบุเอง (฿)</label><input id="ie_base" type="number" step="0.01" oninput="ieCalc()"></div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label>ป้ายเหลือง A</label><input id="ie_pa" type="number" step="0.01" oninput="ieListCalc()"></div>'+
+    '<div><label>ป้ายเหลือง B</label><input id="ie_pb" type="number" step="0.01" oninput="ieListCalc()"></div></div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label>ตั้งขาย A</label><input id="ie_la" type="number" step="0.01"></div>'+
+    '<div><label>ตั้งขาย B</label><input id="ie_lb" type="number" step="0.01"></div></div>'+
+    '<div id="ie_phint" class="hint"></div>'+
+    '<label>ราคาทุน</label><input id="ie_cost" type="number" step="0.01" oninput="ieCostHint()">'+
+    '<div id="ie_chint" class="hint"></div>'+
+    '<label>จำนวนเริ่มต้น (qty_shop)</label><input id="ie_qty" type="number" value="0">'+
+    '<label>รูปสินค้า</label><input type="file" id="ie_img" accept="image/*">'+
+    '<div class="err" id="ie_err"></div>'+
+    '<button class="btn" onclick="importExistSave()">💾 บันทึกเข้าฐานข้อมูล</button>';
+  document.getElementById('wdModal').style.display='block';
+  ieCalc();
+}
+function g2(id){var e=document.getElementById(id);return e?e.value.trim():'';}
+function ieCalc(fromColor){
+  var col=document.getElementById('ie_color'); if(!col) return;
+  var wrap=document.getElementById('ie_baseWrap');
+  var base=col.value?colorBase_(col.value):g2('ie_base');
+  if(col.value){if(wrap)wrap.style.display='none';}else{if(wrap)wrap.style.display='';}
+  applyABCalc_(base,'ie_pa','ie_pb','ie_la','ie_lb','ie_phint',!!fromColor);
+}
+function ieListCalc(){listFromYellow_('ie_pa','ie_pb','ie_la','ie_lb');}
+function ieCostHint(){
+  var box=document.getElementById('ie_chint');if(!box)return;
+  box.innerHTML=costSuggestHTML_(g2('ie_cost'),'ieUseColor','ieUseBase');
+}
+function ieUseColor(c){var e=document.getElementById('ie_color');if(e){e.value=c;ieCalc(true);}toast('เลือกสี '+c,'ok',2000);}
+function ieUseBase(v){var e=document.getElementById('ie_color');if(e)e.value='';var b=document.getElementById('ie_base');if(b)b.value=v;ieCalc();}
+async function importExistSave(){
+  var sku=g2('ie_sku');var err=document.getElementById('ie_err');
+  if(!sku){err.textContent='กรุณาระบุรหัส SKU';return;}
+  err.textContent='';
+  var imgB64='',imgName='';
+  var iEl=document.getElementById('ie_img');
+  if(iEl&&iEl.files[0]){imgB64=await resizeImgB64(iEl.files[0],1000,0.82);imgName=iEl.files[0].name;}
+  toast('กำลังบันทึก...','info',1500);
+  const r=await api('importExistSku',{sku_rbo:sku,album:g2('ie_album'),sel_name:g2('ie_sel'),detail:g2('ie_detail'),sku_rbws:g2('ie_ws'),weight:g2('ie_w'),loc_rbws:g2('ie_lr'),loc_rbo:g2('ie_lo'),color_rbws:g2('ie_cw'),color_rbo:g2('ie_color'),price_a:g2('ie_pa'),price_b:g2('ie_pb'),price_base:g2('ie_base'),price_list_a:g2('ie_la'),price_list_b:g2('ie_lb'),cost:g2('ie_cost'),qty:g2('ie_qty'),cls:g2('ie_cls'),img_b64:imgB64,img_name:imgName});
+  if(r.ok){toast('✅ นำเข้า '+r.sku_rbo+' เข้าฐานข้อมูลแล้ว (ไม่แตะบัญชี)','ok',3500);closeModal();api('catalog').then(function(c){if(c.ok){CAT=c.selections;renderCat();}});}
+  else if(r.dup) err.textContent='⚠️ รหัส '+sku+' มีอยู่แล้วในระบบ — ใช้หน้า Edit คัมภีร์แทน';
+  else err.textContent=r.error||'เกิดข้อผิดพลาด';
+}
+/* ══════════════ B3.58: เช็คสต็อก + Export Ketshop ══════════════ */
+var ST_LIST=[], ST_MODE='shop', ST_SKUS=[], ST_PARTIAL=false, ST_CHANGES={};
+async function stockOpen(){
+  document.getElementById('modalTitle').textContent='📊 เช็คสต็อก / Export Ketshop';
+  document.getElementById('modalBody').innerHTML='<div class="empty">กำลังโหลด...</div>';
+  document.getElementById('wdModal').style.display='block';
+  ST_MODE='shop'; ST_SKUS=[]; ST_PARTIAL=false; ST_CHANGES={};
+  stockRenderMode();
+}
+function stockRenderMode(){
+  var html='<div style="margin-bottom:10px"><b>เลือกสต็อกที่เช็ค:</b></div>'+
+    '<div style="display:flex;gap:8px;margin-bottom:12px">'+
+    '<button class="btn'+(ST_MODE==='shop'?' ':' o')+'" onclick="ST_MODE=\'shop\';stockRenderMode()">🏪 ร้าน (qty_shop)</button>'+
+    '<button class="btn'+(ST_MODE==='fair'?' ':' o')+'" onclick="ST_MODE=\'fair\';stockRenderMode()">🎪 แฟร์ (qty_fair)</button></div>'+
+    '<div style="margin-bottom:10px"><b>ขอบเขต:</b></div>'+
+    '<div style="display:flex;gap:8px;margin-bottom:10px">'+
+    '<button class="btn'+(ST_PARTIAL?' o':'')+'" onclick="ST_PARTIAL=false;ST_SKUS=[];stockLoad()">📋 ทั้งหมด</button>'+
+    '<button class="btn'+(ST_PARTIAL?'':' o')+'" onclick="ST_PARTIAL=true;stockRenderPartial()">🔍 เลือกบาง SKU</button></div>';
+  if(!ST_PARTIAL){
+    html+='<button class="btn" onclick="stockLoad()">โหลดรายการ</button>';
+  }
+  document.getElementById('modalBody').innerHTML=html;
+}
+function stockRenderPartial(){
+  var selHtml=ST_SKUS.map(function(s,i){return '<span style="display:inline-flex;align-items:center;gap:4px;background:#FCE4EC;border-radius:20px;padding:3px 10px;margin:2px;font-size:12px">'+s+' <span onclick="ST_SKUS.splice('+i+',1);stockRenderPartial()" style="cursor:pointer;font-weight:700">×</span></span>';}).join('');
+  document.getElementById('modalBody').innerHTML=
+    '<div style="margin-bottom:8px"><b>SKU ที่เลือก ('+ST_SKUS.length+' ตัว):</b></div>'+
+    '<div style="margin-bottom:8px">'+selHtml+'</div>'+
+    '<div style="display:flex;gap:8px;margin-bottom:10px">'+
+    '<input id="stAddQ" placeholder="พิมพ์รหัส SKU แล้วกด Add" style="flex:1" onkeydown="if(event.key===\'Enter\')stAddSku()">'+
+    '<button class="btn" onclick="stAddSku()">Add</button></div>'+
+    '<div class="hint">พิมพ์รหัสที่ต้องการแล้วกด Add เรื่อยๆ ได้เลย</div>'+
+    (ST_SKUS.length?'<button class="btn" onclick="stockLoad()" style="margin-top:10px">โหลด '+ST_SKUS.length+' SKU</button>':'');
+}
+function stAddSku(){
+  var q=(document.getElementById('stAddQ').value||'').trim().toUpperCase();
+  if(!q) return;
+  if(ST_SKUS.indexOf(q)<0) ST_SKUS.push(q);
+  document.getElementById('stAddQ').value='';
+  stockRenderPartial();
+}
+async function stockLoad(){
+  document.getElementById('modalBody').innerHTML='<div class="empty">กำลังโหลด...</div>';
+  const r=await api('stockList',{mode:ST_MODE,skus:ST_PARTIAL&&ST_SKUS.length?ST_SKUS:null});
+  if(!r.ok){document.getElementById('modalBody').innerHTML='<div class="empty">'+r.error+'</div>';return;}
+  ST_LIST=r.list||[]; ST_CHANGES={};
+  stockRenderList(r.canEdit);
+}
+function stockRenderList(canEdit){
+  var modeLabel=ST_MODE==='fair'?'แฟร์':'ร้าน';
+  var html='<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap">'+
+    '<b>'+modeLabel+' '+ST_LIST.length+' SKU</b>'+
+    (canEdit?'<button class="btn" style="padding:4px 12px;font-size:11.5px" onclick="stockSave()">💾 Save จำนวน</button>':'')+
+    '<button class="btn o" style="padding:4px 12px;font-size:11.5px" onclick="stockExport()">📥 Export Ketshop CSV</button>'+
+    '<button class="btn o" style="padding:4px 12px;font-size:11.5px" onclick="stockRenderMode()">← เปลี่ยน mode</button></div>'+
+    '<div style="overflow-x:auto"><table style="width:100%;font-size:11.5px;border-collapse:collapse">'+
+    '<tr style="background:#FCE4EC;position:sticky;top:0"><th style="text-align:left;padding:5px">No.</th><th style="text-align:left">SKU RBO</th><th style="text-align:left">อัลบั้ม</th><th style="text-align:left">ตัวเลือก</th><th>ราคาฐาน</th><th>SKU RBWS</th><th>Location</th><th>รหัสสี</th><th>จำนวน</th></tr>';
+  ST_LIST.forEach(function(s,i){
+    var qty=ST_MODE==='fair'?(Number(s.qty_fair)||0):(Number(s.qty_shop)||0);
+    var base=s.color_rbo?(s.color_rbo+' '+fmtN(Number((COLORS||[]).find(c=>c.color===s.color_rbo.split(' ')[0])||{price:''}).price||s.price_base||'')):(s.price_base?fmtN(s.price_base):'–');
+    html+='<tr style="border-bottom:1px solid var(--soft)">'+
+      '<td style="padding:4px 6px;color:var(--mut)">'+(i+1)+'</td>'+
+      '<td><div style="display:flex;align-items:center;gap:6px">'+
+        (s.img?'<img src="'+imgSrc(s.img)+'" loading="lazy" style="width:32px;height:32px;object-fit:cover;border-radius:6px">':noPhoto_())+
+        '<b>'+s.sku_rbo+'</b></div></td>'+
+      '<td>'+(s.album_id||'–')+'</td>'+
+      '<td>'+(s.sel_name||'–')+'</td>'+
+      '<td style="text-align:center">'+base+'</td>'+
+      '<td style="color:var(--mut)">'+(s.sku_rbws||'–')+'</td>'+
+      '<td style="color:var(--mut)">'+(s.loc_rbws||s.loc_rbo||'–')+'</td>'+
+      '<td style="color:var(--mut)">'+(s.color_rbws||'–')+'</td>'+
+      '<td style="text-align:center">'+
+      (canEdit?'<input type="number" value="'+qty+'" min="0" style="width:60px;text-align:center" onchange="ST_CHANGES[\''+s.sku_rbo+'\']=Number(this.value)" onblur="this.style.background=\'#FFF9C4\'">'
+        :'<b>'+qty+'</b>')+
+      '</td></tr>';
+  });
+  html+='</table></div>';
+  document.getElementById('modalBody').innerHTML=html;
+}
+async function stockSave(){
+  var changes=Object.keys(ST_CHANGES).map(function(sku){return {sku_rbo:sku,qty:ST_CHANGES[sku]};});
+  if(!changes.length){toast('ยังไม่มีจำนวนที่แก้','warn');return;}
+  toast('กำลัง Save...','info',1500);
+  const r=await api('stockSave',{mode:ST_MODE,changes:changes});
+  if(r.ok){toast('✅ บันทึก '+r.done+' SKU แล้ว','ok',3000);ST_CHANGES={};await stockLoad();}
+  else toast(r.error,'err',4000);
+}
+async function stockExport(){
+  toast('กำลัง Export CSV...','info',2000);
+  const r=await api('exportKetshop',{mode:ST_MODE,skus:ST_PARTIAL&&ST_SKUS.length?ST_SKUS:null});
+  if(r.ok){
+    toast('✅ Export '+r.count+' SKU → '+r.name,'ok',4000);
+    window.open(r.url,'_blank');
+  } else toast(r.error,'err',4000);
 }
 /* B3.31: renderer แถวข้อมูลคัมภีร์ — ใช้ร่วมกันทั้ง SKU_FIELDS และ PRICE_FIELDS */
 function sdFieldRow_(f,s,editMode){
