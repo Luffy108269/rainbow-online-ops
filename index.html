@@ -126,7 +126,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B3.64 · 15 ก.ค. 69 · FIX ต้นเหตุใหญ่: ลบอ้างอิง stPend ที่ตายแล้ว (ทำให้ dashboard พังทั้งบล็อก: จุดสี/สี/สูตร/คัมภีร์/เบิกไม่โหลด)';
+const BUILD = 'B3.66 · 15 ก.ค. 69 · Ketshop Queue: รายการที่ Export แล้วค้างในลิสต์พร้อมปุ่ม ✅ Ketshop แล้ว จนกว่าจะกดยืนยัน';
 const FRONT_VER = '3.26'; // ต้องตรงกับ build ใน doGet ของ backend
 console.log('RB Online Ops · '+BUILD);
 </script>
@@ -2103,7 +2103,8 @@ async function expEditSubmit(){
     payment:document.getElementById('exPay').value,note:document.getElementById('exNote').value,
     send_acc:window._exAcc});
   if(r.ok){
-    toast('✅ แก้ไข '+expId+' แล้ว ยอดใหม่ '+fmtN(r.total)+' บาท'+(r.book_url?' · Excel อัปเดตแล้ว':''),'ok',4000);
+    if(r.book_warn){ toast('⚠️ บันทึกข้อมูลแล้ว แต่สมุด Excel อัปเดตไม่สำเร็จ: '+r.book_warn,'warn',6000); }
+    else toast('✅ แก้ไข '+expId+' แล้ว ยอดใหม่ '+fmtN(r.total)+' บาท'+(r.book_url?' · Excel อัปเดตแล้ว':''),'ok',4000);
     closeModal(); expLoadList();
   } else { if(err) err.textContent=r.error||'เกิดข้อผิดพลาด'; }
 }
