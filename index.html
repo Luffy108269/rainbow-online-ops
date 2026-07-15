@@ -155,8 +155,8 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B3.70 · 15 ก.ค. 69 · แก้ FRONT_VER ไม่ตรง backend (3.26 → 3.66) แบนเนอร์เตือนหลอกหาย';
-const FRONT_VER = '3.66'; // ต้องตรงกับ build ใน doGet ของ backend
+const BUILD = 'B3.73 · 15 ก.ค. 69 · 🔔 Low Stock เข้าเงื่อนไขเฉพาะเหลือ <5 (ตั้งได้ใน Config) + เติมของแล้วปิดรายการอัตโนมัติ';
+const FRONT_VER = '3.69'; // ต้องตรงกับ build ใน doGet ของ backend
 console.log('RB Online Ops · '+BUILD);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -189,6 +189,14 @@ console.log('RB Online Ops · '+BUILD);
     <h2>🏷 รอกำหนดรหัส RBO <span class="lock">L/A</span></h2>
     <div id="pendList"></div>
     <div class="hint">ของจากไฟล์ที่ยังไม่มีรหัส Rainbow Online — ตั้งรหัสผ่านหน้า ＋SKU ได้</div>
+  </div>
+  <div class="card" id="lowStockCard" style="display:none">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <h2 style="margin:0">🔔 สินค้าใกล้หมด (Ketshop)</h2>
+      <button class="btn o" style="padding:4px 10px;font-size:12px;width:auto" onclick="lsScan(this)">📧 สแกนเมล</button>
+    </div>
+    <div id="lsList"><div class="empty">กำลังโหลด…</div></div>
+    <div class="hint">อ่านเมล KETSHOP อัตโนมัติทุกชั่วโมง · เข้าเงื่อนไขเฉพาะ<b>เหลือน้อยกว่า 5 ชิ้น</b> (แก้เกณฑ์: ชีต Config เพิ่มแถว ls_threshold) · คลังร่วม — รวมทุกช่องทางเป็นรายการเดียว/SKU · เติมของแล้วระบบปิดรายการให้เอง · กด ✓ เมื่อจัดการแล้ว</div>
   </div>
 </div>
 
@@ -751,7 +759,7 @@ async function loadAll(){
     aPriceCalc();
   }
   /* B3.63: โหลด catalog ทันที ไม่รอ dashboard เสร็จก่อน — สินค้าโชว์เร็วขึ้น */
-  api('catalog').then(function(c){ if(c.ok){CAT=c.selections;renderCat();wdRender();} });
+  api('catalog').then(function(c){ if(c.ok){CAT=c.selections;renderCat();wdRender();} lsLoad(); });
   if(isLA()){const p=await api('pendingList');
     if(p.ok&&p.list.length){document.getElementById('pendCard').style.display='block';
       document.getElementById('pendList').innerHTML=p.list.slice(0,15).map(x=>`
@@ -761,6 +769,40 @@ async function loadAll(){
         +(p.list.length>15?`<div class="hint">…และอีก ${p.list.length-15} รายการ</div>`:'');
     }}
   wdLoad();
+}
+/* ═══ B3.71: KETSHOP Low Stock — การ์ดของใกล้หมดหน้าแรก ═══ */
+async function lsLoad(){
+  try{
+    const card=document.getElementById('lowStockCard'); if(!card) return;
+    const r=await api('lowStockList');
+    card.style.display='block';
+    const box=document.getElementById('lsList');
+    if(!r.ok){ box.innerHTML='<div class="empty">โหลดไม่สำเร็จ'+(r.error?': '+r.error:'')+'</div>'; return; }
+    if(!r.list||!r.list.length){ box.innerHTML='<div class="empty">ไม่มีสินค้าใกล้หมด 🎉</div>'; return; }
+    box.innerHTML=r.list.map(function(x){
+      const sMt=(CAT||[]).find(function(c){return String(c.sku_rbo).trim()===String(x.sku_rbo).trim();});
+      const img=(sMt&&sMt.img)?('<img src="'+imgSrc(sMt.img)+'">'):'🔔';
+      return '<div class="item"><div class="ph">'+img+'</div>'
+        +'<div><b>'+x.sku_rbo+'</b><small>'+(x.channel?x.channel+' · ':'')+String(x.product||'').slice(0,60)+'</small>'
+        +(String(x.matched)==='N'?'<small style="color:#c0392b">⚠️ ไม่พบรหัสนี้ในคัมภีร์</small>':'')
+        +'<small style="color:var(--mut)">เมล '+(x.mail_date||'')+'</small></div>'
+        +'<div class="endc"><span class="num" style="color:#c0392b">เหลือ '+fmtQ(x.qty)+'</span>'
+        +'<button class="btn o" style="padding:3px 10px;font-size:12px;width:auto;margin-top:4px" onclick="lsDone(\''+x.alert_id+'\',this)">✓ จัดการแล้ว</button></div></div>';
+    }).join('');
+  }catch(e){/* การ์ดนี้พังต้องไม่ลากหน้าแรกพังตาม (บทเรียน stPend) */}
+}
+async function lsDone(id,btn){
+  btn.disabled=true;
+  const r=await api('lowStockDone',{alert_id:id});
+  if(r.ok){ toast('บันทึกแล้ว ✓'); lsLoad(); }
+  else { toast(r.error||'ไม่สำเร็จ','err'); btn.disabled=false; }
+}
+async function lsScan(btn){
+  btn.disabled=true; const t0=btn.textContent; btn.textContent='⏳ กำลังสแกน…';
+  const r=await api('lowStockScan');
+  btn.disabled=false; btn.textContent=t0;
+  if(r.ok){ toast('สแกนเสร็จ — เพิ่ม '+r.added+' รายการใหม่'); lsLoad(); }
+  else toast(r.error||'สแกนไม่สำเร็จ','err');
 }
 /* B3.55: กดจุดสีหน้าแรก → เปิดคัมภีร์พร้อมกรองสีนั้น */
 function catColorGo(color){
