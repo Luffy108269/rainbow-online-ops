@@ -155,7 +155,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B3.75 · 15 ก.ค. 69 · 🔧 Low Stock parser v3: ยุบ newline ก่อนแปลงตาราง — ทดสอบผ่านกับเมล Ketshop จริงแล้ว';
+const BUILD = 'B3.76 · 15 ก.ค. 69 · 🔧 การ์ด Low Stock: format วันที่เมล (Sheets แอบแปลงเป็น Date — ตระกูลเดียวกับบั๊ก month_key)';
 const FRONT_VER = '3.71'; // ต้องตรงกับ build ใน doGet ของ backend
 console.log('RB Online Ops · '+BUILD);
 </script>
@@ -771,6 +771,13 @@ async function loadAll(){
   wdLoad();
 }
 /* ═══ B3.71: KETSHOP Low Stock — การ์ดของใกล้หมดหน้าแรก ═══ */
+function lsFmtDate_(v){
+  var t=String(v||''); if(!t) return '';
+  if(t.indexOf('T')>-1){ /* Sheets แปลงเป็น Date → มาเป็น ISO: โชว์เป็นเวลาไทยอ่านง่าย */
+    var d=new Date(t); if(!isNaN(d)) return d.toLocaleString('th-TH',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
+  }
+  return t;
+}
 async function lsLoad(){
   try{
     const card=document.getElementById('lowStockCard'); if(!card) return;
@@ -785,7 +792,7 @@ async function lsLoad(){
       return '<div class="item"><div class="ph">'+img+'</div>'
         +'<div><b>'+x.sku_rbo+'</b><small>'+(x.channel?x.channel+' · ':'')+String(x.product||'').slice(0,60)+'</small>'
         +(String(x.matched)==='N'?'<small style="color:#c0392b">⚠️ ไม่พบรหัสนี้ในคัมภีร์</small>':'')
-        +'<small style="color:var(--mut)">เมล '+(x.mail_date||'')+'</small></div>'
+        +'<small style="color:var(--mut)">เมล '+lsFmtDate_(x.mail_date)+'</small></div>'
         +'<div class="endc"><span class="num" style="color:#c0392b">เหลือ '+fmtQ(x.qty)+'</span>'
         +'<button class="btn o" style="padding:3px 10px;font-size:12px;width:auto;margin-top:4px" onclick="lsDone(\''+x.alert_id+'\',this)">✓ จัดการแล้ว</button></div></div>';
     }).join('');
