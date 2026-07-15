@@ -126,7 +126,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B3.60 · 12 ก.ค. 69 · Edit บิล Expense ก่อนส่งบัญชี: โหลดข้อมูลเดิมครบ แก้รายการ/ราคา/จำนวน/หมวด → Excel+ชีตอัปเดตพร้อมกัน';
+const BUILD = 'B3.62 · 12 ก.ค. 69 · Expense list UI: ชื่อบิลตัดเกิน 40 ตัว+แสดง ... · layout grid ไม่พัง · เลขบิล EXP โชว์ทุกแถว';
 const FRONT_VER = '3.26'; // ต้องตรงกับ build ใน doGet ของ backend
 console.log('RB Online Ops · '+BUILD);
 </script>
@@ -2019,16 +2019,20 @@ async function expLoadList(){
   window._expItemsList=items;
   box.innerHTML=items.slice(0,20).map(function(x,i){
     var isAcc=String(x.send_acc)!=='N';
-    var tgl='<span onclick="expToggle('+i+')" style="cursor:pointer;font-size:9.5px;border-radius:999px;padding:2px 8px;white-space:nowrap;'+
+    var tgl='<span onclick="expToggle('+i+')" style="cursor:pointer;font-size:9.5px;border-radius:999px;padding:2px 8px;white-space:nowrap;flex-shrink:0;'+
       (isAcc?'background:#FCE4EC;color:var(--pdd);font-weight:700':'background:#ECEFF1;color:#607D8B')+
       '" title="กดเพื่อสลับ">'+(isAcc?'🧾 ส่งบัญชี':'🔒 ไม่ส่ง')+'</span>';
-    /* B3.59: ปุ่ม Edit — แสดงเฉพาะ Luffy/Assist */
-    var editBtn=isLA()?'<button class="btn o" style="padding:3px 10px;font-size:11px;margin:0;white-space:nowrap" onclick="expEditOpen('+i+')">✏️ แก้ไข</button>':'';
-    return '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--soft);font-size:12px">'+
-      '<div style="flex:1"><b>'+x.detail+'</b> <span onclick="expPhotos('+i+')" style="cursor:pointer;color:var(--pdd);font-weight:700" title="ดู/เพิ่มรูป">📎'+x.photos.length+'</span>'+
-        '<br><small style="color:var(--mut)">'+fmtDate(x.date)+' · '+String(x.category).split(' ')[0]+' '+(String(x.category).split(' ')[1]||'')+' · '+(x.payment||'')+' · '+(x.created_by||'')+'</small></div>'+
+    var editBtn=isLA()?'<button class="btn o" style="padding:3px 10px;font-size:11px;margin:0;white-space:nowrap;flex-shrink:0" onclick="expEditOpen('+i+')">✏️ แก้ไข</button>':'';
+    /* B3.61 fix: จำกัดความยาว detail ไม่ให้ layout พัง */
+    var detailText=String(x.detail||'');
+    var detailShort=detailText.length>40?detailText.slice(0,40)+'…':detailText;
+    return '<div style="display:grid;grid-template-columns:1fr auto auto auto;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--soft)">'+
+      '<div style="min-width:0">'+
+        '<div style="font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="'+detailText+'">'+detailShort+
+          ' <span onclick="expPhotos('+i+')" style="cursor:pointer;color:var(--pdd);font-weight:700" title="ดู/เพิ่มรูป">📎'+x.photos.length+'</span></div>'+
+        '<small style="color:var(--mut)">'+x.exp_id+' · '+fmtDate(x.date)+' · '+(String(x.category).split('(')[0].trim())+' · '+(x.payment||'')+'</small></div>'+
       tgl+editBtn+
-      '<b class="num" style="white-space:nowrap">'+fmtN(x.amount)+'</b></div>';
+      '<b class="num" style="white-space:nowrap;min-width:70px;text-align:right">'+fmtN(x.amount)+'</b></div>';
   }).join('');
 }
 
