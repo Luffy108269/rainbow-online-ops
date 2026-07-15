@@ -126,7 +126,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B3.62 · 15 ก.ค. 69 · Expense list UI: ชื่อบิลตัดเกิน 40 ตัว+แสดง ... · layout grid ไม่พัง · เลขบิล EXP โชว์ทุกแถว';
+const BUILD = 'B3.63 · 15 ก.ค. 69 · สินค้าโหลด parallel ไม่รอ dashboard · catColorGo ไม่โดน tab() ล้างสี';
 const FRONT_VER = '3.26'; // ต้องตรงกับ build ใน doGet ของ backend
 console.log('RB Online Ops · '+BUILD);
 </script>
@@ -702,8 +702,8 @@ async function loadAll(){
     document.getElementById('aColor').innerHTML='<option value="">ไม่มีสี (ขาย A/B)</option>'+d.colors.map(c=>`<option>${c.color}</option>`).join('');
     aPriceCalc();
   }
-  const c=await api('catalog');
-  if(c.ok){CAT=c.selections;renderCat();wdRender();} /* B3.55: รูปในหน้าเบิกเด้งทันทีที่ฐานสินค้ามา */
+  /* B3.63: โหลด catalog ทันที ไม่รอ dashboard เสร็จก่อน — สินค้าโชว์เร็วขึ้น */
+  api('catalog').then(function(c){ if(c.ok){CAT=c.selections;renderCat();wdRender();} });
   if(isLA()){const p=await api('pendingList');
     if(p.ok&&p.list.length){document.getElementById('pendCard').style.display='block';
       document.getElementById('pendList').innerHTML=p.list.slice(0,15).map(x=>`
@@ -716,10 +716,15 @@ async function loadAll(){
 }
 /* B3.55: กดจุดสีหน้าแรก → เปิดคัมภีร์พร้อมกรองสีนั้น */
 function catColorGo(color){
+  /* B3.63: set สีก่อน แล้วค่อย switch tab โดยไม่ให้ tab() ล้าง catColor */
   window._catColor=String(color||'');
   document.getElementById('catQ').value='';
-  tab('prod',document.querySelector('nav button[data-p="prod"]'));
-  renderCat();
+  var prodBtn=document.querySelector('nav button[data-p="prod"]');
+  document.querySelectorAll('.pg').forEach(function(p){p.classList.remove('on');});
+  document.getElementById('prod').classList.add('on');
+  document.querySelectorAll('nav button').forEach(function(b){b.classList.remove('on');});
+  prodBtn.classList.add('on'); window.scrollTo(0,0);
+  renderCat(); /* render หลัง set catColor — ไม่ถูก tab() ล้าง */
 }
 function catColorClear(){ window._catColor=''; renderCat(); }
 function noPhoto_(){ return '<span style="font-size:8.5px;color:var(--mut);text-align:center;line-height:1.2">✖<br>No photo</span>'; }
