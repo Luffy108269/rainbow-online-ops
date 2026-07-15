@@ -102,6 +102,35 @@ nav button.on{background:var(--pd);color:#fff;font-weight:600}
 @media (min-width:1400px){
   #catList{grid-template-columns:1fr 1fr 1fr}
 }
+/* ══ B3.67: Desktop typography & polish — อ่านสบาย คมชัด ดูโปร (เฉพาะจอ ≥1024px) ══ */
+@media (min-width:1024px){
+  html{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+  body{font-size:15px;line-height:1.55}
+  h2{font-size:17.5px}
+  label{font-size:12.5px}
+  input,select,textarea{font-size:14px;padding:11px 14px}
+  .btn{font-size:14px}
+  .hint{font-size:12px}
+  small{font-size:12px}
+  .item{padding:11px 6px}
+  .item b{font-size:14.5px}
+  .item small{font-size:12px}
+  .endc .num{font-size:15.5px}
+  .stat .num{font-size:26px}
+  .stat small{font-size:12.5px}
+  .empty{font-size:14px;padding:26px 0}
+  .lock{font-size:10.5px}
+  .toast{font-size:13.5px}
+  /* modal อ่านสบาย */
+  #wdModal>div{padding:26px 30px !important}
+  #modalTitle{font-size:17px}
+  #modalBody{font-size:13.5px}
+  /* ตารางในการ์ด/modal */
+  table{font-size:12.5px !important}
+  th{font-size:12px !important;padding:8px 6px !important}
+  td{padding:7px 6px !important}
+}
+
 
 @media print{
   body>*:not(#pdfFrame){display:none!important}
@@ -126,7 +155,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B3.66 · 15 ก.ค. 69 · Ketshop Queue: รายการที่ Export แล้วค้างในลิสต์พร้อมปุ่ม ✅ Ketshop แล้ว จนกว่าจะกดยืนยัน';
+const BUILD = 'B3.67 · 15 ก.ค. 69 · Desktop polish: ฟอนต์ใหญ่คมชัดทั้งระบบ · Ketshop modal จัด grid ใหม่ · แถบบนอัปเดตทันทีหลังยืนยัน';
 const FRONT_VER = '3.26'; // ต้องตรงกับ build ใน doGet ของ backend
 console.log('RB Online Ops · '+BUILD);
 </script>
@@ -815,32 +844,40 @@ async function ksQueueOpen(){
   const r=await api('ksQueueList');
   if(!r.ok){document.getElementById('modalBody').innerHTML='<div class="empty">'+r.error+'</div>';return;}
   KS_SEL=r.pending||[]; KS_HIST=r.history||[]; KS_PICKED=new Set(); ksRender();
+  var stE=document.getElementById('stKs'); if(stE) stE.textContent=KS_SEL.length; /* B3.67: แถบบนตรงเสมอ */
 }
 function ksRender(){
   var html='';
   if(KS_SEL.length){
-    html+='<div style="display:flex;gap:8px;margin-bottom:8px">'+
-      '<button class="btn" onclick="KS_SEL.forEach(x=>KS_PICKED.add(x.queue_id));ksRender()">ติ๊กทั้งหมด</button>'+
-      '<button class="btn o" onclick="KS_PICKED.clear();ksRender()">ล้าง</button>'+
-      '<button class="btn" style="background:var(--pdd)" onclick="ksExport()">📄 Export PDF ('+KS_PICKED.size+')</button></div>';
+    html+='<div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">'+
+      '<button class="btn" style="width:auto;margin:0;padding:9px 18px;font-size:13px" onclick="KS_SEL.forEach(x=>KS_PICKED.add(x.queue_id));ksRender()">ติ๊กทั้งหมด</button>'+
+      '<button class="btn o" style="width:auto;margin:0;padding:9px 18px;font-size:13px" onclick="KS_PICKED.clear();ksRender()">ล้าง</button>'+
+      '<button class="btn" style="width:auto;margin:0;padding:9px 18px;font-size:13px;background:var(--pdd)" onclick="ksExport()">📄 Export PDF ('+KS_PICKED.size+')</button></div>';
     KS_SEL.forEach(function(x){
       var chk=KS_PICKED.has(x.queue_id);
-      html+='<div style="display:flex;gap:10px;align-items:center;padding:8px 4px;border-bottom:1px solid var(--soft)">'+
-        '<input type="checkbox"'+(chk?' checked':'')+' onchange="if(this.checked)KS_PICKED.add(\''+x.queue_id+'\');else KS_PICKED.delete(\''+x.queue_id+'\');ksRender()" style="width:18px;height:18px;flex-shrink:0">'+
-        '<div class="ph" style="width:46px;height:46px;flex-shrink:0">'+(x.img?'<img src="'+imgSrc(x.img)+'" loading="lazy" style="width:100%;height:100%;object-fit:cover;border-radius:8px">':noPhoto_())+'</div>'+
-        '<div style="flex:1;min-width:0"><b>'+x.sku_rbo+'</b><br><small>'+(x.album_id||'')+(x.sel_name?' · '+x.sel_name:'')+'</small><br>'+
-          '<small style="color:var(--mut)">จาก '+String(x.doc_nos||'').split(',').length+' ใบเบิก · '+x.queued_at+'</small></div>'+
-        '<div style="text-align:right;min-width:56px"><span style="font-size:26px;font-weight:900;color:var(--pdd);line-height:1">+'+x.qty_added+'</span><br><small>ชิ้น</small></div>'+
-        (x.pdf_url?'<a href="'+x.pdf_url+'" target="_blank" style="font-size:11px;color:var(--pdd)"> 📄</a>':'')+
-        (x.status==='exported'?'<button class="btn o" style="padding:4px 8px;font-size:11px;white-space:nowrap;margin-left:4px" onclick="ksConfirmOne(\''+x.queue_id+'\')">✅ Ketshop แล้ว</button>':'')+'</div>';
+      var docsN=String(x.doc_nos||'').split(',').filter(String).length;
+      html+='<div style="display:grid;grid-template-columns:26px 52px 1fr auto auto;gap:12px;align-items:center;padding:12px 4px;border-bottom:1px solid var(--soft)">'+
+        '<input type="checkbox"'+(chk?' checked':'')+' onchange="if(this.checked)KS_PICKED.add(\''+x.queue_id+'\');else KS_PICKED.delete(\''+x.queue_id+'\');ksRender()" style="width:19px;height:19px;margin:0">'+
+        '<div class="ph" style="width:52px;height:52px">'+(x.img?'<img src="'+imgSrc(x.img)+'" loading="lazy" style="width:100%;height:100%;object-fit:cover;border-radius:10px">':noPhoto_())+'</div>'+
+        '<div style="min-width:0">'+
+          '<div style="font-size:14.5px;font-weight:700">'+x.sku_rbo+'</div>'+
+          ((x.album_id||x.sel_name)?'<div style="font-size:12px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(x.album_id||'')+(x.sel_name?' · '+x.sel_name:'')+'</div>':'')+
+          '<div style="font-size:11.5px;color:var(--mut)">จาก '+docsN+' ใบเบิก · '+x.queued_at+
+            (x.status==='exported'?' · 📄 export แล้ว'+(x.pdf_url?' <a href="'+x.pdf_url+'" target="_blank" style="color:var(--pdd);font-weight:600">เปิด PDF</a>':''):'')+'</div>'+
+        '</div>'+
+        '<div style="text-align:center;min-width:64px"><span style="font-size:28px;font-weight:900;color:var(--pdd);line-height:1">+'+x.qty_added+'</span><div style="font-size:10.5px;color:var(--mut)">ชิ้น</div></div>'+
+        (x.status==='exported'
+          ?'<button class="btn o" style="width:auto;margin:0;padding:8px 16px;font-size:12.5px;white-space:nowrap" onclick="ksConfirmOne(\''+x.queue_id+'\')">✅ Ketshop แล้ว</button>'
+          :'<span style="font-size:11px;color:var(--mut);white-space:nowrap">รอ Export</span>')+
+        '</div>';
     });
   } else html+='<div class="empty">ไม่มีรายการค้าง 🎉</div>';
   if(KS_HIST.length){
-    html+='<div style="font-size:11px;font-weight:700;color:var(--mut);margin-top:12px">ประวัติล่าสุด</div>';
+    html+='<div style="font-size:12px;font-weight:700;color:var(--mut);margin-top:16px;padding-top:10px;border-top:1px dashed var(--line)">ประวัติล่าสุด</div>';
     KS_HIST.slice(0,10).forEach(function(x){
-      html+='<div style="font-size:11px;color:var(--mut);padding:3px 0;border-bottom:1px solid var(--soft)">'+
-        x.sku_rbo+' +'+x.qty_added+'ชิ้น · '+(x.status==='confirmed'?'✅ '+x.confirmed_at+' โดย '+x.confirmed_by:'📄 '+x.exported_at+' โดย '+x.exported_by)+
-        (x.pdf_url?' <a href="'+x.pdf_url+'" target="_blank">PDF</a>':'')+'</div>';
+      html+='<div style="font-size:12px;color:var(--mut);padding:5px 0;border-bottom:1px solid var(--soft)">'+
+        '<b style="color:var(--ink)">'+x.sku_rbo+'</b> +'+x.qty_added+'ชิ้น · ✅ '+x.confirmed_at+' โดย '+x.confirmed_by+
+        (x.pdf_url?' · <a href="'+x.pdf_url+'" target="_blank" style="color:var(--pdd)">PDF</a>':'')+'</div>';
     });
   }
   document.getElementById('modalBody').innerHTML=html;
