@@ -877,6 +877,17 @@ function openImportExist(){
 }
 function ieOpenForm(source){
   window._ieSource=source; window._ieStar=0; window._ieChans=new Set();
+  /* B3.59 fix: ถ้า COLORS/PCFG ยังไม่มีให้ดึงใหม่ก่อน แล้วค่อยเปิดฟอร์ม */
+  if(!COLORS.length||!PCFG){
+    api('colors').then(function(d){
+      if(d.ok){ COLORS=d.colors; if(d.priceCfg) PCFG=d.priceCfg; }
+      _ieRenderForm(source);
+    });
+    return;
+  }
+  _ieRenderForm(source);
+}
+function _ieRenderForm(source){
   var colOpts='<option value="">ไม่มีสี (ขาย A/B)</option>'+(COLORS||[]).map(function(c){return '<option>'+c.color+'</option>';}).join('');
   var clsOpts='<option value="">— ยังไม่ระบุ —</option>'+CLASSES.map(function(c){return '<option>'+c+'</option>';}).join('');
   var srcLabel=source==='rbws'?'🏭 RBWS':'🛍 ภายนอก';
@@ -918,7 +929,7 @@ function ieOpenForm(source){
     '<div class="err" id="ie_err" style="margin-top:8px"></div>'+
     '<button class="btn" onclick="importExistSave()" style="margin-top:10px;width:100%">💾 บันทึกเข้าฐานข้อมูล</button>';
   document.getElementById('wdModal').style.display='block';
-  ieCalc();
+  setTimeout(ieCalc,50); /* B3.59 fix: รอ DOM render ก่อน */
 }
 function ieChansHtml_(){
   return SALE_CHANNELS.map(function(c,i){
@@ -985,7 +996,7 @@ function stockRenderMode(){
     '<button class="btn'+(ST_PARTIAL?' o':'')+'" onclick="ST_PARTIAL=false;ST_SKUS=[];stockLoad()">📋 ทั้งหมด</button>'+
     '<button class="btn'+(ST_PARTIAL?'':' o')+'" onclick="ST_PARTIAL=true;stockRenderPartial()">🔍 เลือกบาง SKU</button></div>';
   if(!ST_PARTIAL){
-    html+='<button class="btn" onclick="stockLoad()">โหลดรายการ</button>';
+    html+='<button class="btn" style="width:100%;padding:14px;font-size:14px;margin-top:4px" onclick="stockLoad()">📋 โหลดรายการ '+(ST_MODE==='shop'?'(ร้าน)':'(แฟร์)')+'</button>';
   }
   document.getElementById('modalBody').innerHTML=html;
 }
@@ -998,7 +1009,10 @@ function stockRenderPartial(){
     '<input id="stAddQ" placeholder="พิมพ์รหัส SKU แล้วกด Add" style="flex:1" onkeydown="if(event.key===\'Enter\')stAddSku()">'+
     '<button class="btn" onclick="stAddSku()">Add</button></div>'+
     '<div class="hint">พิมพ์รหัสที่ต้องการแล้วกด Add เรื่อยๆ ได้เลย</div>'+
-    (ST_SKUS.length?'<button class="btn" onclick="stockLoad()" style="margin-top:10px">โหลด '+ST_SKUS.length+' SKU</button>':'');
+    '<div style="display:flex;gap:8px;margin-top:10px">'+
+    '<button class="btn o" onclick="ST_PARTIAL=false;stockRenderMode()">← กลับ</button>'+
+    (ST_SKUS.length?'<button class="btn" onclick="stockLoad()" style="flex:1">📋 โหลด '+ST_SKUS.length+' SKU</button>':'<button class="btn" disabled style="flex:1;opacity:.4">เพิ่ม SKU ก่อนกด Add</button>')+
+    '</div>';
 }
 function stAddSku(){
   var q=(document.getElementById('stAddQ').value||'').trim().toUpperCase();
@@ -1020,7 +1034,7 @@ function stockRenderList(canEdit){
     '<b>'+modeLabel+' '+ST_LIST.length+' SKU</b>'+
     (canEdit?'<button class="btn" style="padding:4px 12px;font-size:11.5px" onclick="stockSave()">💾 Save จำนวน</button>':'')+
     '<button class="btn o" style="padding:4px 12px;font-size:11.5px" onclick="stockExport()">📥 Export Ketshop CSV</button>'+
-    '<button class="btn o" style="padding:4px 12px;font-size:11.5px" onclick="stockRenderMode()">← เปลี่ยน mode</button></div>'+
+    '<button class="btn o" style="padding:4px 12px;font-size:11.5px" onclick="ST_PARTIAL=false;stockRenderMode()">← กลับ</button></div>'+
     '<div style="overflow-x:auto"><table style="width:100%;font-size:11.5px;border-collapse:collapse">'+
     '<tr style="background:#FCE4EC;position:sticky;top:0"><th style="text-align:left;padding:5px">No.</th><th style="text-align:left">SKU RBO</th><th style="text-align:left">อัลบั้ม</th><th style="text-align:left">ตัวเลือก</th><th>ราคาฐาน</th><th>SKU RBWS</th><th>Location</th><th>รหัสสี</th><th>จำนวน</th></tr>';
   ST_LIST.forEach(function(s,i){
@@ -1878,20 +1892,28 @@ function exRowHtml(kind,arr,ph,sign){
   return arr.map(function(x,i){
     if(kind==='items'){
       var lineTot=(Number(x.unit)||0)*(Number(x.qty)||0);
-      return '<div style="display:flex;gap:6px;align-items:center;margin-bottom:4px;flex-wrap:wrap">'+
-        '<span style="font-size:10.5px;color:var(--mut);width:18px">'+(i+1)+'.</span>'+
-        '<input value="'+String(x.name).replace(/"/g,'&quot;')+'" placeholder="'+ph+'" style="flex:1;min-width:130px" oninput="exUpd(\'items\','+i+',\'name\',this.value)">'+
-        '<input type="number" value="'+x.unit+'" min="0" step="0.01" placeholder="฿/หน่วย" title="ราคาต่อหน่วย" style="width:76px;text-align:right" oninput="exUpd(\'items\','+i+',\'unit\',this.value)">'+
-        '<span style="font-size:11px;color:var(--mut)">×</span>'+
-        '<input type="number" value="'+x.qty+'" min="1" placeholder="จำนวน" title="จำนวน" style="width:52px;text-align:center" oninput="exUpd(\'items\','+i+',\'qty\',this.value)">'+
-        '<b class="num" style="width:70px;text-align:right;font-size:12px" id="exlt_'+i+'">'+(lineTot?fmtN(lineTot):'')+'</b>'+
-        '<button type="button" class="x" onclick="exDelRow(\'items\','+i+')">✕</button></div>';
+      /* B3.59 UI fix: layout ชัดขึ้น บนคอม — ชื่อ flex + ราคา/หน่วย + จำนวน ใหญ่ขึ้น + label กำกับ */
+      return '<div style="display:flex;gap:8px;align-items:flex-end;margin-bottom:8px;flex-wrap:wrap">'+
+        '<div style="display:flex;align-items:center;padding-bottom:6px;color:var(--mut);font-size:11px;min-width:20px">'+(i+1)+'.</div>'+
+        '<div style="flex:2;min-width:160px"><label style="font-size:10.5px;color:var(--mut)">รายการ</label>'+
+        '<input value="'+String(x.name).replace(/"/g,'&quot;')+'" placeholder="'+ph+'" style="font-size:13px" oninput="exUpd(\'items\','+i+',\'name\',this.value)"></div>'+
+        '<div style="min-width:110px"><label style="font-size:10.5px;color:var(--mut)">ราคา/หน่วย (฿)</label>'+
+        '<input type="number" value="'+x.unit+'" min="0" step="0.01" placeholder="0.00" style="font-size:13px;text-align:right" oninput="exUpd(\'items\','+i+',\'unit\',this.value)"></div>'+
+        '<div style="min-width:80px"><label style="font-size:10.5px;color:var(--mut)">จำนวน</label>'+
+        '<input type="number" value="'+x.qty+'" min="1" placeholder="1" style="font-size:13px;text-align:center" oninput="exUpd(\'items\','+i+',\'qty\',this.value)"></div>'+
+        '<div style="min-width:80px;text-align:right"><label style="font-size:10.5px;color:var(--mut)">รวม (฿)</label>'+
+        '<div class="num" id="exlt_'+i+'" style="font-size:14px;font-weight:700;padding:8px 4px;line-height:1.4">'+(lineTot?fmtN(lineTot):'–')+'</div></div>'+
+        '<div style="padding-bottom:6px"><button type="button" class="x" onclick="exDelRow(\'items\','+i+')">✕</button></div>'+
+        '</div>';
     }
-    return '<div style="display:flex;gap:6px;align-items:center;margin-bottom:4px">'+
-      '<span style="font-size:12px;width:18px;text-align:center">'+sign+'</span>'+
-      '<input value="'+String(x.name).replace(/"/g,'&quot;')+'" placeholder="'+ph+'" style="flex:1" oninput="exUpd(\''+kind+'\','+i+',\'name\',this.value)">'+
-      '<input type="number" value="'+x.amt+'" min="0" step="0.01" placeholder="บาท" style="width:84px;text-align:right" oninput="exUpd(\''+kind+'\','+i+',\'amt\',this.value)">'+
-      '<button type="button" class="x" onclick="exDelRow(\''+kind+'\','+i+')">✕</button></div>';
+    return '<div style="display:flex;gap:8px;align-items:flex-end;margin-bottom:8px">'+
+      '<div style="padding-bottom:6px;font-size:13px;width:20px;text-align:center;color:var(--mut)">'+sign+'</div>'+
+      '<div style="flex:1"><label style="font-size:10.5px;color:var(--mut)">รายการ</label>'+
+      '<input value="'+String(x.name).replace(/"/g,'&quot;')+'" placeholder="'+ph+'" style="font-size:13px" oninput="exUpd(\''+kind+'\','+i+',\'name\',this.value)"></div>'+
+      '<div style="min-width:110px"><label style="font-size:10.5px;color:var(--mut)">จำนวนเงิน (฿)</label>'+
+      '<input type="number" value="'+x.amt+'" min="0" step="0.01" placeholder="0.00" style="font-size:13px;text-align:right" oninput="exUpd(\''+kind+'\','+i+',\'amt\',this.value)"></div>'+
+      '<div style="padding-bottom:6px"><button type="button" class="x" onclick="exDelRow(\''+kind+'\','+i+')">✕</button></div>'+
+      '</div>';
   }).join('');
 }
 function exRenderRows(){
