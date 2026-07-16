@@ -155,8 +155,8 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B3.81 · 16 ก.ค. 69 · 🖨️ ใบเช็คสต็อก: ฝังรูปเสมอ (thumbnail จิ๋ว 574 ตัวก็ไหว) + Location โชว์ทั้ง WS/RBO';
-const FRONT_VER = '3.75'; // ต้องตรงกับ build ใน doGet ของ backend
+const BUILD = 'B3.82 · 16 ก.ค. 69 · 🖨️ ใบเช็คสต็อก: คอลัมน์อัลบั้ม/ตัวเลือก + Location ข้าง SKU + หัวตารางซ้ำทุกหน้า · 🔍 เลือก SKU มีรูปให้จิ้มเหมือนคัมภีร์';
+const FRONT_VER = '3.76'; // ต้องตรงกับ build ใน doGet ของ backend
 console.log('RB Online Ops · '+BUILD);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -1172,13 +1172,40 @@ function stockRenderPartial(){
     '<div style="margin-bottom:8px"><b>SKU ที่เลือก ('+ST_SKUS.length+' ตัว):</b></div>'+
     '<div style="margin-bottom:8px">'+selHtml+'</div>'+
     '<div style="display:flex;gap:8px;margin-bottom:10px">'+
-    '<input id="stAddQ" placeholder="พิมพ์รหัส SKU แล้วกด Add" style="flex:1;min-width:0;margin-bottom:0" onkeydown="if(event.key===\'Enter\')stAddSku()">'+
+    '<div style="flex:1;min-width:0;position:relative"><input id="stAddQ" placeholder="พิมพ์รหัส / ชื่ออัลบั้ม / ตัวเลือก…" style="width:100%;margin-bottom:0" oninput="stSuggest()" onkeydown="if(event.key===\'Enter\')stAddSku()"><div class="sug" id="stSug" style="display:none"></div></div>'+
     '<button class="btn" onclick="stAddSku()" style="width:auto;flex:0 0 auto;margin-top:0;padding:10px 22px">Add</button></div>'+
     '<div class="hint">พิมพ์รหัสที่ต้องการแล้วกด Add เรื่อยๆ ได้เลย</div>'+
     '<div style="display:flex;gap:8px;margin-top:10px">'+
     '<button class="btn o" onclick="ST_PARTIAL=false;stockRenderMode()" style="flex:1;min-width:0;margin-top:0">← กลับ</button>'+
     (ST_SKUS.length?'<button class="btn" onclick="stockLoad()" style="flex:1.4;min-width:0;margin-top:0">📋 โหลด '+ST_SKUS.length+' SKU</button>':'<button class="btn" disabled style="flex:1.4;min-width:0;margin-top:0;opacity:.4">เพิ่ม SKU ก่อนกด Add</button>')+
     '</div>';
+}
+function stSuggest(){
+  /* B3.82: ค้นจาก CAT ในเครื่อง (โหลดไว้แล้วตอนเปิดเว็บ) — โชว์รูปให้จิ้มเหมือนคัมภีร์ */
+  var el=document.getElementById('stSug'); if(!el) return;
+  var q=(document.getElementById('stAddQ').value||'').trim().toLowerCase();
+  if(q.length<2){ el.style.display='none'; return; }
+  var hit=(CAT||[]).filter(function(c){
+    return String(c.sku_rbo||'').toLowerCase().indexOf(q)>-1
+        || String(c.album_id||'').toLowerCase().indexOf(q)>-1
+        || String(c.sel_name||'').toLowerCase().indexOf(q)>-1;
+  }).filter(function(c){ return ST_SKUS.indexOf(String(c.sku_rbo))<0; }).slice(0,12);
+  if(!hit.length){ el.innerHTML='<div class="empty">ไม่พบ</div>'; el.style.display='block'; return; }
+  el.innerHTML=hit.map(function(c,i){
+    return '<div class="item" onclick="stPickSug('+i+')" data-sku="'+String(c.sku_rbo)+'">'
+      +'<div class="ph">'+(c.img?'<img src="'+imgSrc(c.img)+'" loading="lazy">':noPhoto_())+'</div>'
+      +'<div><b>'+c.sku_rbo+'</b><small>'+[c.album_id,c.sel_name].filter(Boolean).join(' · ')
+      +((c.loc_rbws||c.loc_rbo)?' · 📍'+(c.loc_rbws||c.loc_rbo):'')+'</small></div></div>';
+  }).join('');
+  el.style.display='block';
+  window._stHit=hit;
+}
+function stPickSug(i){
+  var c=(window._stHit||[])[i]; if(!c) return;
+  var k=String(c.sku_rbo);
+  if(ST_SKUS.indexOf(k)<0) ST_SKUS.push(k);
+  stockRenderPartial();
+  var inp=document.getElementById('stAddQ'); if(inp){ inp.focus(); }
 }
 function stAddSku(){
   var q=(document.getElementById('stAddQ').value||'').trim().toUpperCase();
