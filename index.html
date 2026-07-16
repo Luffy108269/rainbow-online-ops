@@ -155,8 +155,8 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B3.86 · 16 ก.ค. 69 · 💬 LINE: ติ๊กหน้าที่รายกลุ่ม (🔔ของใกล้หมด/📦งานเบิก/👑บริหาร) — กลุ่มไหนรับเฉพาะเรื่องที่กำหนด';
-const FRONT_VER = '3.79'; // ต้องตรงกับ build ใน doGet ของ backend
+const BUILD = 'B3.87 · 16 ก.ค. 69 · 💬 LINE: เพิ่มหน้าที่ 🎨 คอนเทนต์/กราฟฟิค (รวม 4 เรื่อง) — รอโมดูล planner ตามมา';
+const FRONT_VER = '3.80'; // ต้องตรงกับ build ใน doGet ของ backend
 console.log('RB Online Ops · '+BUILD);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -1198,8 +1198,8 @@ async function lineLoad(btn){
   if(!r.list.length){
     h+='<div class="empty">ยังไม่มีกลุ่ม — ดึงบอทเข้ากลุ่ม LINE แล้วกลุ่มจะโผล่ที่นี่เอง<br><small>(อย่าลืมตั้ง Webhook URL + Enable ใน LINE Developers ก่อน)</small></div>';
   } else {
-    var PURP=[['use_stock','🔔 ของใกล้หมด'],['use_wd','📦 งานเบิก'],['use_exec','👑 สรุปบริหาร']];
-    h+='<div class="hint">ติ๊กว่ากลุ่มไหนรับเรื่องอะไร — กลุ่มจะได้รับเฉพาะเรื่องที่ติ๊ก (📦/👑 ติ๊กรอไว้ได้ ระบบส่วนนั้นกำลังตามมา)</div>';
+    var PURP=[['use_stock','🔔 ของใกล้หมด'],['use_wd','📦 งานเบิก'],['use_exec','👑 สรุปบริหาร'],['use_content','🎨 คอนเทนต์/กราฟฟิค']];
+    h+='<div class="hint">ติ๊กว่ากลุ่มไหนรับเรื่องอะไร — กลุ่มจะได้รับเฉพาะเรื่องที่ติ๊ก (📦/👑/🎨 ติ๊กรอไว้ได้ ระบบส่วนนั้นกำลังตามมา)</div>';
     h+=r.list.map(function(g){
       var chips=PURP.map(function(pp){
         var on=String(g[pp[0]])==='Y';
