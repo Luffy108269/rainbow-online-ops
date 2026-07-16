@@ -155,7 +155,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B3.82 · 16 ก.ค. 69 · 🖨️ ใบเช็คสต็อก: คอลัมน์อัลบั้ม/ตัวเลือก + Location ข้าง SKU + หัวตารางซ้ำทุกหน้า · 🔍 เลือก SKU มีรูปให้จิ้มเหมือนคัมภีร์';
+const BUILD = 'B3.83 · 16 ก.ค. 69 · 🔍 เลือก SKU: ถ้าคัมภีร์ยังโหลดไม่เสร็จให้ดึงเองแล้วค้นต่อ (แก้ขึ้น ไม่พบ ทั้งที่มีของ)';
 const FRONT_VER = '3.76'; // ต้องตรงกับ build ใน doGet ของ backend
 console.log('RB Online Ops · '+BUILD);
 </script>
@@ -1181,10 +1181,22 @@ function stockRenderPartial(){
     '</div>';
 }
 function stSuggest(){
-  /* B3.82: ค้นจาก CAT ในเครื่อง (โหลดไว้แล้วตอนเปิดเว็บ) — โชว์รูปให้จิ้มเหมือนคัมภีร์ */
+  /* B3.82: ค้นจาก CAT ในเครื่อง — B3.83: CAT ว่าง (โหลดไม่ทัน/รอบก่อน fail) → ดึงเองแล้วค้นต่อ */
   var el=document.getElementById('stSug'); if(!el) return;
   var q=(document.getElementById('stAddQ').value||'').trim().toLowerCase();
   if(q.length<2){ el.style.display='none'; return; }
+  if(!CAT||!CAT.length){
+    el.innerHTML='<div class="empty">⏳ กำลังโหลดข้อมูลสินค้า…</div>'; el.style.display='block';
+    if(!window._stCatBusy){
+      window._stCatBusy=true;
+      api('catalog').then(function(c){
+        window._stCatBusy=false;
+        if(c.ok){ CAT=c.selections; renderCat(); stSuggest(); }
+        else { el.innerHTML='<div class="empty">โหลดข้อมูลสินค้าไม่สำเร็จ — ลองพิมพ์อีกครั้ง</div>'; }
+      }).catch(function(){ window._stCatBusy=false; });
+    }
+    return;
+  }
   var hit=(CAT||[]).filter(function(c){
     return String(c.sku_rbo||'').toLowerCase().indexOf(q)>-1
         || String(c.album_id||'').toLowerCase().indexOf(q)>-1
