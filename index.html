@@ -155,8 +155,8 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B3.78 · 16 ก.ค. 69 · 🔔→📝 กดเบิกจากการ์ด Low Stock ลง Draft ทันที + ➕ ผูกรหัสตัวที่ไม่อยู่ในคัมภีร์';
-const FRONT_VER = '3.72'; // ต้องตรงกับ build ใน doGet ของ backend
+const BUILD = 'B3.80 · 16 ก.ค. 69 · 📊 เช็คสต็อก: ใส่อัลบั้ม+ตัวเลือกคืน (SKU เป็นโค้ด พนักงานหาของไม่เจอ) ทั้งจอและใบพิมพ์';
+const FRONT_VER = '3.74'; // ต้องตรงกับ build ใน doGet ของ backend
 console.log('RB Online Ops · '+BUILD);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -1195,36 +1195,46 @@ async function stockLoad(){
   stockRenderList(r.canEdit);
 }
 function stockRenderList(canEdit){
+  /* B3.79: เลิกใช้ตารางกว้าง 9 คอลัมน์ (ช่องจำนวนหลุดจอ) → การ์ดแถวแนวตั้ง จบในจอเดียวทุกขนาด */
   var modeLabel=ST_MODE==='fair'?'แฟร์':'ร้าน';
-  var html='<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap">'+
-    '<b>'+modeLabel+' '+ST_LIST.length+' SKU</b>'+
-    (canEdit?'<button class="btn" style="padding:4px 12px;font-size:11.5px" onclick="stockSave()">💾 Save จำนวน</button>':'')+
-    '<button class="btn o" style="padding:4px 12px;font-size:11.5px" onclick="stockExport()">📥 Export Ketshop Excel</button>'+
-    '<button class="btn o" style="padding:4px 12px;font-size:11.5px" onclick="ST_PARTIAL=false;stockRenderMode()">← กลับ</button></div>'+
-    '<div style="overflow-x:auto"><table style="width:100%;font-size:11.5px;border-collapse:collapse">'+
-    '<tr style="background:#FCE4EC;position:sticky;top:0"><th style="text-align:left;padding:5px">No.</th><th style="text-align:left">SKU RBO</th><th style="text-align:left">อัลบั้ม</th><th style="text-align:left">ตัวเลือก</th><th>ราคาฐาน</th><th>SKU RBWS</th><th>Location</th><th>รหัสสี</th><th style="min-width:90px">จำนวน</th></tr>';
+  var html='<div style="display:flex;gap:6px;align-items:center;margin-bottom:10px;flex-wrap:wrap">'+
+    '<b style="margin-right:2px">'+modeLabel+' '+ST_LIST.length+' SKU</b>'+
+    (canEdit?'<button class="btn" style="padding:5px 12px;font-size:11.5px;width:auto;margin:0" onclick="stockSave()">💾 Save</button>':'')+
+    '<button class="btn o" style="padding:5px 12px;font-size:11.5px;width:auto;margin:0" onclick="stockPdf(this)">🖨️ ใบเช็คสต็อก</button>'+
+    '<button class="btn o" style="padding:5px 12px;font-size:11.5px;width:auto;margin:0" onclick="stockExport()">📥 Excel</button>'+
+    '<button class="btn o" style="padding:5px 12px;font-size:11.5px;width:auto;margin:0" onclick="ST_PARTIAL=false;stockRenderMode()">←</button></div>';
   ST_LIST.forEach(function(s,i){
     var qty=ST_MODE==='fair'?(Number(s.qty_fair)||0):(Number(s.qty_shop)||0);
-    var base=s.color_rbo?(s.color_rbo+' '+fmtN(Number((COLORS||[]).find(c=>c.color===s.color_rbo.split(' ')[0])||{price:''}).price||s.price_base||'')):(s.price_base?fmtN(s.price_base):'–');
-    html+='<tr style="border-bottom:1px solid var(--soft)">'+
-      '<td style="padding:4px 6px;color:var(--mut)">'+(i+1)+'</td>'+
-      '<td><div style="display:flex;align-items:center;gap:6px">'+
-        (s.img?'<img src="'+imgSrc(s.img)+'" loading="lazy" style="width:32px;height:32px;object-fit:cover;border-radius:6px">':noPhoto_())+
-        '<b>'+s.sku_rbo+'</b></div></td>'+
-      '<td>'+(s.album_id||'–')+'</td>'+
-      '<td>'+(s.sel_name||'–')+'</td>'+
-      '<td style="text-align:center">'+base+'</td>'+
-      '<td style="color:var(--mut)">'+(s.sku_rbws||'–')+'</td>'+
-      '<td style="color:var(--mut)">'+(s.loc_rbws||s.loc_rbo||'–')+'</td>'+
-      '<td style="color:var(--mut)">'+(s.color_rbws||'–')+'</td>'+
-      '<td style="text-align:center">'+
-      /* B3.60 fix: ช่องจำนวนกว้างขึ้น ฟอนต์ใหญ่ขึ้น เห็น 4 หลักสบาย */
-      (canEdit?'<input type="number" value="'+qty+'" min="0" style="width:90px;text-align:center;font-size:14px;font-weight:700;padding:5px" onchange="ST_CHANGES[\''+s.sku_rbo+'\']=Number(this.value);this.style.background=\'#FFF9C4\'">'
-        :'<b style="font-size:14px">'+qty+'</b>')+
-      '</td></tr>';
+    var loc=s.loc_rbws||s.loc_rbo||'';
+    var meta=[];
+    if(loc) meta.push('📍 '+loc);
+    if(s.sku_rbws) meta.push(s.sku_rbws);
+    if(s.color_rbo) meta.push(s.color_rbo);
+    html+='<div style="display:flex;align-items:center;gap:8px;padding:7px 2px;border-bottom:1px solid var(--soft)">'+
+      '<span style="color:var(--mut);font-size:10.5px;min-width:26px;text-align:right">'+(i+1)+'</span>'+
+      (s.img?'<img src="'+imgSrc(s.img)+'" loading="lazy" style="width:40px;height:40px;object-fit:cover;border-radius:8px;flex:0 0 auto">':noPhoto_())+
+      '<div style="flex:1;min-width:0">'+
+        '<b style="font-size:13px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+s.sku_rbo+'</b>'+
+        ((s.album_id||s.sel_name)?'<small style="color:var(--pdd);font-size:11px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+[s.album_id,s.sel_name].filter(Boolean).join(' · ')+'</small>':'')+
+        '<small style="color:var(--mut);font-size:10.5px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+meta.join(' · ')+'</small>'+
+      '</div>'+
+      (canEdit
+        ?'<input type="number" value="'+qty+'" min="0" style="width:76px;flex:0 0 auto;text-align:center;font-size:15px;font-weight:700;padding:7px 4px;margin:0" onchange="ST_CHANGES[\''+s.sku_rbo+'\']=Number(this.value);this.style.background=\'#FFF9C4\'">'
+        :'<b style="font-size:15px;min-width:44px;text-align:center">'+qty+'</b>')+
+      '</div>';
   });
-  html+='</table></div>';
   document.getElementById('modalBody').innerHTML=html;
+}
+async function stockPdf(btn){
+  if(btn){btn.disabled=true;btn.textContent='⏳ กำลังสร้าง…';}
+  try{
+    const r=await api('stockPdf',{mode:ST_MODE,skus:ST_PARTIAL&&ST_SKUS.length?ST_SKUS:null});
+    if(r.ok){
+      toast('ใบเช็คสต็อกพร้อมแล้ว ('+r.count+' SKU'+(r.withImg?' มีรูป':' ไม่ฝังรูป — รายการเยอะ')+')','ok',3500);
+      window.open(r.url,'_blank');
+    } else toast(r.error||'สร้างไม่สำเร็จ','err',4000);
+  }catch(e){ toast('สร้างไม่สำเร็จ: '+String(e),'err',4000); }
+  if(btn){btn.disabled=false;btn.textContent='🖨️ ใบเช็คสต็อก';}
 }
 async function stockSave(){
   var changes=Object.keys(ST_CHANGES).map(function(sku){return {sku_rbo:sku,qty:ST_CHANGES[sku]};});
