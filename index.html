@@ -155,8 +155,8 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B3.91 · 16 ก.ค. 69 · ⚡ Import เติมรูป: อ่านชีตครั้งเดียวเขียนตรงเซลล์ (แก้ timeout 240วิ) — ใช้คู่ไฟล์ v3 ชุดละ 50';
-const FRONT_VER = '3.84'; // ต้องตรงกับ build ใน doGet ของ backend
+const BUILD = 'B3.92 · 17 ก.ค. 69 · 🏷 ผูกรหัส RBO: พิมพ์ RBWS ในฟอร์มนำเข้า → ข้อมูล+รูปเด้งเองจาก 497 ตัวที่รอ · RBWS ซ้ำได้ RBO ห้ามซ้ำ';
+const FRONT_VER = '3.85'; // ต้องตรงกับ build ใน doGet ของ backend
 console.log('RB Online Ops · '+BUILD);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -1073,7 +1073,7 @@ function _ieRenderForm(source){
     '<label>ชื่ออัลบั้ม</label><input id="ie_album">'+
     '<label>ชื่อตัวเลือก</label><input id="ie_sel">'+
     '<label>รายละเอียด</label><input id="ie_detail">'+
-    (source==='rbws'?'<label>SKU RBWS</label><input id="ie_ws" placeholder="เช่น EA021270444">':'<input type="hidden" id="ie_ws" value="">')+
+    (source==='rbws'?'<label>SKU RBWS <small style="color:var(--mut);font-weight:400">(พิมพ์ 3 ตัว — เลือกจากรายการ ข้อมูล+รูปเติมเอง · ใช้ซ้ำได้หลาย RBO)</small></label><div style="position:relative"><input id="ie_ws" placeholder="เช่น EA021270444" autocomplete="off" oninput="ieWsSuggest()"><div class="sug" id="ieWsSug" style="display:none"></div></div>':'<input type="hidden" id="ie_ws" value="">')+
     '<label>น้ำหนัก g/ชิ้น</label><input id="ie_w" type="number" step="0.01">'+
     '<label>Location RBWS</label><input id="ie_lr">'+
     '<label>Location RBO</label><input id="ie_lo">'+
@@ -1096,7 +1096,7 @@ function _ieRenderForm(source){
     '<label>ดาว</label><div id="ie_starRow" style="display:flex;gap:4px;margin:4px 0">'+
     [1,2,3,4,5].map(function(k){return '<span onclick="ieStarPick('+k+')" id="iestar_'+k+'" style="cursor:pointer;font-size:24px;filter:grayscale(1);opacity:.3">⭐</span>';}).join('')+
     '<small onclick="ieStarPick(0)" style="cursor:pointer;color:var(--mut);margin-left:6px">ล้าง</small></div>'+
-    '<label>รูปสินค้า</label><input type="file" id="ie_img" accept="image/*">'+
+    '<label>รูปสินค้า</label><div id="ie_imgPrev"></div><input type="file" id="ie_img" accept="image/*" onchange="window._ieImgUrl=\'\';var pv=document.getElementById(\'ie_imgPrev\');if(pv)pv.innerHTML=\'\';">'+
     '<label style="margin-top:6px">🛒 ช่องทางที่ขาย</label><div id="ie_chans" style="display:flex;flex-wrap:wrap;margin-top:4px">'+ieChansHtml_()+'</div>'+
     '</div></div>'+
     '<div class="err" id="ie_err" style="margin-top:8px"></div>'+
@@ -1136,6 +1136,55 @@ function ieCostHint(){
 function ieUseColor(c){var e=document.getElementById('ie_color');if(e){e.value=c;ieCalc(true);}toast('เลือกสี '+c,'ok',2000);}
 function ieUseBase(v){var e=document.getElementById('ie_color');if(e)e.value='';var b=document.getElementById('ie_base');if(b)b.value=v;ieCalc();}
 
+/* ═══ B3.92: ผูกรหัส RBO เร็ว — ดึงข้อมูลจาก PendingSku (497 ตัวที่นำเข้า) ═══ */
+async function ieWsSuggest(){
+  var el=document.getElementById('ieWsSug'); if(!el) return;
+  var q=(document.getElementById('ie_ws').value||'').trim().toLowerCase();
+  if(q.length<3){ el.style.display='none'; return; }
+  if(!window._iePend){
+    el.innerHTML='<div class="empty">⏳ โหลดรายการรอรหัส…</div>'; el.style.display='block';
+    if(!window._iePendBusy){
+      window._iePendBusy=true;
+      const r=await api('pendingList');
+      window._iePendBusy=false;
+      window._iePend=(r.ok&&r.list)?r.list:[];
+      ieWsSuggest();
+    }
+    return;
+  }
+  var hit=window._iePend.filter(function(x){
+    return String(x.sku_rbws||'').toLowerCase().indexOf(q)>-1
+        || String(x.detail||'').toLowerCase().indexOf(q)>-1;
+  }).slice(0,10);
+  if(!hit.length){ el.innerHTML='<div class="empty">ไม่พบในรายการรอรหัส — พิมพ์ต่อได้ถ้าเป็นรหัสใหม่</div>'; el.style.display='block'; return; }
+  window._ieHit=hit;
+  el.innerHTML=hit.map(function(x,i){
+    return '<div class="item" onclick="iePickPend('+i+')">'
+      +'<div class="ph">'+(x.img?'<img src="'+imgSrc(x.img)+'" loading="lazy">':'🏷')+'</div>'
+      +'<div><b>'+x.sku_rbws+'</b><small>'+String(x.detail||'').slice(0,55)+'</small></div>'
+      +'<div class="endc"><small>WS '+(x.qty||0)+'</small></div></div>';
+  }).join('');
+  el.style.display='block';
+}
+function iePickPend(i){
+  var x=(window._ieHit||[])[i]; if(!x) return;
+  function put(id,v){ var e=document.getElementById(id); if(e&&v!==undefined&&v!==null) e.value=v; }
+  put('ie_ws',x.sku_rbws);
+  var parts=String(x.detail||'').split(' · ');
+  put('ie_album',parts[0]||'');
+  put('ie_sel',parts.slice(1).join(' · '));
+  put('ie_detail',x.detail||'');
+  put('ie_w',x.weight||'');
+  put('ie_lr',x.loc_rbws||'');
+  put('ie_cw',x.color_rbws||'');
+  put('ie_qty',x.qty||0);
+  window._ieImgUrl=String(x.img||'');
+  var pv=document.getElementById('ie_imgPrev');
+  if(pv) pv.innerHTML=window._ieImgUrl?'<img src="'+imgSrc(window._ieImgUrl)+'" style="width:72px;height:72px;object-fit:cover;border-radius:10px;margin-bottom:4px"> <small style="color:var(--mut)">ใช้รูปเดิมจากรายการรอรหัส (เลือกไฟล์ใหม่ถ้าจะเปลี่ยน)</small>':'';
+  document.getElementById('ieWsSug').style.display='none';
+  var sk=document.getElementById('ie_sku'); if(sk) sk.focus();
+  toast('เติมข้อมูล '+x.sku_rbws+' แล้ว — ใส่รหัส RBO ต่อได้เลย','ok',2500);
+}
 async function importExistSave(){
   var sku=g2('ie_sku');var err=document.getElementById('ie_err');
   if(!sku){err.textContent='กรุณาระบุรหัส SKU';return;}
@@ -1145,7 +1194,7 @@ async function importExistSave(){
   if(iEl&&iEl.files[0]){imgB64=await resizeImgB64(iEl.files[0],1000,0.82);imgName=iEl.files[0].name;}
   toast('กำลังบันทึก...','info',1500);
   const web_status=[...(window._ieChans||new Set())].join(',');
-  const r=await api('importExistSku',{sku_rbo:sku,album:g2('ie_album'),sel_name:g2('ie_sel'),detail:g2('ie_detail'),sku_rbws:g2('ie_ws'),weight:g2('ie_w'),loc_rbws:g2('ie_lr'),loc_rbo:g2('ie_lo'),color_rbws:g2('ie_cw'),color_rbo:g2('ie_color'),price_a:g2('ie_pa'),price_b:g2('ie_pb'),price_base:g2('ie_base'),price_list_a:g2('ie_la'),price_list_b:g2('ie_lb'),cost:g2('ie_cost'),cost_note:g2('ie_cost_note'),qty:g2('ie_qty'),cls:g2('ie_cls'),star:window._ieStar||0,web_status:web_status,img_b64:imgB64,img_name:imgName});
+  const r=await api('importExistSku',{sku_rbo:sku,album:g2('ie_album'),sel_name:g2('ie_sel'),detail:g2('ie_detail'),sku_rbws:g2('ie_ws'),weight:g2('ie_w'),loc_rbws:g2('ie_lr'),loc_rbo:g2('ie_lo'),color_rbws:g2('ie_cw'),color_rbo:g2('ie_color'),price_a:g2('ie_pa'),price_b:g2('ie_pb'),price_base:g2('ie_base'),price_list_a:g2('ie_la'),price_list_b:g2('ie_lb'),cost:g2('ie_cost'),cost_note:g2('ie_cost_note'),qty:g2('ie_qty'),cls:g2('ie_cls'),star:window._ieStar||0,web_status:web_status,img_b64:imgB64,img_name:imgName,img_url:(!imgB64&&window._ieImgUrl)?window._ieImgUrl:''});
   if(r.ok){toast('✅ นำเข้า '+r.sku_rbo+' เข้าฐานข้อมูลแล้ว (ไม่แตะบัญชี)','ok',3500);closeModal();api('catalog').then(function(c){if(c.ok){CAT=c.selections;renderCat();}});}
   else if(r.dup) err.textContent='⚠️ รหัส '+sku+' มีอยู่แล้วในระบบ — ใช้หน้า Edit คัมภีร์แทน';
   else err.textContent=r.error||'เกิดข้อผิดพลาด';
