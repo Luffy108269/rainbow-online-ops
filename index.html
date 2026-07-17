@@ -155,8 +155,8 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B3.103 · 17 ก.ค. 69 · 💬 LINE digest: เฉพาะจันทร์–ศุกร์ + ล็อกเวลาไทย 14:30 (inTimezone) — รัน setupLineTriggers ซ้ำเพื่อล้าง trigger 8:30 ค้าง';
-const FRONT_VER = '3.91'; // ต้องตรงกับ build ใน doGet ของ backend
+const BUILD = 'B3.105 · 17 ก.ค. 69 · 🔗 ผูกเข้ากับ RBO เดิมได้: autocomplete ค้นคัมภีร์ (รหัส/อัลบั้ม/ตัวเลือก) · รหัสมีอยู่=เติม WS เข้าตัวเดิม ไม่มี=สร้างใหม่ · รหัสไทยได้';
+const FRONT_VER = '3.93'; // ต้องตรงกับ build ใน doGet ของ backend
 console.log('RB Online Ops · '+BUILD);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -187,8 +187,13 @@ console.log('RB Online Ops · '+BUILD);
   <div class="card"><h2>🎨 กลุ่มสีราคา ชุด C</h2><div class="dots" id="colorDots"></div></div>
   <div class="card" id="pendCard" style="display:none">
     <h2>🏷 รอกำหนดรหัส RBO <span class="lock">L/A</span></h2>
+    <!-- B3.104: ผูกรหัสด่วน — ค้นหา + เลือก prefix ครั้งเดียว แล้วไล่กด ⚡ ทีละการ์ด -->
+    <input id="pendQ" placeholder="ค้นหา: รหัส RBWS / รายละเอียด…" oninput="pendRender_()">
+    <div style="display:flex;gap:8px;align-items:center;margin:6px 0">
+      <select id="pendPfx" onchange="window._pendPfx=this.value" style="flex:1;font-size:12.5px"></select>
+    </div>
     <div id="pendList"></div>
-    <div class="hint">ของจากไฟล์ที่ยังไม่มีรหัส Rainbow Online — ตั้งรหัสผ่านหน้า ＋SKU ได้</div>
+    <div class="hint">💡 ของที่<b>มีรหัส RBO อยู่แล้ว</b>: พิมพ์ค้นในช่องบนการ์ด (รหัส/อัลบั้ม/ตัวเลือก เช่น "หยดน้ำ") → จิ้มตัวที่ใช่ → ⚡ ผูก = เติม WS เข้าตัวเดิม (ช่องที่ว่างเติมให้จาก WS ไม่ทับของเดิม) · <b>ของใหม่</b>: เลือก prefix ด้านบนแล้วกด ⚡ รันเลขอัตโนมัติ หรือพิมพ์รหัสใหม่เอง · รายละเอียดเหลือเติมที่ปุ่ม ⚠️ ไม่ครบ</div>
   </div>
   <div class="card" id="lowStockCard" style="display:none">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
@@ -773,19 +778,85 @@ async function loadAll(){
   api('catalog').then(function(c){ if(c.ok){CAT=c.selections;if(c.bibleFields)BIBLE_FIELDS=c.bibleFields;if('editFields' in c)EDIT_FIELDS=c.editFields;renderCat();wdRender();} lsLoad(); });
   if(isLA()){const p=await api('pendingList');
     if(p.ok&&p.list.length){
-      /* B3.95: โชว์เฉพาะตัวที่ยังไม่ผูก RBO — ตัวที่ผูกแล้วยังค้นเจอในฟอร์มนำเข้า (เพิ่มไซส์/สีได้) */
-      const pw=p.list.filter(x=>!Number(x.used));
-      const pd=p.list.length-pw.length;
+      window._PEND=p.list; /* B3.104: เก็บทั้งชุด — ค้นหา/ผูกด่วนทำงานกับตัวแปรนี้ */
       document.getElementById('pendCard').style.display='block';
-      const pHead='<div class="hint" style="margin-bottom:6px">เหลือรอผูก <b>'+pw.length+'</b>'+(pd?' · ผูกแล้ว '+pd+' ✓ (ค้นได้ในฟอร์มนำเข้า)':'')+'</div>';
-      document.getElementById('pendList').innerHTML=pHead+(pw.length?pw.slice(0,15).map(x=>`
-        <div class="item"><div class="ph">${x.img?`<img src="${imgSrc(x.img)}">`:'🏷'}</div>
-        <div><b>WS: ${x.sku_rbws}</b><small>${x.detail||''}</small></div>
-        <div class="endc"><small>คงเหลือ WS ${x.qty}</small></div></div>`).join('')
-        +(pw.length>15?`<div class="hint">…และอีก ${pw.length-15} รายการ</div>`:'')
-        :'<div class="empty">ผูกครบทุกตัวแล้ว 🎉</div>');
+      pendPfxInit_(); pendRender_();
     }}
   wdLoad();
+}
+/* ═══ B3.104: ⚡ ผูกรหัส RBO ด่วน — Ketshop ไม่มีข้อมูล RBWS การผูกจึงต้องเกิดที่ระบบเรา ═══ */
+const PFX_LIST=[['EA','ต่างหู เงิน'],['EB','ต่างหู ทองเหลือง'],['ES','ต่างหู สแตนเลส'],
+  ['RI','แหวน เงิน'],['RB','แหวน ทองเหลือง'],['RS','แหวน สแตนเลส'],
+  ['NE','สร้อยคอ เงิน'],['NB','สร้อยคอ ทองเหลือง'],['NS','สร้อยคอ สแตนเลส'],
+  ['PE','จี้ เงิน'],['PB','จี้ ทองเหลือง'],['PS','จี้ สแตนเลส'],
+  ['AN','สร้อยข้อเท้า เงิน'],['AB','สร้อยข้อเท้า ทองเหลือง'],['AS','สร้อยข้อเท้า สแตนเลส'],
+  ['BA','กำไล เงิน'],['BAB','กำไล ทองเหลือง'],['BAS','กำไล สแตนเลส'],
+  ['BR','สร้อยข้อมือ เงิน'],['BRB','สร้อยข้อมือ ทองเหลือง'],['BRS','สร้อยข้อมือ สแตนเลส'],
+  ['SE','เซ็ต เงิน'],['SB','เซ็ต ทองเหลือง'],['SS','เซ็ต สแตนเลส']];
+function pendPfxInit_(){
+  var el=document.getElementById('pendPfx'); if(!el) return;
+  el.innerHTML='<option value="">— เลือก prefix สำหรับปุ่ม ⚡ —</option>'
+    +PFX_LIST.map(function(p){return '<option value="'+p[0]+'"'+(window._pendPfx===p[0]?' selected':'')+'>'+p[0]+' — '+p[1]+'</option>';}).join('');
+}
+function pendRender_(){
+  var el=document.getElementById('pendList'); if(!el||!window._PEND) return;
+  var q=String((document.getElementById('pendQ')||{}).value||'').toLowerCase();
+  var pw=window._PEND.filter(x=>!Number(x.used));
+  var pd=window._PEND.length-pw.length;
+  var hit=q?pw.filter(x=>[x.sku_rbws,x.detail].some(f=>String(f||'').toLowerCase().includes(q))):pw;
+  var cap=q?50:15;
+  var pHead='<div class="hint" style="margin-bottom:6px">เหลือรอผูก <b>'+pw.length+'</b>'+(q?' · ตรงค้นหา '+hit.length:'')+(pd?' · ผูกแล้ว '+pd+' ✓ (ค้นได้ในฟอร์มนำเข้า)':'')+'</div>';
+  el.innerHTML=pHead+(hit.length?hit.slice(0,cap).map(function(x,i){
+    var ws=String(x.sku_rbws).replace(/"/g,'&quot;');
+    return `
+    <div class="item" id="pend_${i}"><div class="ph">${x.img?`<img src="${imgSrc(x.img)}" loading="lazy">`:'🏷'}</div>
+      <div><b>WS: ${x.sku_rbws}</b><small>${x.detail||''}</small><small>คงเหลือ WS ${x.qty}</small></div>
+      <div class="endc" style="gap:4px;position:relative">
+        <input id="pendIn_${i}" placeholder="รหัส RBO เดิม/ใหม่ (ว่าง=⚡)" autocomplete="off" style="width:130px;font-size:12px;padding:6px 8px;margin:0" oninput="pendSuggest_(${i})" onfocus="pendSuggest_(${i})">
+        <div id="pendSug_${i}" style="display:none;position:absolute;top:34px;right:0;z-index:40;background:#fff;border:1px solid var(--soft);border-radius:10px;box-shadow:0 6px 18px rgba(0,0,0,.12);width:250px;max-height:190px;overflow:auto;text-align:left"></div>
+        <button class="btn" style="margin:0;padding:7px 10px;font-size:12px;width:auto" data-ws="${ws}" data-i="${i}" onclick="pendBindGo(this)">⚡ ผูก</button>
+      </div></div>`;}).join('')
+    +(hit.length>cap?`<div class="hint">…และอีก ${hit.length-cap} รายการ — พิมพ์ค้นหาเพื่อเจาะ</div>`:'')
+    :(q?'<div class="empty">ไม่พบ "'+q+'"</div>':'<div class="empty">ผูกครบทุกตัวแล้ว 🎉</div>'));
+}
+/* B3.105: autocomplete ค้นสินค้าเดิมในคัมภีร์ — รหัส RBO เดิมไม่มีสูตร (RB009RT-ขาว / A016แบบที่5 / หยดน้ำ5X8#…) จำไม่ได้ ต้องค้นจากชื่อ */
+function pendSuggest_(i){
+  var inp=document.getElementById('pendIn_'+i), box=document.getElementById('pendSug_'+i);
+  if(!inp||!box) return;
+  var t=String(inp.value||'').trim().toLowerCase();
+  if(t.length<2||!window.CAT||!CAT.length){ box.style.display='none'; return; }
+  var hit=CAT.filter(function(s){
+    return [s.sku_rbo,s.album_id,s.sel_name,s.detail].some(function(f){return String(f||'').toLowerCase().includes(t);});
+  }).slice(0,6);
+  if(!hit.length){ box.style.display='none'; return; }
+  box.innerHTML=hit.map(function(s){
+    var code=String(s.sku_rbo).replace(/"/g,'&quot;');
+    var tag=String(s.sku_rbws||'').trim()?'<small style="color:#c0392b"> · มี WS แล้ว</small>':'';
+    return '<div style="padding:7px 10px;border-bottom:1px solid var(--soft);cursor:pointer;font-size:12px" data-code="'+code+'" data-i="'+i+'" onclick="pendSugPick(this)">'
+      +'<b>'+s.sku_rbo+'</b>'+tag+'<br><small style="color:var(--mut)">'+String(s.sel_name||'').slice(0,28)+' · '+String(s.album_id||s.detail||'').slice(0,34)+'</small></div>';
+  }).join('');
+  box.style.display='block';
+}
+function pendSugPick(el){
+  var i=el.dataset.i;
+  document.getElementById('pendIn_'+i).value=el.dataset.code;
+  document.getElementById('pendSug_'+i).style.display='none';
+}
+async function pendBindGo(btn){
+  var ws=btn.dataset.ws, i=btn.dataset.i;
+  var manual=String((document.getElementById('pendIn_'+i)||{}).value||'').trim(); /* B3.105: ไม่บังคับตัวใหญ่ — รหัสไทย/ผสมได้ */
+  var sug=document.getElementById('pendSug_'+i); if(sug) sug.style.display='none';
+  var pfx=String(window._pendPfx||'');
+  if(!manual&&!pfx){ toast('เลือก prefix ด้านบนก่อน หรือพิมพ์/ค้นรหัสในช่อง'); return; }
+  btn.disabled=true; btn.textContent='…';
+  try{
+    var r=await api('pendBind',{sku_rbws:ws,sku_rbo:manual,prefix:pfx});
+    if(!r.ok){ toast('❌ '+(r.error||'ผูกไม่สำเร็จ')); btn.disabled=false; btn.textContent='⚡ ผูก'; return; }
+    toast(r.mode==='attach'?('🔗 ผูกเข้ากับตัวเดิม '+r.sku+' ✓'):('✓ สร้างใหม่ WS '+ws+' → '+r.sku));
+    window._PEND.forEach(function(x){ if(String(x.sku_rbws)===String(ws)) x.used=Number(x.used||0)+1; });
+    pendRender_();
+    api('catalog').then(function(c){ if(c.ok){CAT=c.selections; if(c.bibleFields)BIBLE_FIELDS=c.bibleFields; if(document.getElementById('catList')) renderCat();} }); /* คัมภีร์เห็นตัวใหม่ทันที */
+  }catch(e){ toast('❌ '+e); btn.disabled=false; btn.textContent='⚡ ผูก'; }
 }
 /* ═══ B3.71: KETSHOP Low Stock — การ์ดของใกล้หมดหน้าแรก ═══ */
 function lsFmtDate_(v){
