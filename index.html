@@ -155,8 +155,8 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B3.94 · 17 ก.ค. 69 · 🐛🐛 ฟอร์มนำเข้า: ฟังก์ชัน g2 หายทั้งไฟล์ — Save/ราคาแนะนำ/คำนวณตายเงียบทั้งฟอร์ม (ใส่คืนแล้ว) + ชิปช่องทาง + toast';
-const FRONT_VER = '3.85'; // ต้องตรงกับ build ใน doGet ของ backend
+const BUILD = 'B3.96 · 17 ก.ค. 69 · 🎨 ฟอร์มนำเข้า: กรอบชุด A (เด่น พื้นเหลือง) / ชุด B (รอง) + ป้ายเหลืองพื้นเหลืองตัวหนา + ป้ายชื่อ Selection';
+const FRONT_VER = '3.86'; // ต้องตรงกับ build ใน doGet ของ backend
 console.log('RB Online Ops · '+BUILD);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -768,12 +768,18 @@ async function loadAll(){
   /* B3.63: โหลด catalog ทันที ไม่รอ dashboard เสร็จก่อน — สินค้าโชว์เร็วขึ้น */
   api('catalog').then(function(c){ if(c.ok){CAT=c.selections;renderCat();wdRender();} lsLoad(); });
   if(isLA()){const p=await api('pendingList');
-    if(p.ok&&p.list.length){document.getElementById('pendCard').style.display='block';
-      document.getElementById('pendList').innerHTML=p.list.slice(0,15).map(x=>`
+    if(p.ok&&p.list.length){
+      /* B3.95: โชว์เฉพาะตัวที่ยังไม่ผูก RBO — ตัวที่ผูกแล้วยังค้นเจอในฟอร์มนำเข้า (เพิ่มไซส์/สีได้) */
+      const pw=p.list.filter(x=>!Number(x.used));
+      const pd=p.list.length-pw.length;
+      document.getElementById('pendCard').style.display='block';
+      const pHead='<div class="hint" style="margin-bottom:6px">เหลือรอผูก <b>'+pw.length+'</b>'+(pd?' · ผูกแล้ว '+pd+' ✓ (ค้นได้ในฟอร์มนำเข้า)':'')+'</div>';
+      document.getElementById('pendList').innerHTML=pHead+(pw.length?pw.slice(0,15).map(x=>`
         <div class="item"><div class="ph">${x.img?`<img src="${imgSrc(x.img)}">`:'🏷'}</div>
         <div><b>WS: ${x.sku_rbws}</b><small>${x.detail||''}</small></div>
         <div class="endc"><small>คงเหลือ WS ${x.qty}</small></div></div>`).join('')
-        +(p.list.length>15?`<div class="hint">…และอีก ${p.list.length-15} รายการ</div>`:'');
+        +(pw.length>15?`<div class="hint">…และอีก ${pw.length-15} รายการ</div>`:'')
+        :'<div class="empty">ผูกครบทุกตัวแล้ว 🎉</div>');
     }}
   wdLoad();
 }
@@ -1071,7 +1077,7 @@ function _ieRenderForm(source){
     '<label>Class (แพ็ค)</label><select id="ie_cls">'+clsOpts+'</select>'+
     '<label>รหัส SKU RBO (ระบุเอง)</label><input id="ie_sku" placeholder="เช่น EA999" style="font-size:14px;padding:10px">'+
     '<label>ชื่ออัลบั้ม</label><input id="ie_album">'+
-    '<label>ชื่อตัวเลือก</label><input id="ie_sel">'+
+    '<label>ชื่อตัวเลือก Selection</label><input id="ie_sel">'+
     '<label>รายละเอียด</label><input id="ie_detail">'+
     (source==='rbws'?'<label>SKU RBWS <small style="color:var(--mut);font-weight:400">(พิมพ์ 3 ตัว — เลือกจากรายการ ข้อมูล+รูปเติมเอง · ใช้ซ้ำได้หลาย RBO)</small></label><div style="position:relative"><input id="ie_ws" placeholder="เช่น EA021270444" autocomplete="off" oninput="ieWsSuggest()"><div class="sug" id="ieWsSug" style="display:none"></div></div>':'<input type="hidden" id="ie_ws" value="">')+
     '<label>น้ำหนัก g/ชิ้น</label><input id="ie_w" type="number" step="0.01">'+
@@ -1083,12 +1089,20 @@ function _ieRenderForm(source){
     '<label>สี RBO (ราคาชุด C)</label><select id="ie_color" onchange="ieCalc(true)">'+colOpts+'</select>'+
     '<div id="ie_baseWrap"><label>ราคาระบุเอง (฿)</label><input id="ie_base" type="number" step="0.01" oninput="ieCalc()"></div>'+
     '<div class="hint" id="ie_phint"></div>'+
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">'+
-      '<div><label>ป้ายเหลือง A</label><input id="ie_pa" type="number" step="0.01" oninput="ieListCalc()"></div>'+
-      '<div><label>ป้ายเหลือง B</label><input id="ie_pb" type="number" step="0.01" oninput="ieListCalc()"></div>'+
-    '</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">'+
-      '<div><label>ตั้งขาย A</label><input id="ie_la" type="number" step="0.01"></div>'+
-      '<div><label>ตั้งขาย B</label><input id="ie_lb" type="number" step="0.01"></div>'+
+    '<div style="display:grid;grid-template-columns:1.08fr 1fr;gap:8px;align-items:start">'+
+      /* B3.96: ชุด A เด่น — ช่องทางหัก 40% ใช้บ่อยสุด · ชุด B รอง */
+      '<div style="border:2px solid #E4B878;background:#FFFBEA;border-radius:14px;padding:9px 10px 11px">'+
+        '<div style="font-weight:800;font-size:13px;color:#A8720A;margin-bottom:2px">🅰️ ชุด A</div>'+
+        '<label style="margin-top:2px">ป้ายเหลือง A</label>'+
+        '<input id="ie_pa" type="number" step="0.01" oninput="ieListCalc()" style="background:#FFF3B8;border-color:#E4B878;font-weight:800;font-size:16px">'+
+        '<label>ตั้งขาย A</label><input id="ie_la" type="number" step="0.01">'+
+      '</div>'+
+      '<div style="border:1.5px dashed #D9CBA8;background:#FCFBF7;border-radius:14px;padding:9px 10px 11px;opacity:.95">'+
+        '<div style="font-weight:700;font-size:12.5px;color:#B7A97F;margin-bottom:2px">🅱️ ชุด B</div>'+
+        '<label style="margin-top:2px">ป้ายเหลือง B</label>'+
+        '<input id="ie_pb" type="number" step="0.01" oninput="ieListCalc()" style="background:#FFF8D9;border-color:#E0D5AE;font-weight:700">'+
+        '<label>ตั้งขาย B</label><input id="ie_lb" type="number" step="0.01">'+
+      '</div>'+
     '</div>'+
     '<label>ราคาทุน (L/A)</label><input id="ie_cost" type="number" step="0.01" oninput="ieCostHint()">'+
     '<div class="hint" id="ie_chint"></div>'+
@@ -1168,7 +1182,8 @@ async function ieWsSuggest(){
   el.innerHTML=hit.map(function(x,i){
     return '<div class="item" onclick="iePickPend('+i+')">'
       +'<div class="ph">'+(x.img?'<img src="'+imgSrc(x.img)+'" loading="lazy">':'🏷')+'</div>'
-      +'<div><b>'+x.sku_rbws+'</b><small>'+String(x.detail||'').slice(0,55)+'</small></div>'
+      +'<div><b>'+x.sku_rbws+'</b><small>'+String(x.detail||'').slice(0,55)+'</small>'
+      +(Number(x.used)?'<small style="color:#2e7d32">✓ ผูกแล้ว '+x.used+' รหัส — เลือกซ้ำได้ถ้าเพิ่มไซส์/สี</small>':'')+'</div>'
       +'<div class="endc"><small>WS '+(x.qty||0)+'</small></div></div>';
   }).join('');
   el.style.display='block';
