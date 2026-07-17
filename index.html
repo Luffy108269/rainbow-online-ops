@@ -155,8 +155,8 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B3.96 · 17 ก.ค. 69 · 🎨 ฟอร์มนำเข้า: กรอบชุด A (เด่น พื้นเหลือง) / ชุด B (รอง) + ป้ายเหลืองพื้นเหลืองตัวหนา + ป้ายชื่อ Selection';
-const FRONT_VER = '3.86'; // ต้องตรงกับ build ใน doGet ของ backend
+const BUILD = 'B3.99 · 17 ก.ค. 69 · 🔑 สิทธิ์แก้คัมภีร์ต่อ role จากชีต Config (edit_fields_admin/graphic/storefront) · ราคา/ทุนล็อก L/A เสมอ';
+const FRONT_VER = '3.88'; // ต้องตรงกับ build ใน doGet ของ backend
 console.log('RB Online Ops · '+BUILD);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -204,7 +204,9 @@ console.log('RB Online Ops · '+BUILD);
 <div id="prod" class="pg">
   <div class="card">
     <h2>📿 คัมภีร์สินค้า</h2>
-    <input id="catQ" placeholder="ค้นหา: รหัส RBO / รายละเอียด…" oninput="renderCat()">
+    <input id="catQ" placeholder="ค้นหา: SKU RBO / SKU RBWS / อัลบั้ม / ชื่อตัวเลือก…" oninput="renderCat()">
+    <div id="catTypeChips"></div><!-- B3.97: กรองประเภทสินค้า -->
+    <div id="catChanChips"></div><!-- B3.97: กรองช่องทางขาย + SKU ไม่ครบ (L/A) -->
     <div id="catColorChip"></div>
     <div id="catList"><div class="empty">กำลังโหลด…</div></div>
   </div>
@@ -766,7 +768,7 @@ async function loadAll(){
     aPriceCalc();
   }
   /* B3.63: โหลด catalog ทันที ไม่รอ dashboard เสร็จก่อน — สินค้าโชว์เร็วขึ้น */
-  api('catalog').then(function(c){ if(c.ok){CAT=c.selections;renderCat();wdRender();} lsLoad(); });
+  api('catalog').then(function(c){ if(c.ok){CAT=c.selections;if(c.bibleFields)BIBLE_FIELDS=c.bibleFields;if('editFields' in c)EDIT_FIELDS=c.editFields;renderCat();wdRender();} lsLoad(); });
   if(isLA()){const p=await api('pendingList');
     if(p.ok&&p.list.length){
       /* B3.95: โชว์เฉพาะตัวที่ยังไม่ผูก RBO — ตัวที่ผูกแล้วยังค้นเจอในฟอร์มนำเข้า (เพิ่มไซส์/สีได้) */
@@ -885,11 +887,79 @@ function catColorGo(color){
 }
 function catColorClear(){ window._catColor=''; renderCat(); }
 function noPhoto_(){ return '<span style="font-size:8.5px;color:var(--mut);text-align:center;line-height:1.2">✖<br>No photo</span>'; }
+/* ══ B3.97: ประเภทสินค้าจาก prefix ของ SKU RBO (ไม่ต้องกรอกเพิ่ม — ทุก SKU ที่ตั้งรหัสตามระบบมีประเภททันที) ══ */
+const CAT_TYPES=['Earrings','Ring','Pendant','Necklace','Anklet','Bangle','Bracelet','Set'];
+const TYPE_PREFIX=[ /* เรียงยาว→สั้น กัน BA กิน BAB */
+  ['BAB','Bangle'],['BAS','Bangle'],['BRB','Bracelet'],['BRS','Bracelet'],
+  ['EA','Earrings'],['EB','Earrings'],['ES','Earrings'],
+  ['RI','Ring'],['RB','Ring'],['RS','Ring'],
+  ['NE','Necklace'],['NB','Necklace'],['NS','Necklace'],
+  ['PE','Pendant'],['PB','Pendant'],['PS','Pendant'],
+  ['AN','Anklet'],['AB','Anklet'],['AS','Anklet'],
+  ['BA','Bangle'],['BR','Bracelet'],
+  ['SE','Set'],['SB','Set'],['SS','Set']];
+function skuPfx_(sku){
+  var u=String(sku||'').toUpperCase().trim();
+  for(var i=0;i<TYPE_PREFIX.length;i++){ if(u.indexOf(TYPE_PREFIX[i][0])===0) return TYPE_PREFIX[i][0]; }
+  return '';
+}
+function skuType_(sku){ var p=skuPfx_(sku); if(!p) return ''; var hit=TYPE_PREFIX.find(function(x){return x[0]===p;}); return hit?hit[1]:''; }
+/* B3.98: Non-Silver = ของที่ไม่ใช่เครื่องประดับเลย — prefix ไม่เข้า 8 หมวดเครื่องประดับ (EB/ES ยังเป็น Earrings ตามเดิม) → ทุก SKU มีประเภทเสมอ */
+function skuNonSilver_(sku){ return skuType_(sku)===''; }
+/* ══ B3.97: SKU รายละเอียดไม่ครบ — ฟิลด์เช็คมาจากชีต Config แถว bible_check_fields (L/A เท่านั้น) ══ */
+var BIBLE_FIELDS=[]; /* backend ส่งมาเฉพาะ Luffy/Assist */
+var EDIT_FIELDS=null; /* B3.99: null=แก้ได้ทุกช่อง (L/A) · array=เฉพาะฟิลด์ที่ Luffy เปิดใน Config (edit_fields_<role>) */
+function canEditF_(k){ return isLA() || (Array.isArray(EDIT_FIELDS)&&EDIT_FIELDS.indexOf(k)>=0); }
+const BIBLE_LABELS={pack_class:'Class (แพ็ค)',color_rbo:'สี RBO',price_base:'ราคาระบุเอง',sku_rbo:'SKU RBO',album_id:'ชื่ออัลบั้ม',sel_name:'ชื่อตัวเลือก',cost_latest:'ราคาทุน',weight:'น้ำหนัก',img:'รูป',
+  loc_rbws:'Location RBWS',loc_rbo:'Location RBO',color_rbws:'รหัสสี RBWS',qty_shop:'จำนวนเริ่มต้น',cost_note:'หมายเหตุต้นทุน',star:'ดาว',web_status:'ช่องทางขาย'};
+function bibleEmpty_(v){ var t=String(v==null?'':v).trim(); return t===''||t==='0'; }
+function skuMissing_(s){
+  /* กติกา Config: คั่น comma = ต้องมีทุกตัว · ภายใน token ใช้ | = มีอย่างใดอย่างหนึ่งก็ครบ (เช่น color_rbo|price_base) */
+  var miss=[];
+  BIBLE_FIELDS.forEach(function(k){
+    var alts=String(k).split('|').map(function(x){return x.trim();}).filter(String);
+    if(alts.every(function(a){return bibleEmpty_(s[a]);})) miss.push(k);
+  });
+  return miss;
+}
+function bibleLabel_(k){ return String(k).split('|').map(function(a){return BIBLE_LABELS[a.trim()]||a.trim();}).join(' / '); }
+function catTypeGo(t){ window._catType=(window._catType===t?'':t); renderCat(); }
+function catChanGo(c){ window._catChan=(window._catChan===c?'':c); renderCat(); }
+function catIncGo(){ window._catInc=!window._catInc; renderCat(); }
+function catChipsRender_(){
+  var el1=document.getElementById('catTypeChips'), el2=document.getElementById('catChanChips');
+  if(!el1||!el2) return;
+  var cs='display:inline-block;border-radius:999px;padding:4px 11px;margin:3px 4px 0 0;font-size:11.5px;cursor:pointer;font-weight:600;';
+  /* นับจากทั้ง CAT (ตัวเลขนิ่ง ไม่เปลี่ยนตามตัวกรองอื่น) */
+  var tCnt={}; CAT_TYPES.forEach(function(t){tCnt[t]=0;}); var nsCnt=0;
+  var cCnt={}; SALE_CHANNELS.forEach(function(c){cCnt[c[0]]=0;});
+  var incCnt=0;
+  CAT.forEach(function(s){
+    var t=skuType_(s.sku_rbo); if(t) tCnt[t]++;
+    if(skuNonSilver_(s.sku_rbo)) nsCnt++;
+    String(s.web_status||'').split(',').forEach(function(x){x=x.trim(); if(cCnt[x]!=null)cCnt[x]++;});
+    if(isLA()&&BIBLE_FIELDS.length&&skuMissing_(s).length) incCnt++;
+  });
+  el1.innerHTML=CAT_TYPES.map(function(t){
+    var on=window._catType===t;
+    return '<span onclick="catTypeGo(\''+t+'\')" style="'+cs+(on?'background:var(--pdd);color:#fff':'background:#F3F3F5;color:#666')+'">'+t+' '+tCnt[t]+'</span>';
+  }).join('')+(function(){
+    var on=window._catType==='Non-Silver';
+    return '<span onclick="catTypeGo(\'Non-Silver\')" style="'+cs+(on?'background:#5B4B8A;color:#fff':'background:#EFEAF7;color:#5B4B8A')+'">Non-Silver '+nsCnt+'</span>';
+  })();
+  el2.innerHTML=SALE_CHANNELS.map(function(c){
+    var on=window._catChan===c[0];
+    return '<span onclick="catChanGo(\''+c[0].replace(/'/g,"\\'")+'\')" style="'+cs+(on?'background:'+c[1]+';color:#fff':'background:#F3F3F5;color:#888')+'">'+c[0]+' '+cCnt[c[0]]+'</span>';
+  }).join('')+(isLA()&&BIBLE_FIELDS.length
+    ?'<span onclick="catIncGo()" style="'+cs+(window._catInc?'background:#c0392b;color:#fff':'background:#FDECEA;color:#c0392b')+'">⚠️ รายละเอียดไม่ครบ '+incCnt+'</span>'
+    :'');
+}
 function renderCat(){
   const q=(document.getElementById('catQ').value||'').toLowerCase();
-  /* B3.60 fix: ถ้าพิมพ์ค้นหา ล้างตัวกรองสีออก (ไม่งั้น EA จะได้ 0 ถ้าค้างกรองสีอยู่) */
+  /* B3.60 fix: ถ้าพิมพ์ค้นหา ล้างตัวกรองสีออก (ไม่งั้น EA จะได้ 0 ถ้าค้างกรองสีอยู่) — ตัวกรองประเภท/ช่องทางคงไว้ ใช้ร่วมกับค้นหาได้ */
   if(q&&window._catColor) window._catColor='';
   const colF=String(window._catColor||'').toUpperCase();
+  const typF=window._catType||'', chanF=window._catChan||'', incF=!!window._catInc;
   const list=CAT.filter(s=>{
     if(colF){
       if(colF==='MIX'){ /* B3.69: Mix = ราคาระบุเอง ไม่มีสี */
@@ -899,18 +969,28 @@ function renderCat(){
         const tok=String(s.color_rbo||'').trim().split(/\s+/)[0].toUpperCase(); if(tok!==colF) return false;
       }
     }
-    return !q||String(s.sku_rbo).toLowerCase().includes(q)||String(s.detail).toLowerCase().includes(q)||String(s.sku_rbws||'').toLowerCase().includes(q);
+    /* B3.97: กรองประเภท (จาก prefix SKU) + ช่องทางขาย + รายละเอียดไม่ครบ */
+    if(typF){ if(typF==='Non-Silver'){ if(!skuNonSilver_(s.sku_rbo)) return false; } else if(skuType_(s.sku_rbo)!==typF) return false; }
+    if(chanF && String(s.web_status||'').split(',').map(x=>x.trim()).indexOf(chanF)<0) return false;
+    if(incF && !skuMissing_(s).length) return false;
+    /* B3.97: ค้น 4 ช่องหลัก — SKU RBO / SKU RBWS / ชื่ออัลบั้ม / ชื่อตัวเลือก (+รายละเอียด/ชื่อฝั่ง WS) พิมพ์บางส่วนได้ ไม่สนตัวเล็กใหญ่ */
+    return !q||[s.sku_rbo,s.sku_rbws,s.album_id,s.sel_name,s.detail,s.name_rbws]
+      .some(f=>String(f||'').toLowerCase().includes(q));
   });
   window._catShown=list; /* B3.55: โชว์ทั้งหมด (เดิมตัดที่ 80) — รูปโหลดแบบ lazy อยู่แล้วไม่หน่วง */
+  catChipsRender_();
   const chip=document.getElementById('catColorChip');
   if(chip) chip.innerHTML=colF
     ?'<span style="display:inline-flex;align-items:center;gap:6px;background:#FCE4EC;color:var(--pdd);font-weight:700;font-size:11.5px;border-radius:999px;padding:4px 12px;margin:6px 0">🎨 '+(colF==='MIX'?'ราคาระบุเอง (Mix)':'กรองสี '+colF)+' ('+list.length+' ตัว) <span onclick="catColorClear()" style="cursor:pointer">✕ ล้าง</span></span>'
     :'<small style="color:var(--mut)">ทั้งหมด '+list.length+' ตัว</small>';
-  document.getElementById('catList').innerHTML = list.length? window._catShown.map((s,i)=>`
+  document.getElementById('catList').innerHTML = list.length? window._catShown.map((s,i)=>{
+    /* B3.97: โหมด "ไม่ครบ" โชว์ว่าขาดช่องไหน — ไล่เติมได้เลย */
+    var missTag=(incF&&isLA())?'<small style="color:#c0392b">ขาด: '+skuMissing_(s).map(bibleLabel_).join(' · ')+'</small>':'';
+    return `
     <div class="item" style="cursor:pointer" onclick="skuDetail(${i})"><div class="ph">${s.img?`<img src="${imgSrc(s.img)}" loading="lazy">`:noPhoto_()}</div>
-      <div><b>${s.sku_rbo}</b><small>${s.detail||''}</small><small>${s.sku_rbws?'WS: '+s.sku_rbws+' · 📍'+(s.loc_rbws||'–'):'ซื้อภายนอก'}</small></div>
+      <div><b>${s.sku_rbo}</b><small>${s.detail||''}</small><small>${s.sku_rbws?'WS: '+s.sku_rbws+' · 📍'+(s.loc_rbws||'–'):'ซื้อภายนอก'}</small>${missTag}</div>
       <div class="endc">${s.color_rbo?`<span class="num">${s.color_rbo}</span>`:(s.price_base?`<span class="num">฿${fmtN(s.price_base)}</span>`:'')}<small>คงเหลือ ${fmtQ(s.qty_shop||0)}</small>${(isLA()&&s.cost_latest)?`<small>ทุน ${fmtN(s.cost_latest)}</small>`:''}</div>
-    </div>`).join('') : '<div class="empty">ไม่พบ</div>';
+    </div>`;}).join('') : '<div class="empty">ไม่พบ</div>';
 }
 
 /* ═══ คัมภีร์สินค้า: กดดูรายละเอียดทั้งหมด + Edit/Save (Luffy/Assist) ═══ */
@@ -1491,16 +1571,19 @@ function skuDetail(i,editMode){
     '<span>คงเหลือร้าน <b class="num">'+fmtQ(s.qty_shop||0)+'</b></span>'+
     '<span>งานแฟร์ <b class="num">'+fmtQ(s.qty_fair||0)+'</b></span>'+
     (la?'<span style="color:var(--pdd)">ทุนจริง <b class="num">'+(s.cost_latest?fmtN(s.cost_latest):'–')+'</b></span>':'')+'</div>';
+  /* B3.97: ประเภทสินค้า (ถอดจาก prefix SKU อัตโนมัติ) */
+  var _sdType=skuType_(s.sku_rbo)||'Non-Silver';
+  html+='<div style="text-align:center;font-size:12px;color:var(--mut);margin-bottom:8px">ประเภท: <b'+(_sdType==='Non-Silver'?' style="color:#5B4B8A"':'')+'>'+_sdType+'</b></div>';
   window._sdStar=Number(s.star)||0;
-  if(editMode){
+  if(editMode&&canEditF_('img')){ /* B3.99: แก้รูปตามสิทธิ์ Config */
     /* B3.45: เปลี่ยน/เพิ่มรูปสินค้า */
     html+='<div style="display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--soft);font-size:12.5px">'+
       '<div style="width:130px;color:var(--mut)">📷 รูปสินค้า</div>'+
       '<div style="flex:1"><input type="file" id="sd_img" accept="image/*" onchange="sdImgPick()" style="font-size:11.5px;width:100%">'+
       '<div class="hint" id="sdImgHint">'+(s.img?'มีรูปอยู่แล้ว — เลือกไฟล์ใหม่เพื่อเปลี่ยน':'ยังไม่มีรูป — เลือกไฟล์เพื่อเพิ่ม')+'</div></div></div>';
   }
-  var BASIC_EDIT=['loc_rbws','loc_rbo']; /* B3.52: field ที่ทุก role แก้ได้ (นอกนั้นเฉพาะ Luffy/Assist) */
-  SKU_FIELDS.forEach(function(f){ html+=sdFieldRow_(f,s,editMode&&(la||BASIC_EDIT.indexOf(f[0])>=0)); });
+  /* B3.99: สิทธิ์แก้ต่อฟิลด์มาจากชีต Config (edit_fields_<role>) — เดิม B3.52 hardcode รูป+Location · L/A แก้ได้ทุกช่องเหมือนเดิม */
+  SKU_FIELDS.forEach(function(f){ html+=sdFieldRow_(f,s,editMode&&canEditF_(f[0])); });
   /* B3.32: ราคาเห็นได้ทุก role · สูตร (hint/แนะนำ) มีเฉพาะโหมด Edit ซึ่งเปิดได้แค่ Luffy/Assist · ทุน+หมายเหตุทุน เฉพาะ Luffy/Assist */
   html+='<div style="margin-top:10px;border:1.5px dashed #E4C878;background:#FFFBEF;border-radius:12px;padding:8px 12px">'+
     '<div style="font-size:12px;font-weight:700;color:#8a6d1f;margin-bottom:2px">💰 ราคาขาย</div>';
@@ -1526,8 +1609,9 @@ function skuDetail(i,editMode){
   html+='</div>';
   // ── ช่องทางที่ขาย: ติ๊กว่าลงขายที่ไหนแล้วบ้าง ──
   window._sdChans=new Set(String(s.web_status||'').split(',').map(function(x){return x.trim();}).filter(String));
-  html+='<div style="margin-top:10px"><div style="font-size:12px;color:var(--mut);margin-bottom:4px">🛒 ช่องทางที่ขาย'+((editMode&&la)?' <small>(แตะเพื่อติ๊ก)</small>':'')+'</div><div style="display:flex;flex-wrap:wrap">';
-  if(editMode&&la){ /* B3.52: ติ๊กช่องทางขายได้เฉพาะ Luffy/Assist */
+  var chanEdit=editMode&&canEditF_('web_status'); /* B3.99: ติ๊กช่องทางได้ตามสิทธิ์ Config (เดิมเฉพาะ L/A) */
+  html+='<div style="margin-top:10px"><div style="font-size:12px;color:var(--mut);margin-bottom:4px">🛒 ช่องทางที่ขาย'+(chanEdit?' <small>(แตะเพื่อติ๊ก)</small>':'')+'</div><div style="display:flex;flex-wrap:wrap">';
+  if(chanEdit){
     SALE_CHANNELS.forEach(function(c,idx){ html+=chanChip(c[0],c[1],window._sdChans.has(c[0]),idx,true); });
   } else {
     var act=SALE_CHANNELS.filter(function(c){return window._sdChans.has(c[0]);});
@@ -1539,8 +1623,9 @@ function skuDetail(i,editMode){
     html+='<button class="btn" style="margin-top:0;flex:1" data-i="'+i+'" onclick="skuSave(this.dataset.i)">💾 Save เข้าฐานข้อมูล</button>'+
       '<button class="btn o" style="margin-top:0;width:auto;padding:12px 16px" data-i="'+i+'" onclick="skuDetail(Number(this.dataset.i))">ยกเลิก</button>';
   } else {
-    html+='<button class="btn" style="margin-top:0;flex:1" data-i="'+i+'" onclick="skuDetail(Number(this.dataset.i),true)">✏️ Edit'+(la?'':' (รูป/Location)')+'</button>'; /* B3.51: ทุก role แก้ รูป+Location ได้ */
-    html+='<button class="btn o" style="margin-top:0;'+(la?'width:auto;padding:12px 16px':'flex:1')+'" onclick="closeModal()">ปิด</button>';
+    var hasEdit=la||(Array.isArray(EDIT_FIELDS)&&EDIT_FIELDS.length>0); /* B3.99: ไม่มีสิทธิ์สักช่อง = ไม่โชว์ปุ่ม Edit */
+    if(hasEdit) html+='<button class="btn" style="margin-top:0;flex:1" data-i="'+i+'" onclick="skuDetail(Number(this.dataset.i),true)">✏️ Edit'+(la?'':' (เฉพาะช่องที่ได้รับสิทธิ์)')+'</button>';
+    html+='<button class="btn o" style="margin-top:0;'+(hasEdit&&la?'width:auto;padding:12px 16px':'flex:1')+'" onclick="closeModal()">ปิด</button>';
   }
   html+='</div>';
   document.getElementById('modalBody').innerHTML=html;
@@ -1572,7 +1657,7 @@ async function skuSave(i){
     var el=document.getElementById('sd_'+f[0]);
     if(el) fields[f[0]]=el.value.trim();
   });
-  fields.web_status=[...window._sdChans].join(',');
+  if(canEditF_('web_status')) fields.web_status=[...window._sdChans].join(','); /* B3.99 */
   var cEl=document.getElementById('sd_cost_latest');
   if(cEl&&cEl.value!=='') fields.cost_latest=Number(cEl.value);
   var nEl=document.getElementById('sd_cost_note');
