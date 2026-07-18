@@ -25,6 +25,12 @@
 | S1 | Session token แยกจาก password hash | ตอนนี้ `key` ที่ frontend เก็บไว้ = `x.passhash` ตรงๆ (`verify_` เทียบ `passhash===k` ตรงๆ) ไม่มี session แยก ไม่มีวันหมดอายุ ไม่มี revoke รายอุปกรณ์ — ถ้า `key` หลุด (localStorage/log/MITM) = เข้าถาวรจนกว่าเจ้าของจะเปลี่ยนรหัสผ่าน | ⬜ |
 | S2 | Hash แข็งขึ้น + rate limit ที่ login | `hash_()` ใช้ SHA-256(password+salt ตายตัว `'RBOsalt'`) เป็น fast hash ไม่มี per-user random salt · รหัสผ่านขั้นต่ำแค่ 4 ตัว → ถ้าชีต Users หลุด brute-force ได้เร็ว · ไม่มี rate limit/lockout ที่ `action:'login'` เลย ถูกสุ่มรหัสผ่านไม่จำกัดครั้งได้ | ⬜ |
 
+### 📝 บันทึกเพิ่ม (18 ก.ค. 2569): TOKEN_SECRET เก่าใน git history
+- **repo `re-order`** (คนละ repo กับ rainbow-online-ops นี้) มี git history เก่า commit `d23c331` ที่เคยมี `TOKEN_SECRET` ฝังอยู่
+- **rotate แล้ว** — token ตัวนั้นใช้ไม่ได้แล้ว (inert) ต่อให้มีคนขุด history เจอก็เอาไปใช้อะไรไม่ได้
+- **ตัดสินใจ:** ปล่อย history ของ repo `re-order` ไว้แบบเดิม ไม่ล้าง/ไม่ rewrite history เพราะความเสี่ยงจริง = 0 (token inert แล้ว) — การ rewrite history มี cost/risk สูงกว่าประโยชน์ที่ได้
+- repo นี้ (`rainbow-online-ops`) ยังคงเป็น **public** ต่อไป เพราะเป็นเว็บใช้งานจริงผ่าน GitHub Pages (Pages แบบ custom domain/private ต้องใช้ GitHub Pro) — ถ้าจะเปลี่ยนเป็น private ต้องอัปเกรดแผนก่อน
+
 ## 🔥 เฟส A — เก็บกวาด + ของค้างชิ้นเล็ก (ทำรวดเดียว 1 build)
 | # | งาน | ขนาด | สถานะ |
 |---|---|---|---|
