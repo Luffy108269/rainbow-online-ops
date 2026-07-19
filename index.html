@@ -155,8 +155,8 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B3.109 · 19 ก.ค. 69 · 🗃️ Backlog Board เปิดให้ทุก role เห็นแล้ว (ไม่มีต้นทุนอยู่ในนี้เลย) — หน้า ✅ รอรีวิว ยังจำกัดเฉพาะ Luffy/Assist เหมือนเดิม';
-const FRONT_VER = '3.95'; // ต้องตรงกับ build ใน doGet ของ backend
+const BUILD = 'B3.110 · 19 ก.ค. 69 · 🗃️ Backlog Board: มอบหมายให้ ดึงรายชื่อจริงจากชีต Users แล้ว (เลิก hardcode Admin A/B) — Assist เรียก userList ได้ด้วย';
+const FRONT_VER = '3.96'; // ต้องตรงกับ build ใน doGet ของ backend
 console.log('RB Online Ops · '+BUILD);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -960,8 +960,17 @@ window._blItemSeq=1;
 window._blRowSeq=1;
 window._blFillingId=null;
 window._blfImgB64='';
-var BACKLOG_STAFF=[['luffy','Luffy'],['assist','Assist Manager'],['admina','Admin A'],['adminb','Admin B'],['graphic','Graphic'],['store','User หน้าร้าน WS']];
-var BACKLOG_STAFF_MAP=BACKLOG_STAFF.reduce(function(m,p){m[p[0]]=p[1];return m;},{});
+/* 19 ก.ค.: เลิก hardcode รายชื่อ — ดึงจากชีต Users จริงผ่าน userList (L/A เท่านั้นที่เรียกได้)
+   role อื่นเปิด Backlog ได้แต่จะไม่เห็นตัวเลือกมอบหมาย (เป็นงานของ L/A) เหลือแค่ placeholder เดียว */
+window._BACKLOG_STAFF=[['','ยังไม่มอบหมาย']];
+window._BACKLOG_STAFF_MAP={'':'ยังไม่มอบหมาย'};
+async function blLoadStaff(){
+  if(!isLA()) return; /* userList เป็น L/A เท่านั้น — role อื่นใช้ placeholder เดิม */
+  const r=await api('userList');
+  if(!r.ok) return;
+  window._BACKLOG_STAFF=[['','ยังไม่มอบหมาย']].concat(r.users.filter(function(u){return u.active==='Y';}).map(function(u){return [u.username,u.name];}));
+  window._BACKLOG_STAFF_MAP={}; window._BACKLOG_STAFF.forEach(function(p){window._BACKLOG_STAFF_MAP[p[0]]=p[1];});
+}
 var BACKLOG_FIELDS_REQUIRED=['img','category','cls','rbo_sku','album','variant','rbws_code','weight','loc_rbo','loc_rbws','rbws_color'];
 function blIsComplete_(x){ return BACKLOG_FIELDS_REQUIRED.every(function(f){return String(x[f]||'').trim()!=='';}); }
 function blTab(n){
@@ -990,7 +999,7 @@ function blAddRow(){
   tr.innerHTML=
     '<td style="padding:3px"><input id="blAlbum'+i+'" placeholder="เช่น Minimal Organic" style="width:100%;margin:0;padding:6px 8px"></td>'+
     '<td style="padding:3px"><input id="blVariant'+i+'" placeholder="เช่น 1.The Edge" style="width:100%;margin:0;padding:6px 8px"></td>'+
-    '<td style="padding:3px"><select id="blAssign'+i+'" style="width:100%;margin:0;padding:6px 8px">'+BACKLOG_STAFF.map(function(p){return '<option value="'+p[0]+'">'+p[1]+'</option>';}).join('')+'</select></td>'+
+    '<td style="padding:3px"><select id="blAssign'+i+'" style="width:100%;margin:0;padding:6px 8px">'+window._BACKLOG_STAFF.map(function(p){return '<option value="'+p[0]+'">'+p[1]+'</option>';}).join('')+'</select></td>'+
     '<td style="padding:3px;text-align:center"><button onclick="blRemoveRow('+i+')" style="border:none;background:none;color:#C03A3A;font-size:16px;cursor:pointer;padding:4px">✕</button></td>';
   tbody.appendChild(tr);
 }
@@ -1035,7 +1044,7 @@ function blRenderOverview(){
     var sent=items.filter(function(x){return x.status==='sent_sku'||x.status==='sent_nonrb';}).length;
     var draft=items.length-ready-sent;
     var assignCount={};
-    items.forEach(function(x){ var name=BACKLOG_STAFF_MAP[x.assigned_to]||x.assigned_to||'ยังไม่มอบหมาย'; assignCount[name]=(assignCount[name]||0)+1; });
+    items.forEach(function(x){ var name=window._BACKLOG_STAFF_MAP[x.assigned_to]||x.assigned_to||'ยังไม่มอบหมาย'; assignCount[name]=(assignCount[name]||0)+1; });
     var assignStr=Object.keys(assignCount).map(function(n){return n+'('+assignCount[n]+')';}).join(', ');
     return '<div class="item"><div class="ph">🗃️</div><div><b>'+album+'</b>'+
       '<small>'+items.length+' ตัวเลือก · กรอกอยู่ '+draft+' · รอรีวิว '+ready+' · ส่งต่อแล้ว '+sent+'</small>'+
@@ -1050,7 +1059,7 @@ function blRenderDraftList(){
     var doneCount=BACKLOG_FIELDS_REQUIRED.filter(function(f){return String(x[f]||'').trim()!=='';}).length;
     return '<div class="item"><div class="ph">'+(x.img?'<img src="'+x.img+'">':'🏷')+'</div>'+
       '<div><b>'+x.album+(x.variant?' · '+x.variant:'')+'</b>'+
-      '<small>มอบหมาย: '+(BACKLOG_STAFF_MAP[x.assigned_to]||x.assigned_to||'ยังไม่มอบหมาย')+'</small>'+
+      '<small>มอบหมาย: '+(window._BACKLOG_STAFF_MAP[x.assigned_to]||x.assigned_to||'ยังไม่มอบหมาย')+'</small>'+
       '<small>กรอกแล้ว '+doneCount+'/'+BACKLOG_FIELDS_REQUIRED.length+' ช่อง</small>'+
       '<button class="btn sm" style="margin-top:6px" onclick="blOpenFill('+x.id+')">✏️ กรอกข้อมูล</button></div></div>';
   }).join('');
@@ -4099,7 +4108,7 @@ function tab(id,btn){
   /* B3.62 fix: เปิดหน้าสินค้า → ล้างสีกรอง · ถ้า CAT โหลดแล้วค่อย render (กันแสดง 0 ตัว) */
   if(id==='prod'){ window._catColor=''; if(window.CAT&&CAT.length) renderCat(); }
   if(id==='scout'){ scoutLoad(); }
-  if(id==='backlog'){ blTab(1); }
+  if(id==='backlog'){ blLoadStaff().then(function(){ blTab(1); }); }
 }
 document.getElementById('bstamp').textContent='เวอร์ชั่น: '+BUILD;
 if(document.getElementById('scDate')) document.getElementById('scDate').value=new Date().toISOString().slice(0,10);
