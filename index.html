@@ -155,7 +155,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B3.106 · 19 ก.ค. 69 · 🔎 F1 Scout: หา New SKU จากซัพพลายเออร์ — แนะนำสีราคาอัตโนมัติจากทุน (รองรับ Mix) · Yes→วางแผนจัดซื้อ (View/Edit/Print) · Hold เก็บพักได้ · No ดูประวัติได้ · ส่งเข้าคิวรอลงโค้ด';
+const BUILD = 'B3.107 · 19 ก.ค. 69 · 🛒 Scout Yes→ซื้อแล้ว → 🗃️ นำเข้า Backlog (รวมกับของซื้อนานแล้ว) · 🗃️ F4 Backlog Board mockup: ภาพรวมตามอัลบั้ม + กรอกกริด + มอบหมายทีม · ต้นทุนเห็นเฉพาะ Luffy/Assist';
 const FRONT_VER = '3.95'; // ต้องตรงกับ build ใน doGet ของ backend
 console.log('RB Online Ops · '+BUILD);
 </script>
@@ -360,10 +360,9 @@ console.log('RB Online Ops · '+BUILD);
 <div id="scout" class="pg">
   <div style="display:flex;gap:0;margin:12px 12px 0;background:var(--soft);border-radius:14px;padding:4px;overflow-x:auto">
     <button id="scoutT1" onclick="scoutTab(1)" class="wtab on">➕ เพิ่มใหม่</button>
-    <button id="scoutT2" onclick="scoutTab(2)" class="wtab">📋 วางแผนจัดซื้อ <span id="scoutB2" class="wbadge" style="display:none">0</span></button>
+    <button id="scoutT2" onclick="scoutTab(2)" class="wtab">🛒 ซื้อแล้ว <span id="scoutB2" class="wbadge" style="display:none">0</span></button>
     <button id="scoutT3" onclick="scoutTab(3)" class="wtab">🤔 Hold <span id="scoutB3" class="wbadge" style="display:none">0</span></button>
     <button id="scoutT4" onclick="scoutTab(4)" class="wtab">🗂 ประวัติ (No)</button>
-    <button id="scoutT5" onclick="scoutTab(5)" class="wtab">🔢 รอคิวลงโค้ด <span id="scoutB5" class="wbadge" style="display:none">0</span></button>
   </div>
 
   <div id="scoutPane1" class="wpane">
@@ -416,7 +415,7 @@ console.log('RB Online Ops · '+BUILD);
   </div>
 
   <div id="scoutPane2" class="wpane" style="display:none">
-    <div class="card"><h2>📋 วางแผนจัดซื้อ <small style="font-weight:400;color:var(--mut);font-size:11px">· พิจารณาแล้วว่า Yes</small></h2><div id="scoutList2"><div class="empty">ยังไม่มีรายการ</div></div></div>
+    <div class="card"><h2>🛒 ซื้อแล้ว <small style="font-weight:400;color:var(--mut);font-size:11px">· พิจารณาแล้วว่า Yes</small></h2><div id="scoutList2"><div class="empty">ยังไม่มีรายการ</div></div></div>
   </div>
   <div id="scoutPane3" class="wpane" style="display:none">
     <div class="card"><h2>🤔 เก็บไว้ดูทีหลัง (Hold)</h2><div id="scoutList3"><div class="empty">ยังไม่มีรายการ</div></div></div>
@@ -424,8 +423,46 @@ console.log('RB Online Ops · '+BUILD);
   <div id="scoutPane4" class="wpane" style="display:none">
     <div class="card"><h2>🗂 ประวัติที่เคย No</h2><div id="scoutList4"><div class="empty">ยังไม่มีรายการ</div></div></div>
   </div>
-  <div id="scoutPane5" class="wpane" style="display:none">
-    <div class="card"><h2>🔢 รอคิวลงโค้ด <small style="font-weight:400;color:var(--mut);font-size:11px">· ส่งต่อจากวางแผนจัดซื้อ รอ Assist/Luffy ผูกรหัส SKU จริง</small></h2><div id="scoutList5"><div class="empty">ยังไม่มีรายการ</div></div></div>
+</div>
+
+<div id="backlog" class="pg">
+  <div style="display:flex;gap:0;margin:12px 12px 0;background:var(--soft);border-radius:14px;padding:4px;overflow-x:auto">
+    <button id="blT1" onclick="blTab(1)" class="wtab on">📊 ภาพรวม</button>
+    <button id="blT2" onclick="blTab(2)" class="wtab">▦ กรอกกริด</button>
+  </div>
+
+  <div id="blPane1" class="wpane">
+    <div class="card">
+      <h2>📊 คิวสินค้าค้าง (Backlog Board) <span class="lock">Luffy/Assist</span></h2>
+      <div style="background:#FFF6E8;border:1.5px dashed #E4B878;border-radius:12px;padding:8px 12px;font-size:11px;color:#8a6d1c;margin-bottom:8px">🧪 ตัวอย่าง UI — mock ในเบราว์เซอร์ ยังไม่ต่อ backend/ชีตจริง (ข้อมูลจะหายเมื่อรีเฟรชหน้า)</div>
+      <div class="hint" style="margin-bottom:8px">รวม <b id="blTotalAlbum">0</b> อัลบั้ม · <b id="blTotalCount">0</b> ตัวเลือก</div>
+      <div id="blOverviewList"><div class="empty">ยังไม่มีข้อมูล — เริ่มกรอกที่แท็บ ▦ กรอกกริด หรือใช้ฟอร์ม ➕ SKU / 🛍 In Non-RB เดิมสำหรับกรอกทีละตัวละเอียด</div></div>
+    </div>
+  </div>
+
+  <div id="blPane2" class="wpane" style="display:none">
+    <div class="card">
+      <h2>▦ กรอกกริด <small style="font-weight:400;color:var(--mut);font-size:11px">· กรอกหลายแถวพร้อมกัน เหมาะตอนของเยอะ</small></h2>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:640px">
+          <thead><tr style="background:var(--soft)">
+            <th style="padding:6px;text-align:left">อัลบั้ม</th>
+            <th style="padding:6px;text-align:left">ชื่อตัวเลือก</th>
+            <th style="padding:6px;text-align:left">น้ำหนัก(g)</th>
+            <th class="bl-cost-col" style="padding:6px;text-align:left">ต้นทุน(฿)</th>
+            <th class="bl-cost-col" style="padding:6px;text-align:left">ราคาแนะนำ</th>
+            <th style="padding:6px;text-align:left">มอบหมายให้</th>
+            <th></th>
+          </tr></thead>
+          <tbody id="blGridBody"></tbody>
+        </table>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button class="btn o" style="flex:1" onclick="blAddRow()">➕ เพิ่มแถว</button>
+        <button class="btn" style="flex:1" onclick="blSaveGrid()">💾 บันทึกทั้งหมด</button>
+      </div>
+      <div class="hint" id="blGridHint" style="margin-top:6px"></div>
+    </div>
   </div>
 </div>
 
@@ -512,6 +549,7 @@ console.log('RB Online Ops · '+BUILD);
   <button data-p="ext" id="navExt" onclick="tab('ext',this)"><span class="i">📦</span>In Non-RB</button>
   <button data-p="exp" id="navExp" onclick="tab('exp',this)"><span class="i">💸</span>Expense</button>
   <button data-p="scout" id="navScout" onclick="tab('scout',this)"><span class="i">🔎</span>Scout</button>
+  <button data-p="backlog" id="navBacklog" onclick="tab('backlog',this)"><span class="i">🗃️</span>Backlog</button>
   <button data-p="more" onclick="tab('more',this)"><span class="i">⚙️</span>Setting</button>
 </nav>
 
@@ -682,18 +720,18 @@ function aUseBase(v){
   toast('ใช้ราคาระบุเอง '+v+' ฿ แล้วคำนวณราคาให้ครบแล้ว','ok',2500);
 }
 /* ══ F1 Scout — หา New SKU จากซัพพลายเออร์ (ต่อ backend จริง: ชีต ScoutSku) ══ */
-window._scoutCache=[]; /* แถวจริงจากเซิร์ฟเวอร์ — status: waiting(วางแผนจัดซื้อ)/hold/no/codequeue */
+window._scoutCache=[]; /* แถวจริงจากเซิร์ฟเวอร์ — status: waiting(ซื้อแล้ว)/hold/no/imported(ส่งเข้า Backlog แล้ว — เลิกโชว์ใน Scout) */
 window._scoutImgB64='';
 window._scoutEditingId=null; /* scout_id ตอนกำลังแก้ไขรายการเดิม — null = กำลังเพิ่มใหม่ */
-var SCOUT_LIST_EL={waiting:'scoutList2',hold:'scoutList3',no:'scoutList4',codequeue:'scoutList5'};
-var SCOUT_BADGE_EL={waiting:'scoutB2',hold:'scoutB3',codequeue:'scoutB5'};
+var SCOUT_LIST_EL={waiting:'scoutList2',hold:'scoutList3',no:'scoutList4'};
+var SCOUT_BADGE_EL={waiting:'scoutB2',hold:'scoutB3'};
 async function scoutLoad(){
   const r=await api('scoutList');
   if(r.ok){ window._scoutCache=r.list||[]; scoutRenderAll(); }
   else toast(r.error||'โหลด Scout ไม่สำเร็จ','err');
 }
 function scoutRenderAll(){
-  ['waiting','hold','no','codequeue'].forEach(scoutRenderList);
+  ['waiting','hold','no'].forEach(scoutRenderList);
   scoutUpdateBadges();
 }
 function scoutImgPick(el){
@@ -731,7 +769,7 @@ function scoutPriceCalc(fromColor){
   applyABCalc_(base,'scPA','scPB','scLA','scLB',null,!!fromColor);
 }
 function scoutTab(n){
-  [1,2,3,4,5].forEach(function(i){
+  [1,2,3,4].forEach(function(i){
     var p=document.getElementById('scoutPane'+i), t=document.getElementById('scoutT'+i);
     if(p) p.style.display=i===n?'block':'none';
     if(t){ t.style.background=i===n?'var(--pd)':'transparent'; t.style.color=i===n?'#fff':'var(--mut)'; t.style.fontWeight=i===n?'600':'500'; }
@@ -784,7 +822,7 @@ async function scoutDecide(status){
   else { r=await api('scoutAdd',fields); }
   if(!r.ok){ document.getElementById('scErr').textContent=r.error; return; }
   scoutClearForm();
-  var msg={yes:'✅ เข้าวางแผนจัดซื้อแล้ว',hold:'🤔 เก็บไว้ใน Hold แล้ว',no:'✕ บันทึกเป็น No แล้ว (ดูย้อนหลังได้)'}[status];
+  var msg={yes:'🛒 ซื้อแล้ว บันทึกแล้ว',hold:'🤔 เก็บไว้ใน Hold แล้ว',no:'✕ บันทึกเป็น No แล้ว (ดูย้อนหลังได้)'}[status];
   toast(msg,'ok',2500);
   await scoutLoad();
   scoutTab(toStatus==='waiting'?2:(toStatus==='hold'?3:4));
@@ -809,11 +847,11 @@ function scoutRenderList(bucket){
       actions+='<button class="btn sm" style="background:#2FA36B" onclick="scoutMove('+sid+',\'waiting\')">✅ Yes</button>'+
         '<button class="btn sm" style="background:#C0392B" onclick="scoutMove('+sid+',\'no\')">✕ No</button>';
     }
-    if(bucket==='waiting'||bucket==='codequeue'){
+    if(bucket==='waiting'){
       actions+='<button class="btn sm o" onclick="scoutView('+sid+')">👁 View</button>'+
         '<button class="btn sm o" onclick="scoutEdit('+sid+')">✏️ Edit</button>'+
-        '<button class="btn sm o" onclick="scoutPrint('+sid+')">🖨 Print</button>';
-      if(bucket==='waiting') actions+='<button class="btn sm" onclick="scoutSendToQueue('+sid+')">➡️ ส่งเข้าคิวรอลงโค้ด</button>';
+        '<button class="btn sm o" onclick="scoutPrint('+sid+')">🖨 Print</button>'+
+        '<button class="btn sm" onclick="scoutImportToBacklog('+sid+')">🗃️ นำเข้า Backlog</button>';
     }
     if(bucket==='no'){ actions+='<button class="btn sm o" onclick="scoutView('+sid+')">👁 View</button>'; }
     actions+='</div>';
@@ -826,14 +864,27 @@ function scoutRenderList(bucket){
       '</div>';
   }).join('');
 }
-async function scoutMove(scout_id,to){
-  toast('กำลังย้าย...','info',1200);
+async function scoutMove(scout_id,to,silent){
+  if(!silent) toast('กำลังย้าย...','info',1200);
   var r=await api('scoutMove',{scout_id:scout_id,to:to});
-  if(!r.ok){ toast(r.error||'ย้ายไม่สำเร็จ','err'); return; }
+  if(!r.ok){ toast(r.error||'ย้ายไม่สำเร็จ','err'); return false; }
   await scoutLoad();
-  toast(to==='waiting'?'✅ ย้ายเข้าวางแผนจัดซื้อแล้ว':(to==='codequeue'?'➡️ ส่งเข้าคิวรอลงโค้ดแล้ว':'✕ ย้ายเป็น No แล้ว'),'ok',2000);
+  if(!silent){
+    var msgs={waiting:'🛒 ย้ายเข้ากลุ่มซื้อแล้ว',no:'✕ ย้ายเป็น No แล้ว'};
+    toast(msgs[to]||'อัปเดตแล้ว','ok',2000);
+  }
+  return true;
 }
-function scoutSendToQueue(scout_id){ return scoutMove(scout_id,'codequeue'); }
+/* ══ F1→F4: ของที่ Yes แล้ว ("ซื้อแล้ว") ส่งต่อเข้า Backlog Board (คิวเดียวกับของที่ซื้อนานแล้วรอลงจริง) ══
+   ยังเป็น mock ฝั่ง Backlog อยู่ (ยังไม่มี backend) — ฝั่ง Scout อัปเดตสถานะจริงเป็น 'imported' ให้หายจากลิสต์ซื้อแล้ว */
+function scoutImportToBacklog(scout_id){
+  var x=scoutFind_(scout_id); if(!x) return;
+  window._BACKLOG.push({id:window._blItemSeq++, album:x.source, variant:x.note||'', weight:x.weight,
+    cost:x.cost_piece, color:x.color, base:x.base, price_a:x.price_a, price_b:x.price_b,
+    assigned_to:'', created_at:new Date().toLocaleString('th-TH'), from_scout:x.scout_id});
+  toast('🗃️ นำเข้า Backlog แล้ว — ไปดูที่แท็บ 🗃️ Backlog ได้เลย','ok',2500);
+  scoutMove(scout_id,'imported',true);
+}
 function scoutView(scout_id){
   var x=scoutFind_(scout_id); if(!x) return;
   document.getElementById('modalTitle').textContent='🔎 '+x.source;
@@ -884,6 +935,108 @@ function scoutPrint(scout_id){
   if(!pw){ toast('❌ browser บล็อก popup','err',4000); return; }
   pw.document.write(html); pw.document.close();
   setTimeout(function(){pw.print();},500);
+}
+/* ══ 🧪 F4 คิวสินค้าค้าง (Backlog Board) — ตัวอย่าง UI (mock ในเบราว์เซอร์ ยังไม่ต่อ backend/ชีตจริง) ══ */
+window._BACKLOG=[];
+window._blItemSeq=1;
+window._blRowSeq=1;
+var BACKLOG_STAFF=[['luffy','Luffy'],['assist','Assist Manager'],['admina','Admin A'],['adminb','Admin B'],['graphic','Graphic'],['store','User หน้าร้าน WS']];
+var BACKLOG_STAFF_MAP=BACKLOG_STAFF.reduce(function(m,p){m[p[0]]=p[1];return m;},{});
+function blTab(n){
+  [1,2].forEach(function(i){
+    var p=document.getElementById('blPane'+i), t=document.getElementById('blT'+i);
+    if(p) p.style.display=i===n?'block':'none';
+    if(t){ t.style.background=i===n?'var(--pd)':'transparent'; t.style.color=i===n?'#fff':'var(--mut)'; t.style.fontWeight=i===n?'600':'500'; }
+  });
+  if(n===1) blRenderOverview();
+  if(n===2&&!document.getElementById('blGridBody').children.length){ blAddRow(); blAddRow(); blAddRow(); }
+  blApplyCostVisibility();
+}
+/* ⛔ ต้นทุนห้ามให้ role อื่นเห็นเด็ดขาด ยกเว้น Luffy/Assist (canCost_ เดียวกับทั้งระบบ) —
+   ต่อให้มอบหมายงานให้ใคร คนนั้นกรอกได้แค่ album/variant/weight/มอบหมาย ส่วนทุนให้ L/A มากรอกเองทีหลัง */
+function blApplyCostVisibility(){
+  var show=isLA();
+  document.querySelectorAll('.bl-cost-col').forEach(function(el){ el.style.display=show?'':'none'; });
+}
+function blAddRow(){
+  var tbody=document.getElementById('blGridBody'); if(!tbody) return;
+  var i=window._blRowSeq++;
+  var tr=document.createElement('tr'); tr.id='blRow'+i;
+  tr.innerHTML=
+    '<td style="padding:3px"><input id="blAlbum'+i+'" placeholder="เช่น Minimal Organic" style="width:100%;margin:0;padding:6px 8px"></td>'+
+    '<td style="padding:3px"><input id="blVariant'+i+'" placeholder="เช่น 1.The Edge" style="width:100%;margin:0;padding:6px 8px"></td>'+
+    '<td style="padding:3px"><input id="blWeight'+i+'" type="number" step="0.01" style="width:64px;margin:0;padding:6px 8px" oninput="blRecalc('+i+')"></td>'+
+    '<td class="bl-cost-col" style="padding:3px"><input id="blCost'+i+'" type="number" step="0.01" style="width:74px;margin:0;padding:6px 8px" oninput="blRecalc('+i+')"></td>'+
+    '<td class="bl-cost-col" style="padding:3px;white-space:nowrap;color:var(--mut)" id="blRec'+i+'">-</td>'+
+    '<td style="padding:3px"><select id="blAssign'+i+'" style="width:100%;margin:0;padding:6px 8px">'+BACKLOG_STAFF.map(function(p){return '<option value="'+p[0]+'">'+p[1]+'</option>';}).join('')+'</select></td>'+
+    '<td style="padding:3px;text-align:center"><button onclick="blRemoveRow('+i+')" style="border:none;background:none;color:#C03A3A;font-size:16px;cursor:pointer;padding:4px">✕</button></td>';
+  tbody.appendChild(tr);
+  blApplyCostVisibility();
+}
+function blRemoveRow(i){
+  var tr=document.getElementById('blRow'+i); if(tr) tr.remove();
+}
+function blRecalc(i){
+  var c=Number(document.getElementById('blCost'+i).value)||0;
+  var el=document.getElementById('blRec'+i); if(!el) return;
+  if(!c||!PCFG){ el.textContent='-'; return; }
+  var raw=costSuggest_(c);
+  var up=colorUp_(raw);
+  el.textContent=up?(up.color+' '+fmtN(up.price,0)):('เกินสูงสุด '+fmtN(raw,0));
+}
+function blSaveGrid(){
+  var tbody=document.getElementById('blGridBody');
+  var rows=[].slice.call(tbody.querySelectorAll('tr'));
+  var canSeeCost=isLA();
+  var saved=0;
+  rows.forEach(function(tr){
+    var i=tr.id.replace('blRow','');
+    var album=document.getElementById('blAlbum'+i).value.trim();
+    var variant=document.getElementById('blVariant'+i).value.trim();
+    var weight=document.getElementById('blWeight'+i).value;
+    var cost=canSeeCost?document.getElementById('blCost'+i).value:''; /* role อื่นมองไม่เห็น/กรอกทุนไม่ได้เลย */
+    var assign=document.getElementById('blAssign'+i).value;
+    if(!album) return; /* ข้ามแถวว่าง */
+    if(canSeeCost&&!cost) return; /* L/A ต้องมีทุนถึงจะคำนวณราคาได้ — ไม่งั้นข้าม */
+    var raw=cost?costSuggest_(cost):null;
+    var up=raw?colorUp_(raw):null;
+    var base=up?up.price:raw;
+    var pa=(PCFG&&base)?calcPrice(base,PCFG.mult_a):'', pb=(PCFG&&base)?calcPrice(base,PCFG.mult_b):'';
+    window._BACKLOG.push({id:window._blItemSeq++,album:album,variant:variant,weight:weight,cost:cost,
+      color:cost?(up?up.color:'Mix'):'',base:base||'',price_a:pa,price_b:pb,assigned_to:assign,created_at:new Date().toLocaleString('th-TH')});
+    saved++;
+  });
+  var hintEl=document.getElementById('blGridHint');
+  if(!saved){ hintEl.textContent='⚠️ ไม่มีแถวที่กรอกครบ (ต้องมีอย่างน้อยอัลบั้ม'+(canSeeCost?' + ต้นทุน':'')+')'; toast('ยังไม่มีแถวที่กรอกครบ','warn'); return; }
+  hintEl.textContent='';
+  toast('✅ บันทึก '+saved+' รายการแล้ว','ok',2500);
+  tbody.innerHTML=''; window._blRowSeq=1;
+  blAddRow(); blAddRow(); blAddRow();
+  blRenderOverview();
+}
+function blRenderOverview(){
+  var elTotal=document.getElementById('blTotalCount'), elAlbum=document.getElementById('blTotalAlbum');
+  var el=document.getElementById('blOverviewList'); if(!el) return;
+  if(elTotal) elTotal.textContent=window._BACKLOG.length;
+  var groups={};
+  window._BACKLOG.forEach(function(x){ (groups[x.album]=groups[x.album]||[]).push(x); });
+  var albumNames=Object.keys(groups);
+  if(elAlbum) elAlbum.textContent=albumNames.length;
+  if(!window._BACKLOG.length){ el.innerHTML='<div class="empty">ยังไม่มีข้อมูล — เริ่มกรอกที่แท็บ ▦ กรอกกริด หรือใช้ฟอร์ม ➕ SKU / 🛍 In Non-RB เดิมสำหรับกรอกทีละตัวละเอียด</div>'; return; }
+  var canSeeCost=isLA();
+  el.innerHTML=albumNames.map(function(album){
+    var items=groups[album];
+    var pendingCost=items.filter(function(x){return !x.cost;}).length;
+    var assignCount={};
+    items.forEach(function(x){ var name=BACKLOG_STAFF_MAP[x.assigned_to]||x.assigned_to; assignCount[name]=(assignCount[name]||0)+1; });
+    var assignStr=Object.keys(assignCount).map(function(n){return n+'('+assignCount[n]+')';}).join(', ');
+    var statusLine=canSeeCost
+      ? (pendingCost?('ครบข้อมูล '+(items.length-pendingCost)+' · รอกรอกทุน '+pendingCost):'ครบข้อมูลแล้วทุกตัว (มีทุน+ราคาแนะนำ)')
+      : 'รอ Luffy/Assist กรอกต้นทุน+ราคา'; /* role อื่นไม่เห็นตัวเลขทุนแม้แต่ในภาพรวม */
+    return '<div class="item"><div class="ph">🗃️</div><div><b>'+album+'</b>'+
+      '<small>'+items.length+' ตัวเลือก · '+statusLine+'</small>'+
+      '<small>มอบหมาย: '+assignStr+'</small></div></div>';
+  }).join('');
 }
 function ebnCostSuggest(){
   var box=document.getElementById('ebnCostHint'); if(!box) return;
@@ -1007,7 +1160,8 @@ function enter(){
   document.getElementById('hsub').textContent=new Date().toLocaleDateString('th-TH',{weekday:'long',day:'numeric',month:'short',year:'2-digit'});
   if(!isLA()){document.getElementById('navAdd').style.display='none';document.getElementById('setCard').style.display='none';
     document.getElementById('navExt').style.display='none';document.getElementById('navExp').style.display='none';
-    document.getElementById('navScout').style.display='none';}
+    document.getElementById('navScout').style.display='none';
+    document.getElementById('navBacklog').style.display='none';}
   if(S.role==='storefront'){ document.getElementById('wdCreateCard').style.display='none';
     document.getElementById('wdListTitle').textContent='📋 ใบเบิกรอปล่อยของ'; }
   // เติม dropdown
@@ -3858,6 +4012,7 @@ function tab(id,btn){
   /* B3.62 fix: เปิดหน้าสินค้า → ล้างสีกรอง · ถ้า CAT โหลดแล้วค่อย render (กันแสดง 0 ตัว) */
   if(id==='prod'){ window._catColor=''; if(window.CAT&&CAT.length) renderCat(); }
   if(id==='scout'){ scoutLoad(); }
+  if(id==='backlog'){ blTab(1); }
 }
 document.getElementById('bstamp').textContent='เวอร์ชั่น: '+BUILD;
 if(document.getElementById('scDate')) document.getElementById('scDate').value=new Date().toISOString().slice(0,10);
