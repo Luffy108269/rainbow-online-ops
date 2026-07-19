@@ -155,7 +155,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B3.108 · 19 ก.ค. 69 · 🗃️ Backlog Board rebuild: จบที่ส่งบัญชี ไม่มีต้นทุนในนี้เลย — เพิ่มรายการ(album/variant/มอบหมาย) → ผู้ถูกมอบหมายกรอกรายละเอียด (รูป/หมวด/Class/RBO SKU/RBWS/น้ำหนัก/Location/สี RBWS) → Luffy/Assist รีวิวแล้วส่งเข้า ➕SKU หรือ 🛍In Non-RB';
+const BUILD = 'B3.109 · 19 ก.ค. 69 · 🗃️ Backlog Board เปิดให้ทุก role เห็นแล้ว (ไม่มีต้นทุนอยู่ในนี้เลย) — หน้า ✅ รอรีวิว ยังจำกัดเฉพาะ Luffy/Assist เหมือนเดิม';
 const FRONT_VER = '3.95'; // ต้องตรงกับ build ใน doGet ของ backend
 console.log('RB Online Ops · '+BUILD);
 </script>
@@ -1246,8 +1246,9 @@ function enter(){
   document.getElementById('hsub').textContent=new Date().toLocaleDateString('th-TH',{weekday:'long',day:'numeric',month:'short',year:'2-digit'});
   if(!isLA()){document.getElementById('navAdd').style.display='none';document.getElementById('setCard').style.display='none';
     document.getElementById('navExt').style.display='none';document.getElementById('navExp').style.display='none';
-    document.getElementById('navScout').style.display='none';
-    document.getElementById('navBacklog').style.display='none';}
+    document.getElementById('navScout').style.display='none';}
+  /* Backlog Board: เปิดให้ทุก role เห็น — ไม่มีต้นทุนอยู่ในนี้เลย (แยกไปอยู่ที่ ➕SKU/In Non-RB ปลายทางแล้ว)
+     พนักงานที่ถูกมอบหมายต้องเข้าถึงแท็บ 📝 กรอกรายละเอียด ได้ · หน้า ✅ รอรีวิว ยังกันด้วย isLA() แยกอยู่แล้วใน blRenderReviewList */
   if(S.role==='storefront'){ document.getElementById('wdCreateCard').style.display='none';
     document.getElementById('wdListTitle').textContent='📋 ใบเบิกรอปล่อยของ'; }
   // เติม dropdown
