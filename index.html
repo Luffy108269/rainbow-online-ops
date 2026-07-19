@@ -155,7 +155,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B3.107 · 19 ก.ค. 69 · 🛒 Scout Yes→ซื้อแล้ว → 🗃️ นำเข้า Backlog (รวมกับของซื้อนานแล้ว) · 🗃️ F4 Backlog Board mockup: ภาพรวมตามอัลบั้ม + กรอกกริด + มอบหมายทีม · ต้นทุนเห็นเฉพาะ Luffy/Assist';
+const BUILD = 'B3.108 · 19 ก.ค. 69 · 🗃️ Backlog Board rebuild: จบที่ส่งบัญชี ไม่มีต้นทุนในนี้เลย — เพิ่มรายการ(album/variant/มอบหมาย) → ผู้ถูกมอบหมายกรอกรายละเอียด (รูป/หมวด/Class/RBO SKU/RBWS/น้ำหนัก/Location/สี RBWS) → Luffy/Assist รีวิวแล้วส่งเข้า ➕SKU หรือ 🛍In Non-RB';
 const FRONT_VER = '3.95'; // ต้องตรงกับ build ใน doGet ของ backend
 console.log('RB Online Ops · '+BUILD);
 </script>
@@ -428,29 +428,28 @@ console.log('RB Online Ops · '+BUILD);
 <div id="backlog" class="pg">
   <div style="display:flex;gap:0;margin:12px 12px 0;background:var(--soft);border-radius:14px;padding:4px;overflow-x:auto">
     <button id="blT1" onclick="blTab(1)" class="wtab on">📊 ภาพรวม</button>
-    <button id="blT2" onclick="blTab(2)" class="wtab">▦ กรอกกริด</button>
+    <button id="blT2" onclick="blTab(2)" class="wtab">➕ เพิ่มรายการ</button>
+    <button id="blT3" onclick="blTab(3)" class="wtab">📝 กรอกรายละเอียด <span id="blB3" class="wbadge" style="display:none">0</span></button>
+    <button id="blT4" onclick="blTab(4)" class="wtab">✅ รอรีวิว <span id="blB4" class="wbadge" style="display:none">0</span></button>
   </div>
 
   <div id="blPane1" class="wpane">
     <div class="card">
-      <h2>📊 คิวสินค้าค้าง (Backlog Board) <span class="lock">Luffy/Assist</span></h2>
-      <div style="background:#FFF6E8;border:1.5px dashed #E4B878;border-radius:12px;padding:8px 12px;font-size:11px;color:#8a6d1c;margin-bottom:8px">🧪 ตัวอย่าง UI — mock ในเบราว์เซอร์ ยังไม่ต่อ backend/ชีตจริง (ข้อมูลจะหายเมื่อรีเฟรชหน้า)</div>
+      <h2>🗃️ คิวสินค้าค้าง (Backlog Board) <span class="lock">Luffy/Assist</span></h2>
+      <div style="background:#FFF6E8;border:1.5px dashed #E4B878;border-radius:12px;padding:8px 12px;font-size:11px;color:#8a6d1c;margin-bottom:8px">🧪 ตัวอย่าง UI — mock ในเบราว์เซอร์ ยังไม่ต่อ backend/ชีตจริง (ข้อมูลจะหายเมื่อรีเฟรชหน้า) · จบที่ "ส่งบัญชี" — ถ่ายรูปจริง/ลงช่องทาง/คอนเทนต์เป็นงานแยก</div>
       <div class="hint" style="margin-bottom:8px">รวม <b id="blTotalAlbum">0</b> อัลบั้ม · <b id="blTotalCount">0</b> ตัวเลือก</div>
-      <div id="blOverviewList"><div class="empty">ยังไม่มีข้อมูล — เริ่มกรอกที่แท็บ ▦ กรอกกริด หรือใช้ฟอร์ม ➕ SKU / 🛍 In Non-RB เดิมสำหรับกรอกทีละตัวละเอียด</div></div>
+      <div id="blOverviewList"><div class="empty">ยังไม่มีข้อมูล — เริ่มที่แท็บ ➕ เพิ่มรายการ หรือนำเข้าจาก 🔎 Scout</div></div>
     </div>
   </div>
 
   <div id="blPane2" class="wpane" style="display:none">
     <div class="card">
-      <h2>▦ กรอกกริด <small style="font-weight:400;color:var(--mut);font-size:11px">· กรอกหลายแถวพร้อมกัน เหมาะตอนของเยอะ</small></h2>
+      <h2>➕ เพิ่มรายการค้าง <small style="font-weight:400;color:var(--mut);font-size:11px">· ลงชื่อ+มอบหมายไว้ก่อน รายละเอียดให้คนที่มอบหมายไปกรอกต่อ</small></h2>
       <div style="overflow-x:auto">
-        <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:640px">
+        <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:420px">
           <thead><tr style="background:var(--soft)">
             <th style="padding:6px;text-align:left">อัลบั้ม</th>
             <th style="padding:6px;text-align:left">ชื่อตัวเลือก</th>
-            <th style="padding:6px;text-align:left">น้ำหนัก(g)</th>
-            <th class="bl-cost-col" style="padding:6px;text-align:left">ต้นทุน(฿)</th>
-            <th class="bl-cost-col" style="padding:6px;text-align:left">ราคาแนะนำ</th>
             <th style="padding:6px;text-align:left">มอบหมายให้</th>
             <th></th>
           </tr></thead>
@@ -462,6 +461,20 @@ console.log('RB Online Ops · '+BUILD);
         <button class="btn" style="flex:1" onclick="blSaveGrid()">💾 บันทึกทั้งหมด</button>
       </div>
       <div class="hint" id="blGridHint" style="margin-top:6px"></div>
+    </div>
+  </div>
+
+  <div id="blPane3" class="wpane" style="display:none">
+    <div class="card">
+      <h2>📝 กรอกรายละเอียด <small style="font-weight:400;color:var(--mut);font-size:11px">· รูป/หมวด/Class/RBO SKU/อัลบั้ม/ตัวเลือก/RBWS/น้ำหนัก/Location/สี RBWS — ไม่มีต้นทุน</small></h2>
+      <div id="blDraftList"><div class="empty">ยังไม่มีรายการรอกรอก</div></div>
+    </div>
+  </div>
+
+  <div id="blPane4" class="wpane" style="display:none">
+    <div class="card">
+      <h2>✅ รอรีวิว <span class="lock">Luffy/Assist</span> <small style="font-weight:400;color:var(--mut);font-size:11px">· ครบข้อมูลแล้ว เลือกส่งเข้า SKU ใหม่ หรือ In Non-RB</small></h2>
+      <div id="blReviewList"><div class="empty">ยังไม่มีรายการรอรีวิว</div></div>
     </div>
   </div>
 </div>
@@ -879,10 +892,13 @@ async function scoutMove(scout_id,to,silent){
    ยังเป็น mock ฝั่ง Backlog อยู่ (ยังไม่มี backend) — ฝั่ง Scout อัปเดตสถานะจริงเป็น 'imported' ให้หายจากลิสต์ซื้อแล้ว */
 function scoutImportToBacklog(scout_id){
   var x=scoutFind_(scout_id); if(!x) return;
-  window._BACKLOG.push({id:window._blItemSeq++, album:x.source, variant:x.note||'', weight:x.weight,
-    cost:x.cost_piece, color:x.color, base:x.base, price_a:x.price_a, price_b:x.price_b,
-    assigned_to:'', created_at:new Date().toLocaleString('th-TH'), from_scout:x.scout_id});
-  toast('🗃️ นำเข้า Backlog แล้ว — ไปดูที่แท็บ 🗃️ Backlog ได้เลย','ok',2500);
+  /* Scout ไม่มีข้อมูล หมวด/Class/RBO SKU/RBWS/Location/สี RBWS — เข้า Backlog เป็น draft รอกรอกรายละเอียดต่อ
+     (ทุน/ราคาที่คำนวณไว้ใน Scout ไม่เอาติดมาด้วย — Backlog ไม่แตะทุนเลยตามสเปก จะใส่ทุนใหม่ตอนส่งเข้า SKU/In Non-RB) */
+  window._BACKLOG.push({id:window._blItemSeq++, album:x.source, variant:x.note||'', assigned_to:'',
+    img:x.img||'', category:'', cls:'', rbo_sku:'', rbws_code:'', weight:x.weight||'',
+    loc_rbo:'', loc_rbws:'', rbws_color:'', status:'draft',
+    created_at:new Date().toLocaleString('th-TH'), from_scout:x.scout_id});
+  toast('🗃️ นำเข้า Backlog แล้ว — ไปกรอกรายละเอียดต่อได้ที่แท็บ 🗃️ Backlog','ok',3000);
   scoutMove(scout_id,'imported',true);
 }
 function scoutView(scout_id){
@@ -936,27 +952,36 @@ function scoutPrint(scout_id){
   pw.document.write(html); pw.document.close();
   setTimeout(function(){pw.print();},500);
 }
-/* ══ 🧪 F4 คิวสินค้าค้าง (Backlog Board) — ตัวอย่าง UI (mock ในเบราว์เซอร์ ยังไม่ต่อ backend/ชีตจริง) ══ */
+/* ══ 🧪 F4 คิวสินค้าค้าง (Backlog Board) — ตัวอย่าง UI (mock ในเบราว์เซอร์ ยังไม่ต่อ backend/ชีตจริง) ══
+   ขอบเขต: จบที่ "ส่งบัญชี" เท่านั้น — ไม่มีต้นทุน/ราคาในนี้เลย ต้นทุนใส่ทีหลังตอน L/A เปิด ➕SKU/In Non-RB เอง
+   flow: (1) Luffy ลงชื่อ+มอบหมาย (2) คนที่ถูกมอบหมายกรอกรายละเอียด (3) L/A รีวิว→ส่งเข้า ➕SKU หรือ 🛍In Non-RB */
 window._BACKLOG=[];
 window._blItemSeq=1;
 window._blRowSeq=1;
+window._blFillingId=null;
+window._blfImgB64='';
 var BACKLOG_STAFF=[['luffy','Luffy'],['assist','Assist Manager'],['admina','Admin A'],['adminb','Admin B'],['graphic','Graphic'],['store','User หน้าร้าน WS']];
 var BACKLOG_STAFF_MAP=BACKLOG_STAFF.reduce(function(m,p){m[p[0]]=p[1];return m;},{});
+var BACKLOG_FIELDS_REQUIRED=['img','category','cls','rbo_sku','album','variant','rbws_code','weight','loc_rbo','loc_rbws','rbws_color'];
+function blIsComplete_(x){ return BACKLOG_FIELDS_REQUIRED.every(function(f){return String(x[f]||'').trim()!=='';}); }
 function blTab(n){
-  [1,2].forEach(function(i){
+  [1,2,3,4].forEach(function(i){
     var p=document.getElementById('blPane'+i), t=document.getElementById('blT'+i);
     if(p) p.style.display=i===n?'block':'none';
     if(t){ t.style.background=i===n?'var(--pd)':'transparent'; t.style.color=i===n?'#fff':'var(--mut)'; t.style.fontWeight=i===n?'600':'500'; }
   });
   if(n===1) blRenderOverview();
   if(n===2&&!document.getElementById('blGridBody').children.length){ blAddRow(); blAddRow(); blAddRow(); }
-  blApplyCostVisibility();
+  if(n===3) blRenderDraftList();
+  if(n===4) blRenderReviewList();
+  blUpdateBadges();
 }
-/* ⛔ ต้นทุนห้ามให้ role อื่นเห็นเด็ดขาด ยกเว้น Luffy/Assist (canCost_ เดียวกับทั้งระบบ) —
-   ต่อให้มอบหมายงานให้ใคร คนนั้นกรอกได้แค่ album/variant/weight/มอบหมาย ส่วนทุนให้ L/A มากรอกเองทีหลัง */
-function blApplyCostVisibility(){
-  var show=isLA();
-  document.querySelectorAll('.bl-cost-col').forEach(function(el){ el.style.display=show?'':'none'; });
+function blUpdateBadges(){
+  var b3=document.getElementById('blB3'), b4=document.getElementById('blB4');
+  var draft=window._BACKLOG.filter(function(x){return x.status==='draft';}).length;
+  var ready=window._BACKLOG.filter(function(x){return x.status==='ready';}).length;
+  if(b3){ b3.textContent=draft; b3.style.display=draft?'inline-block':'none'; }
+  if(b4){ b4.textContent=ready; b4.style.display=ready?'inline-block':'none'; }
 }
 function blAddRow(){
   var tbody=document.getElementById('blGridBody'); if(!tbody) return;
@@ -965,54 +990,35 @@ function blAddRow(){
   tr.innerHTML=
     '<td style="padding:3px"><input id="blAlbum'+i+'" placeholder="เช่น Minimal Organic" style="width:100%;margin:0;padding:6px 8px"></td>'+
     '<td style="padding:3px"><input id="blVariant'+i+'" placeholder="เช่น 1.The Edge" style="width:100%;margin:0;padding:6px 8px"></td>'+
-    '<td style="padding:3px"><input id="blWeight'+i+'" type="number" step="0.01" style="width:64px;margin:0;padding:6px 8px" oninput="blRecalc('+i+')"></td>'+
-    '<td class="bl-cost-col" style="padding:3px"><input id="blCost'+i+'" type="number" step="0.01" style="width:74px;margin:0;padding:6px 8px" oninput="blRecalc('+i+')"></td>'+
-    '<td class="bl-cost-col" style="padding:3px;white-space:nowrap;color:var(--mut)" id="blRec'+i+'">-</td>'+
     '<td style="padding:3px"><select id="blAssign'+i+'" style="width:100%;margin:0;padding:6px 8px">'+BACKLOG_STAFF.map(function(p){return '<option value="'+p[0]+'">'+p[1]+'</option>';}).join('')+'</select></td>'+
     '<td style="padding:3px;text-align:center"><button onclick="blRemoveRow('+i+')" style="border:none;background:none;color:#C03A3A;font-size:16px;cursor:pointer;padding:4px">✕</button></td>';
   tbody.appendChild(tr);
-  blApplyCostVisibility();
 }
 function blRemoveRow(i){
   var tr=document.getElementById('blRow'+i); if(tr) tr.remove();
 }
-function blRecalc(i){
-  var c=Number(document.getElementById('blCost'+i).value)||0;
-  var el=document.getElementById('blRec'+i); if(!el) return;
-  if(!c||!PCFG){ el.textContent='-'; return; }
-  var raw=costSuggest_(c);
-  var up=colorUp_(raw);
-  el.textContent=up?(up.color+' '+fmtN(up.price,0)):('เกินสูงสุด '+fmtN(raw,0));
-}
 function blSaveGrid(){
   var tbody=document.getElementById('blGridBody');
   var rows=[].slice.call(tbody.querySelectorAll('tr'));
-  var canSeeCost=isLA();
   var saved=0;
   rows.forEach(function(tr){
     var i=tr.id.replace('blRow','');
     var album=document.getElementById('blAlbum'+i).value.trim();
     var variant=document.getElementById('blVariant'+i).value.trim();
-    var weight=document.getElementById('blWeight'+i).value;
-    var cost=canSeeCost?document.getElementById('blCost'+i).value:''; /* role อื่นมองไม่เห็น/กรอกทุนไม่ได้เลย */
     var assign=document.getElementById('blAssign'+i).value;
     if(!album) return; /* ข้ามแถวว่าง */
-    if(canSeeCost&&!cost) return; /* L/A ต้องมีทุนถึงจะคำนวณราคาได้ — ไม่งั้นข้าม */
-    var raw=cost?costSuggest_(cost):null;
-    var up=raw?colorUp_(raw):null;
-    var base=up?up.price:raw;
-    var pa=(PCFG&&base)?calcPrice(base,PCFG.mult_a):'', pb=(PCFG&&base)?calcPrice(base,PCFG.mult_b):'';
-    window._BACKLOG.push({id:window._blItemSeq++,album:album,variant:variant,weight:weight,cost:cost,
-      color:cost?(up?up.color:'Mix'):'',base:base||'',price_a:pa,price_b:pb,assigned_to:assign,created_at:new Date().toLocaleString('th-TH')});
+    window._BACKLOG.push({id:window._blItemSeq++,album:album,variant:variant,assigned_to:assign,
+      img:'',category:'',cls:'',rbo_sku:'',rbws_code:'',weight:'',loc_rbo:'',loc_rbws:'',rbws_color:'',
+      status:'draft',created_at:new Date().toLocaleString('th-TH')});
     saved++;
   });
   var hintEl=document.getElementById('blGridHint');
-  if(!saved){ hintEl.textContent='⚠️ ไม่มีแถวที่กรอกครบ (ต้องมีอย่างน้อยอัลบั้ม'+(canSeeCost?' + ต้นทุน':'')+')'; toast('ยังไม่มีแถวที่กรอกครบ','warn'); return; }
+  if(!saved){ hintEl.textContent='⚠️ ไม่มีแถวที่กรอกครบ (ต้องมีอย่างน้อยอัลบั้ม)'; toast('ยังไม่มีแถวที่กรอกครบ','warn'); return; }
   hintEl.textContent='';
-  toast('✅ บันทึก '+saved+' รายการแล้ว','ok',2500);
+  toast('✅ บันทึก '+saved+' รายการแล้ว — ไปกรอกรายละเอียดต่อได้ที่แท็บ 📝 กรอกรายละเอียด','ok',3000);
   tbody.innerHTML=''; window._blRowSeq=1;
   blAddRow(); blAddRow(); blAddRow();
-  blRenderOverview();
+  blRenderOverview(); blUpdateBadges();
 }
 function blRenderOverview(){
   var elTotal=document.getElementById('blTotalCount'), elAlbum=document.getElementById('blTotalAlbum');
@@ -1022,21 +1028,101 @@ function blRenderOverview(){
   window._BACKLOG.forEach(function(x){ (groups[x.album]=groups[x.album]||[]).push(x); });
   var albumNames=Object.keys(groups);
   if(elAlbum) elAlbum.textContent=albumNames.length;
-  if(!window._BACKLOG.length){ el.innerHTML='<div class="empty">ยังไม่มีข้อมูล — เริ่มกรอกที่แท็บ ▦ กรอกกริด หรือใช้ฟอร์ม ➕ SKU / 🛍 In Non-RB เดิมสำหรับกรอกทีละตัวละเอียด</div>'; return; }
-  var canSeeCost=isLA();
+  if(!window._BACKLOG.length){ el.innerHTML='<div class="empty">ยังไม่มีข้อมูล — เริ่มที่แท็บ ➕ เพิ่มรายการ หรือนำเข้าจาก 🔎 Scout</div>'; return; }
   el.innerHTML=albumNames.map(function(album){
     var items=groups[album];
-    var pendingCost=items.filter(function(x){return !x.cost;}).length;
+    var ready=items.filter(function(x){return x.status==='ready';}).length;
+    var sent=items.filter(function(x){return x.status==='sent_sku'||x.status==='sent_nonrb';}).length;
+    var draft=items.length-ready-sent;
     var assignCount={};
-    items.forEach(function(x){ var name=BACKLOG_STAFF_MAP[x.assigned_to]||x.assigned_to; assignCount[name]=(assignCount[name]||0)+1; });
+    items.forEach(function(x){ var name=BACKLOG_STAFF_MAP[x.assigned_to]||x.assigned_to||'ยังไม่มอบหมาย'; assignCount[name]=(assignCount[name]||0)+1; });
     var assignStr=Object.keys(assignCount).map(function(n){return n+'('+assignCount[n]+')';}).join(', ');
-    var statusLine=canSeeCost
-      ? (pendingCost?('ครบข้อมูล '+(items.length-pendingCost)+' · รอกรอกทุน '+pendingCost):'ครบข้อมูลแล้วทุกตัว (มีทุน+ราคาแนะนำ)')
-      : 'รอ Luffy/Assist กรอกต้นทุน+ราคา'; /* role อื่นไม่เห็นตัวเลขทุนแม้แต่ในภาพรวม */
     return '<div class="item"><div class="ph">🗃️</div><div><b>'+album+'</b>'+
-      '<small>'+items.length+' ตัวเลือก · '+statusLine+'</small>'+
+      '<small>'+items.length+' ตัวเลือก · กรอกอยู่ '+draft+' · รอรีวิว '+ready+' · ส่งต่อแล้ว '+sent+'</small>'+
       '<small>มอบหมาย: '+assignStr+'</small></div></div>';
   }).join('');
+}
+function blRenderDraftList(){
+  var el=document.getElementById('blDraftList'); if(!el) return;
+  var list=window._BACKLOG.filter(function(x){return x.status==='draft';});
+  if(!list.length){ el.innerHTML='<div class="empty">ยังไม่มีรายการรอกรอก</div>'; return; }
+  el.innerHTML=list.map(function(x){
+    var doneCount=BACKLOG_FIELDS_REQUIRED.filter(function(f){return String(x[f]||'').trim()!=='';}).length;
+    return '<div class="item"><div class="ph">'+(x.img?'<img src="'+x.img+'">':'🏷')+'</div>'+
+      '<div><b>'+x.album+(x.variant?' · '+x.variant:'')+'</b>'+
+      '<small>มอบหมาย: '+(BACKLOG_STAFF_MAP[x.assigned_to]||x.assigned_to||'ยังไม่มอบหมาย')+'</small>'+
+      '<small>กรอกแล้ว '+doneCount+'/'+BACKLOG_FIELDS_REQUIRED.length+' ช่อง</small>'+
+      '<button class="btn sm" style="margin-top:6px" onclick="blOpenFill('+x.id+')">✏️ กรอกข้อมูล</button></div></div>';
+  }).join('');
+}
+function blOpenFill(id){
+  var x=window._BACKLOG.find(function(b){return b.id===id;}); if(!x) return;
+  window._blFillingId=id; window._blfImgB64='';
+  document.getElementById('modalTitle').textContent='📝 '+x.album+(x.variant?' · '+x.variant:'');
+  document.getElementById('modalBody').innerHTML=
+    '<label>📷 รูปสินค้า</label><input type="file" id="blfImg" accept="image/*" onchange="blfImgPick(this)" style="width:100%;font-size:12px">'+
+    '<div id="blfImgPv" style="margin:6px 0">'+(x.img?'<img src="'+x.img+'" style="width:70px;height:70px;object-fit:cover;border-radius:12px">':'')+'</div>'+
+    '<div class="row2"><div><label>หมวด</label><select id="blfCat">'+CATS.map(function(c){return '<option'+(c===x.category?' selected':'')+'>'+c+'</option>';}).join('')+'</select></div>'+
+    '<div><label>Class</label><select id="blfCls">'+CLASSES.map(function(c){return '<option'+(c===x.cls?' selected':'')+'>'+c+'</option>';}).join('')+'</select></div></div>'+
+    '<label>RBO SKU</label><input id="blfRbo" value="'+(x.rbo_sku||'').replace(/"/g,'&quot;')+'" placeholder="เช่น RB009RT-ขาว">'+
+    '<div class="row2"><div><label>ชื่ออัลบั้ม</label><input id="blfAlbum" value="'+(x.album||'').replace(/"/g,'&quot;')+'"></div>'+
+    '<div><label>ชื่อตัวเลือก</label><input id="blfVariant" value="'+(x.variant||'').replace(/"/g,'&quot;')+'"></div></div>'+
+    '<div class="row2"><div><label>รหัส RBWS</label><input id="blfWs" value="'+(x.rbws_code||'').replace(/"/g,'&quot;')+'"></div>'+
+    '<div><label>น้ำหนัก (g)</label><input id="blfWeight" type="number" step="0.01" value="'+(x.weight||'')+'"></div></div>'+
+    '<div class="row2"><div><label>Location RBO</label><input id="blfLocO" value="'+(x.loc_rbo||'').replace(/"/g,'&quot;')+'"></div>'+
+    '<div><label>Location RBWS</label><input id="blfLocW" value="'+(x.loc_rbws||'').replace(/"/g,'&quot;')+'"></div></div>'+
+    '<label>รหัสสี RBWS</label><input id="blfColW" value="'+(x.rbws_color||'').replace(/"/g,'&quot;')+'">'+
+    '<div class="err" id="blfErr"></div>'+
+    '<button class="btn" onclick="blSaveFill()">💾 บันทึก</button>';
+  document.getElementById('wdModal').style.display='block';
+}
+function blfImgPick(el){
+  var f=el.files[0]; if(!f) return;
+  resizeImgB64(f,800,0.8).then(function(b64){
+    window._blfImgB64='data:image/jpeg;base64,'+b64;
+    document.getElementById('blfImgPv').innerHTML='<img src="'+window._blfImgB64+'" style="width:70px;height:70px;object-fit:cover;border-radius:12px">';
+  });
+}
+function blSaveFill(){
+  var x=window._BACKLOG.find(function(b){return b.id===window._blFillingId;}); if(!x) return;
+  if(window._blfImgB64) x.img=window._blfImgB64;
+  x.category=document.getElementById('blfCat').value;
+  x.cls=document.getElementById('blfCls').value;
+  x.rbo_sku=document.getElementById('blfRbo').value.trim();
+  x.album=document.getElementById('blfAlbum').value.trim();
+  x.variant=document.getElementById('blfVariant').value.trim();
+  x.rbws_code=document.getElementById('blfWs').value.trim();
+  x.weight=document.getElementById('blfWeight').value;
+  x.loc_rbo=document.getElementById('blfLocO').value.trim();
+  x.loc_rbws=document.getElementById('blfLocW').value.trim();
+  x.rbws_color=document.getElementById('blfColW').value.trim();
+  var complete=blIsComplete_(x);
+  x.status=complete?'ready':'draft';
+  closeModal();
+  toast(complete?'✅ ครบข้อมูลแล้ว — เข้าคิว "รอรีวิว" แล้ว':'💾 บันทึกแล้ว (ยังไม่ครบทุกช่อง)','ok',2500);
+  blRenderDraftList(); blRenderOverview(); blUpdateBadges();
+}
+function blRenderReviewList(){
+  var el=document.getElementById('blReviewList'); if(!el) return;
+  if(!isLA()){ el.innerHTML='<div class="empty">เฉพาะ Luffy/Assist เท่านั้นที่รีวิวได้</div>'; return; }
+  var list=window._BACKLOG.filter(function(x){return x.status==='ready';});
+  if(!list.length){ el.innerHTML='<div class="empty">ยังไม่มีรายการรอรีวิว</div>'; return; }
+  el.innerHTML=list.map(function(x){
+    return '<div class="item"><div class="ph">'+(x.img?'<img src="'+x.img+'">':'🏷')+'</div>'+
+      '<div><b>'+x.album+' · '+x.variant+'</b>'+
+      '<small>RBO '+x.rbo_sku+' · RBWS '+x.rbws_code+' · '+x.category+' / '+x.cls+'</small>'+
+      '<small>น้ำหนัก '+x.weight+'g · Loc RBO '+x.loc_rbo+' · Loc RBWS '+x.loc_rbws+' · สี RBWS '+x.rbws_color+'</small>'+
+      '<div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">'+
+      '<button class="btn sm" onclick="blRoute('+x.id+',\'sent_sku\')">➕ ส่งไป SKU ใหม่</button>'+
+      '<button class="btn sm o" onclick="blRoute('+x.id+',\'sent_nonrb\')">🛍 ส่งไป In Non-RB</button>'+
+      '</div></div></div>';
+  }).join('');
+}
+function blRoute(id,to){
+  var x=window._BACKLOG.find(function(b){return b.id===id;}); if(!x) return;
+  x.status=to;
+  toast(to==='sent_sku'?'➡️ ส่งไปหน้า ➕ SKU แล้ว (mock — เวอร์ชันจริงจะพาไปเปิดฟอร์มพร้อมข้อมูลนี้)':'➡️ ส่งไปหน้า 🛍 In Non-RB แล้ว (mock)','ok',3000);
+  blRenderReviewList(); blRenderOverview(); blUpdateBadges();
 }
 function ebnCostSuggest(){
   var box=document.getElementById('ebnCostHint'); if(!box) return;
