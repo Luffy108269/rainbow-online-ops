@@ -1,5 +1,6 @@
 # RB Online Ops — Master Tracker
-> อัปเดตล่าสุด: 21 ก.ค. 2569 · Build: B3.113 (html) / 3.97 (gs)
+> อัปเดตล่าสุด: 21 ก.ค. 2569 · Build: B3.114 (html) / 3.98 (gs)
+> **B3.114/3.98 (21 ก.ค.):** สินค้าที่ตกเป็น Non-Silver เพราะรหัส RBO ฟอร์แมตอิสระ (เช่นของที่ผูกหมู่ 739 ตัว) → **ถอดประเภทจาก prefix ของ SKU RBWS แทนอัตโนมัติ** (Luffy เคาะ: EA=Earrings · BR=Bracelet · BA=Bangle · PE=Pendant · NE=Necklace · TO=Toe ring · AN=Anklet) · เพิ่มหมวดใหม่ **Toe ring** (chips/หน้า Edit/ค่า category ในชีต รับหมด) · ลำดับ: category ในชีต > prefix RBO > prefix RBWS > Non-Silver · เมนูชีต 🏷 เติมประเภทสินค้า (menuFillCategory) ใช้ตรรกะเดียวกันแล้ว (3.98) · ทดสอบผ่าน 10 เคสในเบราว์เซอร์ · **frontend push แล้ว — backend รอวาง Code.gs + deploy (ตัวเดียวรวม Backlog + massBind217 + อันนี้)**
 > **B3.113 (21 ก.ค.):** ถอดป้าย "🧪 ตัวอย่าง UI mock" ที่ค้างอยู่หน้า Backlog (ต่อชีตจริงแล้วตั้งแต่ B3.112) — เหลือ hint ขอบเขตสั้นๆ แทน · error "ไม่รู้จักคำสั่ง backlogList" บนเว็บจริง = backend ยังเป็น 3.96 **รอ Luffy วาง Code.gs 3.97 + deploy + รัน initDrivePermission** (ขั้นตอนอยู่ในสรุป 20 ก.ค. ด้านล่าง)
 
 ## 🔗 งานผูกรหัสหมู่ 21 ก.ค. 2569 — massBind217 (เขียนเสร็จ รอรัน)

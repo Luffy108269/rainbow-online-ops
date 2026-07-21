@@ -155,8 +155,8 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B3.113 · 21 ก.ค. 69 · 🗃️ ถอดป้าย "ตัวอย่าง UI mock" หน้า Backlog (ต่อชีตจริงแล้วตั้งแต่ B3.112) — backend ต้องเป็น 3.97 ถึงใช้ Backlog ได้';
-const FRONT_VER = '3.97'; // ต้องตรงกับ build ใน doGet ของ backend
+const BUILD = 'B3.114 · 21 ก.ค. 69 · 🏷 Non-Silver ที่มีรหัส RBWS → ถอดประเภทจาก prefix RBWS อัตโนมัติ (EA/BR/BA/PE/NE/TO/AN · เพิ่มหมวด Toe ring)';
+const FRONT_VER = '3.98'; // ต้องตรงกับ build ใน doGet ของ backend
 console.log('RB Online Ops · '+BUILD);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -1568,7 +1568,7 @@ function catColorClear(){ window._catColor=''; renderCat(); }
 function catColorPick(tok){ window._catColor=(String(window._catColor||'').toUpperCase()===tok?'':tok); renderCat(); }
 function noPhoto_(){ return '<span style="font-size:8.5px;color:var(--mut);text-align:center;line-height:1.2">✖<br>No photo</span>'; }
 /* ══ B3.97: ประเภทสินค้าจาก prefix ของ SKU RBO (ไม่ต้องกรอกเพิ่ม — ทุก SKU ที่ตั้งรหัสตามระบบมีประเภททันที) ══ */
-const CAT_TYPES=['Earrings','Ring','Pendant','Necklace','Anklet','Bangle','Bracelet','Set'];
+const CAT_TYPES=['Earrings','Ring','Pendant','Necklace','Anklet','Bangle','Bracelet','Set','Toe ring']; /* B3.114: เพิ่ม Toe ring (มาจาก prefix TO ของ RBWS) */
 const TYPE_PREFIX=[ /* เรียงยาว→สั้น กัน BA กิน BAB */
   ['BAB','Bangle'],['BAS','Bangle'],['BRB','Bracelet'],['BRS','Bracelet'],
   ['EA','Earrings'],['EB','Earrings'],['ES','Earrings'],
@@ -1586,14 +1586,22 @@ function skuPfx_(sku){
 function skuType_(sku){ var p=skuPfx_(sku); if(!p) return ''; var hit=TYPE_PREFIX.find(function(x){return x[0]===p;}); return hit?hit[1]:''; }
 /* B3.98: Non-Silver = ของที่ไม่ใช่เครื่องประดับเลย — prefix ไม่เข้า 8 หมวดเครื่องประดับ (EB/ES ยังเป็น Earrings ตามเดิม) → ทุก SKU มีประเภทเสมอ */
 function skuNonSilver_(sku){ return skuType_(sku)===''; }
-/* B3.100: ประเภทจริงของสินค้า — คอลัมน์ category ในชีต Selections มาก่อน (แก้ในชีต/หน้า Edit ได้) · ว่าง = ถอดจาก prefix · ไม่เข้าหมวดไหน = Non-Silver */
+/* ══ B3.114: RBO ถอดประเภทไม่ได้ (รหัสฟอร์แมตอิสระ เช่นของที่ผูกหมู่จากบันทึกเก่า) → ดู prefix จาก SKU RBWS แทน (Luffy เคาะ 21 ก.ค.) ══ */
+const RBWS_TYPE_PREFIX=[['EA','Earrings'],['BR','Bracelet'],['BA','Bangle'],['PE','Pendant'],['NE','Necklace'],['TO','Toe ring'],['AN','Anklet']];
+function rbwsType_(ws){
+  var u=String(ws||'').toUpperCase().trim();
+  if(!u) return '';
+  for(var i=0;i<RBWS_TYPE_PREFIX.length;i++){ if(u.indexOf(RBWS_TYPE_PREFIX[i][0])===0) return RBWS_TYPE_PREFIX[i][1]; }
+  return '';
+}
+/* B3.100: ประเภทจริงของสินค้า — คอลัมน์ category ในชีต Selections มาก่อน (แก้ในชีต/หน้า Edit ได้) · ว่าง = ถอดจาก prefix RBO · B3.114: RBO ไม่เข้าหมวด → ลอง prefix RBWS · ไม่เข้าอีก = Non-Silver */
 function skuTypeOf_(s){
   var c=String(s.category||'').trim();
   if(c){
     var hit=CAT_TYPES.concat(['Non-Silver']).find(function(t){return t.toLowerCase()===c.toLowerCase();});
     if(hit) return hit;
   }
-  return skuType_(s.sku_rbo)||'Non-Silver';
+  return skuType_(s.sku_rbo)||rbwsType_(s.sku_rbws)||'Non-Silver';
 }
 /* ══ B3.97: SKU รายละเอียดไม่ครบ — ฟิลด์เช็คมาจากชีต Config แถว bible_check_fields (L/A เท่านั้น) ══ */
 var BIBLE_FIELDS=[]; /* backend ส่งมาเฉพาะ Luffy/Assist */
