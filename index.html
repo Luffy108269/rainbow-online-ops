@@ -155,7 +155,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B3.112 · 20 ก.ค. 69 · 🗃️ Backlog ต่อ backend จริงแล้ว: ชีต Backlog + backlogList/Add/Update/Route · ข้อมูลไม่หายเมื่อรีเฟรช · Scout นำเข้าลงชีตจริง · รูปส่งต่อเป็น URL ไม่อัพซ้ำ';
+const BUILD = 'B3.113 · 21 ก.ค. 69 · 🗃️ ถอดป้าย "ตัวอย่าง UI mock" หน้า Backlog (ต่อชีตจริงแล้วตั้งแต่ B3.112) — backend ต้องเป็น 3.97 ถึงใช้ Backlog ได้';
 const FRONT_VER = '3.97'; // ต้องตรงกับ build ใน doGet ของ backend
 console.log('RB Online Ops · '+BUILD);
 </script>
@@ -436,7 +436,7 @@ console.log('RB Online Ops · '+BUILD);
   <div id="blPane1" class="wpane">
     <div class="card">
       <h2>🗃️ คิวสินค้าค้าง (Backlog Board) <span class="lock">Luffy/Assist</span></h2>
-      <div style="background:#FFF6E8;border:1.5px dashed #E4B878;border-radius:12px;padding:8px 12px;font-size:11px;color:#8a6d1c;margin-bottom:8px">🧪 ตัวอย่าง UI — mock ในเบราว์เซอร์ ยังไม่ต่อ backend/ชีตจริง (ข้อมูลจะหายเมื่อรีเฟรชหน้า) · จบที่ "ส่งบัญชี" — ถ่ายรูปจริง/ลงช่องทาง/คอนเทนต์เป็นงานแยก</div>
+      <div class="hint" style="margin-bottom:8px">📌 ขอบเขต Backlog: จบที่ "ส่งบัญชี" — ไม่มีทุน/ราคาในนี้ · ถ่ายรูปจริง/ลงช่องทาง/คอนเทนต์เป็นงานแยก</div><!-- B3.113: ถอดป้าย mock — ต่อชีตจริงแล้วตั้งแต่ B3.112 -->
       <div class="hint" style="margin-bottom:8px">รวม <b id="blTotalAlbum">0</b> อัลบั้ม · <b id="blTotalCount">0</b> ตัวเลือก</div>
       <div id="blOverviewList"><div class="empty">ยังไม่มีข้อมูล — เริ่มที่แท็บ ➕ เพิ่มรายการ หรือนำเข้าจาก 🔎 Scout</div></div>
     </div>
