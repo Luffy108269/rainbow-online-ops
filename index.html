@@ -155,8 +155,8 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B3.118 · 22 ก.ค. 69 · 📑 สารบัญแท็บใน Google Sheet: เมนู 💰 RB ราคา → สร้าง/อัปเดตสารบัญแท็บ — จัดหมวด 6 กลุ่ม คลิกกระโดดได้ นับแถวข้อมูล (ฝั่ง Code.gs 3.101)';
-const FRONT_VER = '3.101'; // ต้องตรงกับ build ใน doGet ของ backend
+const BUILD = 'B3.119 · 22 ก.ค. 69 · 🚀 รอบ 1: กริดเพิ่มอัลบั้ม 2 มิติตัวเลือก (หัวข้อตั้งเอง สไตล์ Shopee) + สะพาน Save SKU→สายพาน (ขั้น 1-2 done อัตโนมัติ · 1 สายพาน=1 อัลบั้ม กันซ้ำ) + การ์ดโชว์ตัวเลือกจากคัมภีร์ + ปุ่ม 🔁 ตีกลับพร้อมเหตุผลบังคับ (ฝั่ง Code.gs 3.102)';
+const FRONT_VER = '3.102'; // ต้องตรงกับ build ใน doGet ของ backend
 console.log('RB Online Ops · '+BUILD);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -444,22 +444,28 @@ console.log('RB Online Ops · '+BUILD);
 
   <div id="blPane2" class="wpane" style="display:none">
     <div class="card">
-      <h2>➕ เพิ่มรายการค้าง <small style="font-weight:400;color:var(--mut);font-size:11px">· ลงชื่อ+มอบหมายไว้ก่อน รายละเอียดให้คนที่มอบหมายไปกรอกต่อ</small></h2>
-      <div style="overflow-x:auto">
-        <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:420px">
-          <thead><tr style="background:var(--soft)">
-            <th style="padding:6px;text-align:left">อัลบั้ม</th>
-            <th style="padding:6px;text-align:left">ชื่อตัวเลือก</th>
-            <th style="padding:6px;text-align:left">มอบหมายให้</th>
-            <th></th>
-          </tr></thead>
-          <tbody id="blGridBody"></tbody>
-        </table>
+      <h2 style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap">➕ เพิ่มรายการเข้าอัลบั้ม
+        <span id="blSkuCount" style="font-size:12px;font-weight:600;background:var(--soft);color:var(--pdd);border-radius:999px;padding:3px 12px">0 SKU</span></h2>
+      <div class="hint" style="margin-bottom:8px">พิมพ์ชื่ออัลบั้มครั้งเดียว · ตั้งหัวข้อตัวเลือกเองได้ (แบบ/สี/ไซส์/ความยาว…) · ใส่ 2 ตัวเลือกได้ ระบบจับคู่ทุก combination ให้เอง — เหมือนหน้า Shopee/Ketshop</div>
+      <label style="font-size:12px;color:var(--mut)">ชื่ออัลบั้ม *</label>
+      <input id="blNewAlbum" placeholder="เช่น ต่างหูกำมะหยี่" style="width:100%;margin:4px 0 8px" oninput="blRenderCombos()">
+      <label style="font-size:12px;color:var(--mut)">มอบหมายให้ (ทั้งอัลบั้ม)</label>
+      <select id="blNewAssign" style="width:100%;margin:4px 0 10px"></select>
+      <div style="border:1.5px solid var(--line);border-radius:12px;padding:10px;margin-bottom:8px">
+        <label style="font-size:12px;color:var(--mut)">ตัวเลือกสินค้า 1 — ตั้งหัวข้อเอง</label>
+        <input id="blDimName1" value="แบบ" style="width:160px;margin:4px 0 6px">
+        <label style="font-size:12px;color:var(--mut);display:block">ตัวเลือก (คั่นด้วย , หรือขึ้นบรรทัดใหม่ · ช่วงเลขพิมพ์ 3-10 ได้)</label>
+        <textarea id="blDimVals1" rows="3" placeholder="วงกลมถัก8มิล, สัปปะรด5*10มิล, ชายหญิง5*10มิล" style="width:100%;margin-top:4px" oninput="blRenderCombos()"></textarea>
       </div>
-      <div style="display:flex;gap:8px;margin-top:10px">
-        <button class="btn o" style="flex:1" onclick="blAddRow()">➕ เพิ่มแถว</button>
-        <button class="btn" style="flex:1" onclick="blSaveGrid()">💾 บันทึกทั้งหมด</button>
+      <button class="btn o" id="blDim2Btn" style="width:100%" onclick="blToggleDim2()">➕ เพิ่มตัวเลือกสินค้า 2 (ถ้ามี)</button>
+      <div id="blDim2Box" style="display:none;border:1.5px solid var(--line);border-radius:12px;padding:10px;margin-top:8px">
+        <label style="font-size:12px;color:var(--mut)">ตัวเลือกสินค้า 2 — ตั้งหัวข้อเอง</label>
+        <input id="blDimName2" placeholder="เช่น ไซส์" style="width:160px;margin:4px 0 6px">
+        <label style="font-size:12px;color:var(--mut);display:block">ตัวเลือก</label>
+        <textarea id="blDimVals2" rows="2" placeholder="3-10 หรือ S, M, L" style="width:100%;margin-top:4px" oninput="blRenderCombos()"></textarea>
       </div>
+      <div id="blComboBox" style="margin-top:10px"></div>
+      <button class="btn" style="width:100%;margin-top:10px" id="blSaveBtn" onclick="blSaveGrid()">💾 บันทึกเข้า Backlog</button>
       <div class="hint" id="blGridHint" style="margin-top:6px"></div>
     </div>
   </div>
@@ -994,7 +1000,6 @@ function scoutPrint(scout_id){
    ขอบเขต: จบที่ "ส่งบัญชี" เท่านั้น — ไม่มีต้นทุน/ราคาในนี้เลย ต้นทุนใส่ทีหลังตอน L/A เปิด ➕SKU/In Non-RB เอง
    flow: (1) Luffy ลงชื่อ+มอบหมาย (2) คนที่ถูกมอบหมายกรอกรายละเอียด (3) L/A รีวิว→ส่งเข้า ➕SKU หรือ 🛍In Non-RB */
 window._BACKLOG=[];
-window._blRowSeq=1;
 window._blFillingId=null;
 window._blfImgB64='';      /* dataURL สำหรับ preview */
 window._blfImgB64Raw='';   /* base64 ล้วนสำหรับส่ง backend */
@@ -1032,7 +1037,11 @@ function blTab(n){
     if(t){ t.style.background=i===n?'var(--pd)':'transparent'; t.style.color=i===n?'#fff':'var(--mut)'; t.style.fontWeight=i===n?'600':'500'; }
   });
   if(n===1) blRenderOverview();
-  if(n===2&&!document.getElementById('blGridBody').children.length){ blAddRow(); blAddRow(); blAddRow(); }
+  if(n===2){ /* B3.119: กริดอัลบั้ม 2 มิติ — เติมรายชื่อมอบหมาย + วาด preview */
+    var asel=document.getElementById('blNewAssign');
+    if(asel) asel.innerHTML=(window._BACKLOG_STAFF||[]).map(function(p){return '<option value="'+p[0]+'">'+p[1]+'</option>';}).join('');
+    blRenderCombos();
+  }
   if(n===3) blRenderDraftList();
   if(n===4) blRenderReviewList();
   blUpdateBadges();
@@ -1044,41 +1053,73 @@ function blUpdateBadges(){
   if(b3){ b3.textContent=draft; b3.style.display=draft?'inline-block':'none'; }
   if(b4){ b4.textContent=ready; b4.style.display=ready?'inline-block':'none'; }
 }
-function blAddRow(){
-  var tbody=document.getElementById('blGridBody'); if(!tbody) return;
-  var i=window._blRowSeq++;
-  var tr=document.createElement('tr'); tr.id='blRow'+i;
-  tr.innerHTML=
-    '<td style="padding:3px"><input id="blAlbum'+i+'" placeholder="เช่น Minimal Organic" style="width:100%;margin:0;padding:6px 8px"></td>'+
-    '<td style="padding:3px"><input id="blVariant'+i+'" placeholder="เช่น 1.The Edge" style="width:100%;margin:0;padding:6px 8px"></td>'+
-    '<td style="padding:3px"><select id="blAssign'+i+'" style="width:100%;margin:0;padding:6px 8px">'+window._BACKLOG_STAFF.map(function(p){return '<option value="'+p[0]+'">'+p[1]+'</option>';}).join('')+'</select></td>'+
-    '<td style="padding:3px;text-align:center"><button onclick="blRemoveRow('+i+')" style="border:none;background:none;color:#C03A3A;font-size:16px;cursor:pointer;padding:4px">✕</button></td>';
-  tbody.appendChild(tr);
+/* ═══ B3.119: กริดเพิ่มอัลบั้มแบบ 2 มิติตัวเลือก (สไตล์ Shopee/Ketshop — สเปค Luffy 22 ก.ค.)
+   หัวข้อตัวเลือกทั้ง 2 ตั้งชื่อเองอิสระ · ค่าคั่น ,/บรรทัดใหม่ · ช่วงเลข 3-10 แตกให้เอง · จับคู่ทุก combination
+   ลบ combination ที่ไม่มีของจริงได้รายตัว · ตัวนับ SKU รวมโชว์ตลอด · บันทึกผ่าน backlogAdd เดิม */
+function blParseVals_(t){
+  var out=[];
+  String(t||'').split(/[,\n]/).forEach(function(x){
+    x=x.trim(); if(!x) return;
+    var m=x.match(/^(\d+)\s*-\s*(\d+)$/);
+    if(m){ var a=Number(m[1]),b=Number(m[2]);
+      if(b>a&&b-a<=60){ for(var v=a;v<=b;v++) out.push(String(v)); return; } }
+    out.push(x);
+  });
+  return out.filter(function(v,i){return out.indexOf(v)===i;});
 }
-function blRemoveRow(i){
-  var tr=document.getElementById('blRow'+i); if(tr) tr.remove();
+function blCombos_(){
+  var d1=blParseVals_((document.getElementById('blDimVals1')||{}).value);
+  var box2=document.getElementById('blDim2Box');
+  var d2=(box2&&box2.style.display!=='none')?blParseVals_((document.getElementById('blDimVals2')||{}).value):[];
+  var names=[];
+  if(d2.length){ d1.forEach(function(a){ d2.forEach(function(b){ names.push(a+'-'+b); }); }); }
+  else names=d1.slice();
+  var rm=window._blRemoved||{};
+  return names.filter(function(n){return !rm[n];});
+}
+function blToggleDim2(){
+  var box=document.getElementById('blDim2Box'), btn=document.getElementById('blDim2Btn');
+  var show=box.style.display==='none';
+  box.style.display=show?'block':'none';
+  btn.textContent=show?'✕ เอาตัวเลือกสินค้า 2 ออก':'➕ เพิ่มตัวเลือกสินค้า 2 (ถ้ามี)';
+  blRenderCombos();
+}
+function blRemoveCombo(n){
+  (window._blRemoved=window._blRemoved||{})[n]=1;
+  blRenderCombos();
+}
+function blRenderCombos(){
+  var el=document.getElementById('blComboBox'), cnt=document.getElementById('blSkuCount');
+  if(!el) return;
+  var names=blCombos_();
+  if(cnt) cnt.textContent=names.length+' SKU';
+  var rmN=Object.keys(window._blRemoved||{}).length;
+  if(!names.length){ el.innerHTML=rmN?'<div class="hint">ลบออกหมดแล้ว — <a href="#" onclick="window._blRemoved={};blRenderCombos();return false">คืนที่ลบทั้งหมด</a></div>':''; return; }
+  el.innerHTML='<div style="font-size:12px;color:var(--mut);margin-bottom:4px">รายการ SKU ที่จะสร้าง (ชื่อเดียวกับที่จะตั้งใน Shopee/Ketshop · ลบตัวที่ไม่มีจริงได้'+(rmN?' · <a href="#" onclick="window._blRemoved={};blRenderCombos();return false">คืนที่ลบ '+rmN+' ตัว</a>':'')+')</div>'+
+    '<div style="display:flex;flex-wrap:wrap;gap:5px">'+names.map(function(n){
+      var e=n.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+      return '<span style="font-size:11.5px;background:var(--soft);border-radius:999px;padding:3px 4px 3px 10px;display:inline-flex;align-items:center;gap:2px">'+e+
+        '<button onclick="blRemoveCombo(\''+e.replace(/'/g,"\\'")+'\')" style="border:none;background:none;color:#C03A3A;cursor:pointer;font-size:12px;padding:0 4px">✕</button></span>';
+    }).join('')+'</div>';
 }
 async function blSaveGrid(){
-  var tbody=document.getElementById('blGridBody');
-  var rows=[].slice.call(tbody.querySelectorAll('tr'));
-  var items=[];
-  rows.forEach(function(tr){
-    var i=tr.id.replace('blRow','');
-    var album=document.getElementById('blAlbum'+i).value.trim();
-    var variant=document.getElementById('blVariant'+i).value.trim();
-    var assign=document.getElementById('blAssign'+i).value;
-    if(!album) return; /* ข้ามแถวว่าง */
-    items.push({album:album,variant:variant,assigned_to:assign});
-  });
   var hintEl=document.getElementById('blGridHint');
-  if(!items.length){ hintEl.textContent='⚠️ ไม่มีแถวที่กรอกครบ (ต้องมีอย่างน้อยอัลบั้ม)'; toast('ยังไม่มีแถวที่กรอกครบ','warn'); return; }
-  toast('กำลังบันทึก...','info',1500);
+  var album=(document.getElementById('blNewAlbum')||{}).value.trim();
+  if(!album){ hintEl.textContent='⚠️ ใส่ชื่ออัลบั้มก่อน'; toast('ใส่ชื่ออัลบั้มก่อน','warn'); return; }
+  var names=blCombos_();
+  if(!names.length){ hintEl.textContent='⚠️ ยังไม่มีตัวเลือก — ใส่ค่าในตัวเลือกสินค้า 1 อย่างน้อย 1 ค่า'; toast('ยังไม่มีตัวเลือก','warn'); return; }
+  var assign=(document.getElementById('blNewAssign')||{}).value||'';
+  var items=names.map(function(n){return {album:album,variant:n,assigned_to:assign};});
+  toast('กำลังบันทึก '+items.length+' รายการ...','info',1500);
   var r=await api('backlogAdd',{items:items});
   if(!r.ok){ hintEl.textContent='❌ '+(r.error||'บันทึกไม่สำเร็จ'); toast(r.error||'บันทึกไม่สำเร็จ','err',4000); return; }
   hintEl.textContent='';
-  toast('✅ บันทึก '+r.added+' รายการแล้ว — ไปกรอกรายละเอียดต่อได้ที่แท็บ 📝 กรอกรายละเอียด','ok',3000);
-  tbody.innerHTML=''; window._blRowSeq=1;
-  blAddRow(); blAddRow(); blAddRow();
+  toast('✅ บันทึก '+r.added+' รายการเข้าอัลบั้ม "'+album+'" แล้ว — ไปกรอกรายละเอียดต่อได้ที่แท็บ 📝','ok',3500);
+  document.getElementById('blNewAlbum').value='';
+  document.getElementById('blDimVals1').value='';
+  var dv2=document.getElementById('blDimVals2'); if(dv2) dv2.value='';
+  window._blRemoved={};
+  blRenderCombos();
   await blLoad();
   blRenderOverview(); blUpdateBadges();
 }
@@ -2601,6 +2642,26 @@ async function wdAct(doc,act){
   const r=await api('wdAction',{doc,act});
   if(r.ok){loadAll();} else toast(r.error,'err');
 }
+/* ═══ B3.119: สะพาน Save SKU → สายพานปล่อยสินค้า 🚀 (สเปค Luffy 22 ก.ค.)
+   หลัง Save SKU/บิลสำเร็จ: อัลบั้มยังไม่มีสายพาน active → ถามครั้งเดียว สร้างแล้วขั้น 1-2 done อัตโนมัติ
+   มีสายพานแล้ว → เงียบ (ตัวเลือกเกาะเองผ่านชื่ออัลบั้ม) · กดไม่สร้าง → จำไว้ไม่ถามซ้ำทั้ง session (สร้างเองทีหลังที่แท็บ 🚀 ได้) */
+window._lnBridgeAsked={};
+async function lnBridgeOffer(album){
+  album=String(album||'').trim(); if(!album) return;
+  var key=album.toLowerCase();
+  if(window._lnBridgeAsked[key]) return;
+  try{
+    var r=await api('launchList',{});
+    if(!r.ok||!r.canManage) return; /* สร้างสายพานได้เฉพาะ L/A — role อื่นไม่ต้องโดนถาม */
+    var has=(r.list||[]).some(function(l){return String(l.status||'active')==='active'&&String(l.name||'').trim().toLowerCase()===key;});
+    if(has){ window._lnBridgeAsked[key]=1; return; }
+    window._lnBridgeAsked[key]=1;
+    if(!confirm('🚀 สร้างสายพานปล่อยสินค้าให้อัลบั้ม\n"'+album+'" เลยไหม?\n\n• ขั้น 1 (เจอสินค้า) + ขั้น 2 (ราคา/ทุน) จะติ๊กเสร็จให้อัตโนมัติ\n• ตัวเลือกถัดไปของอัลบั้มนี้เกาะสายพานเดียวกันเอง ไม่ถามซ้ำ\n• กดยกเลิก = ไปสร้างเองทีหลังที่แท็บ 🚀 ได้')) return;
+    var r2=await api('launchAdd',{name:album,sku_rbo:'',doneSteps:[1,2]});
+    if(r2.ok) toast(r2.existed?('🚀 อัลบั้มนี้อยู่ในสายพาน '+r2.ln_id+' อยู่แล้ว'):('🚀 สร้างสายพาน '+r2.ln_id+' แล้ว — เริ่มวิ่งที่ขั้น 3 ได้เลย'),'ok',4500);
+    else toast('สร้างสายพานไม่สำเร็จ: '+(r2.error||''),'err',4000);
+  }catch(e){}
+}
 /* ── Add SKU ── */
 async function aPreview(){
   var el=document.getElementById('aPv'); if(!el) return;
@@ -2626,6 +2687,7 @@ async function addSku(){
     img_b64:imgB64,img_name:imgName,
     img:window._blImgUrl||''}); /* B3.112: รูป URL จาก Backlog — backend ใช้เมื่อไม่มี img_b64 */
   if(r.ok){document.getElementById('aOk').textContent='✅ สร้าง '+r.sku+' เรียบร้อย'+(r.img?' 📷 รูปเข้าฐานข้อมูลแล้ว':'');
+    var _lnAlb=g('aAlbum'); /* B3.119: เก็บชื่ออัลบั้มก่อนฟอร์มถูกล้าง — ใช้ถามสร้างสายพาน */
     window._blImgUrl=''; /* ใช้รูปจาก Backlog ไปแล้ว — ล้างกันติดไป SKU ถัดไป */
     ['aCustom','aAlbum','aName','aWs','aW','aLocO','aLocW','aQty','aCost','aColW','aPA','aPB','aBase','aLA','aLB','aCostNote'].forEach(i=>document.getElementById(i).value='');
     document.getElementById('aPHint').textContent='';
@@ -2633,7 +2695,8 @@ async function addSku(){
     aPriceCalc();
     if(fEl) fEl.value='';
     api('catalog').then(function(c){if(c.ok){CAT=c.selections;renderCat();}});
-    loadAll(); aPreview();}
+    loadAll(); aPreview();
+    lnBridgeOffer(_lnAlb);} /* B3.119: สะพาน → สายพาน 🚀 */
   else document.getElementById('aErr').textContent=r.error;
 }
 /* ── Modal + PDF ใบเบิก ── */
@@ -3575,6 +3638,8 @@ async function extSubmit(){
     }
   }
   toast('กำลังบันทึกบิล...','info',2000);
+  var _lnAlbs=[]; /* B3.119: อัลบั้มของ SKU ใหม่ในบิล — เก็บก่อน EBCART ถูกล้าง ใช้ถามสร้างสายพาน */
+  EBCART.forEach(function(x){ var a=String(x.album||'').trim(); if(x.is_new&&a&&_lnAlbs.indexOf(a)<0) _lnAlbs.push(a); });
   const r=await api('extCreate',{
     supplier:sup,date:document.getElementById('ebDate').value,
     note:document.getElementById('ebNote').value.trim(),
@@ -3586,6 +3651,7 @@ async function extSubmit(){
       (r.new_skus&&r.new_skus.length?' · 🆕 SKU ใหม่: '+r.new_skus.join(', '):''),'ok',7000);
     closeModal(); extLoadList(); loadAll();
     if(r.new_skus&&r.new_skus.length) api('catalog').then(function(c){if(c.ok){CAT=c.selections;renderCat();}}); // refresh แคตตาล็อกให้ค้นเจอของใหม่
+    if(r.new_skus&&r.new_skus.length){ for(var li=0;li<_lnAlbs.length;li++) await lnBridgeOffer(_lnAlbs[li]); } /* B3.119: สะพาน → สายพาน 🚀 */
   } else toast(r.error,'err',4000);
 }
 
@@ -4297,6 +4363,12 @@ function lnChip(l,s){
     '<div>'+LN_STEPS[no-1][0]+' '+no+' '+st[0]+'</div>'+
     '<div style="font-size:9.5px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px">'+lnEsc(lnWho(s.assigned_to))+(late?' ⏰':'')+'</div></button>';
 }
+/* B3.119: 1 สายพาน = 1 อัลบั้ม — ตัวเลือกดึงจากคัมภีร์สดตามชื่ออัลบั้ม (ไม่เก็บซ้ำในชีต Launches) */
+function lnAlbumSkus_(name){
+  /* CAT ประกาศด้วย let — ห้ามเช็คผ่าน window.CAT (จะ undefined เสมอ ฟีเจอร์เงียบ) */
+  var k=String(name||'').trim().toLowerCase(); if(!k||typeof CAT==='undefined'||!CAT) return [];
+  return CAT.filter(function(s){return String(s.album_id||'').trim().toLowerCase()===k;});
+}
 function lnRenderBoard(){
   var el=document.getElementById('lnBoard'); if(!el) return;
   var L=(_LN.list||[]);
@@ -4319,6 +4391,11 @@ function lnRenderBoard(){
       '</div>'+
       '<div style="background:var(--soft);border-radius:99px;height:6px;margin:8px 0;overflow:hidden"><div style="background:var(--pd);height:6px;width:'+Math.round(done/9*100)+'%"></div></div>'+
       '<div style="display:flex;gap:5px;flex-wrap:wrap">'+ss.map(function(s){return lnChip(l,s);}).join('')+'</div>'+
+      (function(){ /* B3.119: ตัวเลือกของอัลบั้มจากคัมภีร์ — เห็นทันทีว่ามีกี่ SKU ต้องลงขายกี่แถว */
+        var vs=lnAlbumSkus_(l.name); if(!vs.length) return '';
+        var nm=vs.slice(0,4).map(function(s){return lnEsc(s.sel_name||s.sku_rbo);}).join(' · ');
+        return '<div style="font-size:11px;color:var(--pdd);margin-top:6px">🧬 ตัวเลือกในคัมภีร์ <b>'+vs.length+' SKU</b>'+(nm?' — '+nm+(vs.length>4?' …':''):'')+'</div>';
+      })()+
       '<div style="font-size:10.5px;color:var(--mut);margin-top:6px">'+lnEsc(l.ln_id)+' · เริ่ม '+lnEsc(l.created_at)+' โดย '+lnEsc(l.created_by)+'</div>'+
     '</div>';
   });
@@ -4336,7 +4413,9 @@ function lnRow_(s,btnLabel){
   return '<div style="display:flex;align-items:center;gap:10px;padding:9px 4px;border-bottom:1px dashed var(--soft)">'+
     '<div style="font-size:20px">'+LN_STEPS[no-1][0]+'</div>'+
     '<div style="flex:1;min-width:0"><b style="font-size:13px">'+lnEsc(s._launch.name)+'</b>'+
-    '<div style="font-size:11.5px;color:var(--mut)">ขั้น '+no+' · '+lnEsc(LN_STEPS[no-1][1])+' · '+st[0]+' '+st[1]+(String(s.status)==='review'&&s.sent_by?' · ส่งโดย '+lnEsc(s.sent_by)+' '+lnEsc(s.sent_at||''):'')+(s.due?' · กำหนด '+lnEsc(s.due):'')+'</div></div>'+
+    '<div style="font-size:11.5px;color:var(--mut)">ขั้น '+no+' · '+lnEsc(LN_STEPS[no-1][1])+' · '+st[0]+' '+st[1]+(String(s.status)==='review'&&s.sent_by?' · ส่งโดย '+lnEsc(s.sent_by)+' '+lnEsc(s.sent_at||''):'')+(s.due?' · กำหนด '+lnEsc(s.due):'')+'</div>'+
+    /* B3.119: เหตุผลตีกลับโชว์ติดแถว — พนักงานเห็นทันทีว่าต้องแก้อะไร ไม่ต้องเปิด modal ก่อน */
+    (String(s.note||'').indexOf('🔁 ตีกลับ:')===0?'<div style="font-size:11.5px;color:#C03A3A;margin-top:2px">'+lnEsc(String(s.note).split('\n')[0])+'</div>':'')+'</div>'+
     '<button class="btn sm" onclick="lnOpenStep(\''+lnEsc(s.ln_id)+'\','+no+')">'+btnLabel+'</button></div>';
 }
 function lnRenderMine(){
@@ -4382,7 +4461,9 @@ function lnOpenStep(lnId,no){
     '<label style="font-size:12px;color:var(--mut)">ลิงก์แนบ (อัลบั้มรูป / โพสต์ / แผน)</label>'+
     '<input id="lnStepLink" value="'+lnEsc(s.link||'')+'" placeholder="https://…" style="width:100%;margin:4px 0 8px">'+
     assignHtml+
-    (can?'<button class="btn" style="width:100%;margin-top:6px" onclick="lnStepSave(\''+lnEsc(lnId)+'\','+no+')">💾 บันทึก</button>':'');
+    (can?'<button class="btn" style="width:100%;margin-top:6px" onclick="lnStepSave(\''+lnEsc(lnId)+'\','+no+')">💾 บันทึก</button>':'')+
+    /* B3.119: ตีกลับ — L/A ตรวจแล้วไม่ผ่าน กดปุ่มเดียว เหตุผลบังคับ งานเด้งกลับคิวพนักงานพร้อมเหตุผล ไม่ต้องไปพิมพ์บอกใน LINE */
+    (_LN.canManage&&String(s.status)==='review'?'<button class="btn o" style="width:100%;margin-top:8px;border-color:#e05656;color:#C03A3A" onclick="lnStepReject(\''+lnEsc(lnId)+'\','+no+')">🔁 ตีกลับ — งานยังไม่ผ่าน ให้กลับไปแก้</button>':'');
   window._lnSt=String(s.status||'wait');
   lnStPaint();
   document.getElementById('wdModal').style.display='block';
@@ -4393,6 +4474,20 @@ function lnStPaint(){
     var on=window._lnSt===k; var st=LN_ST[k];
     b.style.background=on?st[2]:'#fff'; b.style.color=on?'#fff':'inherit'; b.style.fontWeight=on?'600':'400';
   });
+}
+/* B3.119: ตีกลับงานที่ส่งตรวจ — เหตุผลบังคับ · สถานะกลับ doing · เหตุผลแปะหน้าโน้ต (โน้ตเดิมของพนักงานต่อท้าย ไม่หาย) */
+async function lnStepReject(lnId,no){
+  var reason=prompt('เหตุผลที่ตีกลับ (บังคับ — พนักงานจะเห็นข้อความนี้ติดหน้างาน):');
+  if(reason===null) return;
+  reason=reason.trim();
+  if(!reason){ toast('⚠️ ต้องใส่เหตุผล ไม่งั้นพนักงานไม่รู้จะแก้ตรงไหน','warn',3500); return; }
+  var s=lnStepsOf(lnId).find(function(x){return Number(x.step_no)===Number(no);});
+  var oldNote=String((s&&s.note)||'').replace(/^🔁 ตีกลับ:[^\n]*\n?/,'');
+  var r=await api('launchStepUpdate',{ln_id:lnId,step_no:no,status:'doing',
+    note:'🔁 ตีกลับ: '+reason+(oldNote?'\n'+oldNote:'')});
+  if(!r.ok){ toast('ตีกลับไม่สำเร็จ: '+(r.error||''),'err',3500); return; }
+  closeModal(); toast('🔁 ตีกลับขั้น '+no+' แล้ว — งานกลับเข้าคิวพนักงานพร้อมเหตุผล','ok',3000);
+  await lnLoad();
 }
 async function lnStepSave(lnId,no){
   var st=window._lnSt||'wait';
