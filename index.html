@@ -155,7 +155,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B3.114 · 21 ก.ค. 69 · 🏷 Non-Silver ที่มีรหัส RBWS → ถอดประเภทจาก prefix RBWS อัตโนมัติ (EA/BR/BA/PE/NE/TO/AN · เพิ่มหมวด Toe ring)';
+const BUILD = 'B3.115 · 21 ก.ค. 69 · 📦 Ketshop Queue: ติ๊กหลาย SKU แล้วกด ✅ Ketshop แล้ว ทีเดียว · 📄 PDF ใบเบิกเลิกเด้งขอสิทธิ์ Google (แชร์โฟลเดอร์+ไฟล์ระดับ anyone-with-link — ฝั่ง Code.gs 3.98)';
 const FRONT_VER = '3.98'; // ต้องตรงกับ build ใน doGet ของ backend
 console.log('RB Online Ops · '+BUILD);
 </script>
@@ -1779,10 +1779,13 @@ async function ksQueueOpen(){
 function ksRender(){
   var html='';
   if(KS_SEL.length){
+    /* B3.115: ปุ่มยืนยันหมู่ — ติ๊กหลาย SKU แล้วกด ✅ Ketshop แล้ว ทีเดียว (เฉพาะตัวที่ export แล้ว) */
+    var pickedExported=KS_SEL.filter(function(x){return KS_PICKED.has(x.queue_id)&&x.status==='exported';}).length;
     html+='<div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">'+
       '<button class="btn" style="width:auto;margin:0;padding:9px 18px;font-size:13px" onclick="KS_SEL.forEach(x=>KS_PICKED.add(x.queue_id));ksRender()">ติ๊กทั้งหมด</button>'+
       '<button class="btn o" style="width:auto;margin:0;padding:9px 18px;font-size:13px" onclick="KS_PICKED.clear();ksRender()">ล้าง</button>'+
-      '<button class="btn" style="width:auto;margin:0;padding:9px 18px;font-size:13px;background:var(--pdd)" onclick="ksExport()">📄 Export PDF ('+KS_PICKED.size+')</button></div>';
+      '<button class="btn" style="width:auto;margin:0;padding:9px 18px;font-size:13px;background:var(--pdd)" onclick="ksExport()">📄 Export PDF ('+KS_PICKED.size+')</button>'+
+      '<button class="btn" style="width:auto;margin:0;padding:9px 18px;font-size:13px;background:#2FA36B" onclick="ksConfirmPicked()">✅ Ketshop แล้ว ('+pickedExported+')</button></div>';
     KS_SEL.forEach(function(x){
       var chk=KS_PICKED.has(x.queue_id);
       var docsN=String(x.doc_nos||'').split(',').filter(String).length;
@@ -1834,6 +1837,17 @@ async function ksExport(){
 async function ksConfirmOne(qid){
   const r=await api('ksConfirm',{queue_ids:[qid]});
   if(r.ok){toast('✅ ยืนยันแล้ว บันทึกเวลาและผู้กด','ok',3000);await ksQueueOpen();}
+  else toast(r.error,'err');
+}
+/* B3.115: ยืนยันหมู่ตามที่ติ๊ก — เฉพาะตัวที่ export แล้ว (ตัวที่ยังไม่ export ข้ามให้พร้อมแจ้ง) */
+async function ksConfirmPicked(){
+  if(!KS_PICKED.size){toast('ยังไม่ได้ติ๊กรายการ','warn');return;}
+  var ids=KS_SEL.filter(function(x){return KS_PICKED.has(x.queue_id)&&x.status==='exported';}).map(function(x){return x.queue_id;});
+  var skipped=KS_PICKED.size-ids.length;
+  if(!ids.length){toast('ตัวที่ติ๊กยังไม่ได้ Export PDF — Export ก่อนแล้วค่อยยืนยัน','warn',4000);return;}
+  toast('กำลังยืนยัน '+ids.length+' รายการ...','info',1500);
+  const r=await api('ksConfirm',{queue_ids:ids});
+  if(r.ok){toast('✅ ยืนยันแล้ว '+r.done+' รายการ'+(skipped?' (ข้าม '+skipped+' ตัวที่ยังไม่ export)':''),'ok',3500);await ksQueueOpen();}
   else toast(r.error,'err');
 }
 /* ══════════════ B3.57: นำเข้า SKU ที่มีอยู่แล้ว ══════════════ */
