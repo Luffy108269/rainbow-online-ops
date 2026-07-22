@@ -1,5 +1,10 @@
 # RB Online Ops — Master Tracker
-> อัปเดตล่าสุด: 22 ก.ค. 2569 (จบวัน) · Build: **B3.121 (html) / 3.104 (gs)** — deploy @123 ยืนยันเว็บจริงแล้ว
+> อัปเดตล่าสุด: 22 ก.ค. 2569 (จบวัน) · Build: **B3.122 (html) / 3.105 (gs)** — deploy @124 ยืนยันเว็บจริงแล้ว
+
+## 🔩 22 ก.ค. 2569 (รอบ 6) — เพิ่มหมวด Spare part (B3.122/3.105 — deploy @124 ✓)
+- **Luffy เคาะ prefix: SP (เงิน) / SPB (Brass) / SPS (Stainless)** — แบบเดียวกับหมวดอื่น · override ทีหลังได้ผ่าน Config แถว `prefix_Spare part`
+- เพิ่มครบทุกจุด: dropdown หมวดฟอร์ม ➕SKU + 🛍In Non-RB + 📝Backlog (ใช้ CATS ร่วมกัน) · chips ประเภทหน้าคัมภีร์ + dropdown หน้า Edit + ค่า category ในชีต (CAT_TYPES) · ถอดประเภทจาก prefix รหัส SP*=Spare part ทั้งเว็บ+เมนูชีต 🏷 (TYPE_PREFIX ใส่ก่อน SE/SB/SS กันเทียบผิด — ทดสอบแล้ว Set ไม่โดนกิน) · SEED_CONFIG อัปเดตเผื่อติดตั้งใหม่
+- ทดสอบผ่าน: dropdown มี Spare part ✓ SP001/SPB001/SPS001 → Spare part ✓ SE/SB/SS ยังเป็น Set ✓ category ในชีตพิมพ์ "spare part" ก็ validate ผ่าน ✓ syntax/dup ✓ · backup `rainbow online config 3.105.txt` ขึ้น Drive แล้ว
 
 ## 🌙 จบงาน 22 ก.ค. 2569 — สถานะก่อนกลับบ้าน (ทุกอย่าง sync ครบ ไม่มีของค้างเครื่อง)
 - **ทุกชั้นตรงกันที่ 3.104 หมด:** เว็บจริง @123 = repo (B3.121 push แล้ว) = `apps-script/Code.gs` เครื่องที่ทำงาน = backup ใน Drive (`rainbow online config 3.104.txt`) — เครื่องที่บ้าน pull + โหลด backup จาก Drive ต่อได้เลย
