@@ -39,6 +39,12 @@
    > ⚠️ เว็บนี้ใช้ `initDrivePermission` — ไม่ใช่ authorizeFromEditor (อันนั้นของ re-order)
 3. เตือนเจ้าของทุกครั้งที่แก้ Code.gs ว่าต้อง deploy + รัน initDrivePermission
 
+### Ketshop MCP — กฎการเขียนข้อมูล (Luffy สั่ง 23 ก.ค. 2569)
+- **อ่านข้อมูล Ketshop ได้อิสระ** (สต็อก/สินค้า/รายงาน/ออเดอร์)
+- **เขียน/แก้อะไรเข้า Ketshop ต้องถาม Luffy ยืนยัน 3 ครั้งก่อนเสมอ** — ไม่มีข้อยกเว้น (สต็อก Ketshop ผูกหน้าร้านจริง Shopee/Lazada/TikTok)
+- ฟีเจอร์เว็บแอปที่เขียนเข้า Ketshop ต้องมี confirm 3 ชั้นใน UI เช่นกัน
+- Shopee = ช่องทาง master ของร้าน · ราคาใน Ketshop ไม่ใช่ราคาขายจริงบน marketplace
+
 ### กฎเฉพาะระบบ (บทเรียนที่เจ็บมาแล้ว)
 - **อ่านโค้ดเดิมก่อนแก้เสมอ** — ไฟล์ใหญ่ อย่าเดา
 - frontend ส่ง/ตั้งชื่อ **`index.html` เสมอ** — ห้าม index_build2.html (อัปขึ้น Pages ตรง ๆ)
