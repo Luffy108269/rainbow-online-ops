@@ -1,5 +1,11 @@
 # RB Online Ops — Master Tracker
-> อัปเดตล่าสุด: 22 ก.ค. 2569 (จบวัน) · Build: **B3.122 (html) / 3.105 (gs)** — deploy @124 ยืนยันเว็บจริงแล้ว
+> อัปเดตล่าสุด: 23 ก.ค. 2569 · Build: **B3.122 (html) / 3.105 (gs)** — deploy @124 ยืนยันเว็บจริงแล้ว
+
+## 🔌 23 ก.ค. 2569 — เชื่อม Ketshop MCP connector สำเร็จ (ประตูเฟส C เปิดแล้ว)
+- **Luffy ขอ MCP จาก Ketshop แล้วเชื่อมผ่าน connector (claude.ai) เรียบร้อย** — Claude เรียก API Ketshop ได้ตรง ๆ แล้ว: OpenAPI 126 endpoints (Product/Order/Customer/Warehouse/Report/Shipping/OmniChat) + เครื่องมือสำเร็จรูป ~20 ตัว · connector ผูกกับบัญชี Claude ใช้ได้ทุกเครื่องที่ login เดียวกัน ไม่มี token ในเครื่อง/ใน repo
+- **ทดสอบอ่านจริงผ่าน 3 ชั้น (23 ก.ค.):** (1) `/report/dashboard-summary` → ร้านมี **1,117 SKU · หมดสต็อก 224 · ออเดอร์ค้าง 139** (2) `/product/search` ค้น "EA02" เจอ 32 ตัว SKU ตรงกับรหัส RBO เรา (เช่น `EA020340056-วงกลมถัก` instock 7 ราคา 145 — ฟิลด์ครบ: sku/price/instock/variants/category/img) (3) `/product/stocks/{sku}` ราย SKU ตอบ instock ต่อ warehouse (SKU ไทยต้อง URL-encode) — **นับสต็อกสด แก้สต็อก (`PUT /product/update`), ราคา (`/product/setprice`), stock_logs, low-stock-alert, dead-stock, sales-velocity มีให้ครบ = C1/C2/C3/C5 ทำได้จริงทั้งหมด**
+- **นัยสำคัญ:** C3 (อ่านเมล Low Stock รายชั่วโมง) มีทางยกเครื่องเป็นเรียก `/report/low-stock-alert` ตรง · X1 (วิเคราะห์ยอดขาย Shopee จากไฟล์) บางส่วนแทนได้ด้วย `/report/*` สด ๆ · ช่องทางเข้า: MCP อยู่ฝั่ง Claude ไม่ใช่ฝั่ง Code.gs — สถาปัตยกรรม sync ต้องเคาะ (Claude เป็นตัวกลาง vs Code.gs เรียก Ketshop API เอง ต้องมี token ฝั่ง Apps Script)
+- **คิวเดิมยังอยู่:** F5 รอบ 3 (D3 planner + Caption Bank) · เก็บกวาด Code.gs · ชีต 'ยังไม่มีrbws' 1,142 รายการ
 
 ## 🔩 22 ก.ค. 2569 (รอบ 6) — เพิ่มหมวด Spare part (B3.122/3.105 — deploy @124 ✓)
 - **Luffy เคาะ prefix: SP (เงิน) / SPB (Brass) / SPS (Stainless)** — แบบเดียวกับหมวดอื่น · override ทีหลังได้ผ่าน Config แถว `prefix_Spare part`
