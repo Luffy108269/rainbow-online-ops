@@ -1,5 +1,14 @@
 # RB Online Ops — Master Tracker
-> อัปเดตล่าสุด: 23 ก.ค. 2569 · Build: **B3.123 (html) / 3.106 (gs)** — deploy @125 ยืนยันเว็บจริงแล้ว
+> อัปเดตล่าสุด: 24 ก.ค. 2569 (ตี 1 — Luffy หลับ อนุมัติให้ทำจบ) · Build: **B3.124 (html) / 3.107 (gs)** — deploy @126 ยืนยันเว็บจริงแล้ว
+
+## 🧭 24 ก.ค. 2569 (กลางคืน) — Nav ใหม่ 7 ปุ่ม + F5 รอบ 3 จบ: เลิกใช้ Excel planner ได้แล้ว (B3.124/3.107 @126 ✓)
+- **Luffy อนุมัติเต็มก่อนนอน** ("ทำเลย เทออนุมัติให้จบเลย") — สเปกเคาะแล้ว: 1) ยุบ nav 10→7 ตามที่ Luffy เสนอ (➕SKU+In Non-RB รวมเป็นปุ่มเดียว กดแล้วมีปุ่มใหญ่เลือก) 2) Scout/Backlog/สายพาน **ไม่ซ้ำซ้อนกันเชิงหน้าที่** (ตัดสินใจซื้อ/กรอกมอบหมาย/งานหลังขึ้นระบบ) แต่เป็น pipeline เดียวกัน → รวมบ้านเป็น hub เดียวเรียงตาม flow
+- **Nav ใหม่:** หน้าแรก · สินค้า · เบิก · **➕ ของเข้า** (hub: SKU ใหม่/In Non-RB · จำทางล่าสุดใน localStorage `rb_inhub_last` · pill สลับบนหัวฟอร์ม · เฉพาะ L/A) · **🚀 ปล่อยสินค้า** (hub pills เรียง flow: Scout→Backlog→สายพาน→📅 ปฏิทิน→✍️ Caption · จำแท็บล่าสุด `rb_lnhub_last` · Scout pill ซ่อน non-L/A) · Expense · Setting — deep-link เดิมแก้ครบ (blRoute/lsBind → navIn) ฟังก์ชัน/สิทธิ์เดิมไม่แตะ
+- **📅 ปฏิทินคอนเทนต์รวมทั้งร้าน (ชีต ContentPlan · action cpList/cpSave/cpDel ทุก role):** มุมมองรายสัปดาห์ จ-อา เลื่อน ◀▶ · ตัวนับเทียบเป้า 14 ชิ้น/สัปดาห์ · เพิ่ม/แก้/ลบ/ติ๊กเสร็จ (วันที่/ช่องทาง/Type Hook,Demo,Trust,Set,B-A,New,Promo/หัวข้อ/คนทำจากชีต Users) · **คลิปจากสายพานขั้น 7 โผล่อัตโนมัติ** (parse data.clips — ฟิลด์จริงคือ `{d,ty,hook,prod,proof,cta}` ไม่ใช่ date/type ⚠️ เกือบพลาด เช็คโค้ดรอบ 2 ก่อนแล้วแก้ทัน) แสดงเป็น 🚀 read-only · hint โครง Hook→Product→Proof→CTA + Tone เพื่อนสาว ติดหน้า
+- **✍️ Caption Bank (ชีต CaptionBank · capList ทุก role / capSave+capDel = L/A+Graphic):** การ์ดแคปชั่น กรองตาม platform + **ปุ่ม 📋 คัดลอก** (clipboard + fallback execCommand) · **seed 8 แคปชั่นจาก Excel อัตโนมัติตอนชีตว่าง** (`capSeed_` — TikTok 3/IG 3/FB 2 ตาม Rainbow_Online_Content_Plan_v2.xlsx)
+- **ทดสอบผ่าน local server ครบ:** nav 7 ปุ่ม ✓ chooser ครั้งแรก→จำทาง ✓ hub pills+ซ่อน Scout ตาม role ✓ ปฏิทินนับ 3/14+คลิปสายพานโผล่+ติ๊กเสร็จขีดฆ่า+เลื่อนสัปดาห์ ✓ payload cpSave/toggle/capSave ถูก ✓ Caption กรอง+ปุ่ม copy ✓ · syntax/dup/onclick ครบ ✓ · **ชีตใหม่ 2 ตัวสร้างเองตอนเปิดแท็บครั้งแรก ไม่แตะ DriveApp ไม่ต้อง initDrivePermission**
+- **เก็บตก:** เพิ่ม permission allowlist ใน `.claude/settings.local.json` (Luffy รำคาญปุ่ม allow ก่อนนอน) — ไฟล์ gitignored อยู่แล้ว (global ignore) · Excel planner เลิกใช้ได้ ยกเว้นแท็บ Threads Plan + Checklist รายสัปดาห์ที่ยังไม่ย้าย (ใช้น้อย ไว้ค่อยว่ากัน)
+- **คิวเช้า (จาก 23 ก.ค.):** แผนล้างทุนจม v2 รอ Luffy เคาะ · เมล Ketshop รอกดส่งใน Gmail Drafts · เก็บกวาด Code.gs (massBind217+Expenses ซ้ำ+เมนู 📧 ที่ไม่ใช้แล้ว)
 
 ## 💤 คิวค้างก่อนนอน 23 ก.ค. (Luffy สั่งจำไว้ เดี๋ยวค่อยว่ากัน)
 - **วิเคราะห์ทุนจม Ketshop เสร็จแล้ว (v2 กรองตามเงื่อนไข Luffy: ตัดเสริมดวง-สต็อกร่วมหลายวันเกิด + ตัดรหัสแฟร์ไม่เชื่อม Shopee)** → เหลือของจริง 389 SKU / ~4,300 ชิ้น / ~1.08 ล้านบาท (A หยุดเบิก 290 ตัว 560k · B จัดโปร 54 ตัว 190k · C ดันคอนเทนต์ 45 ตัว 330k) · ไฟล์: Drive "ทุนจม Ketshop v2 กรองแล้ว (23 กค 69).csv"

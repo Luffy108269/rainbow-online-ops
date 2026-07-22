@@ -155,8 +155,8 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B3.123 · 23 ก.ค. 69 · 🛒 เชื่อม Ketshop OpenAPI (อ่านอย่างเดียว): การ์ด Ketshop สดหน้าแรก (ยอดวันนี้/ต่อช่องทาง · L/A) + ปุ่มเช็คสต็อกสดราย SKU ใน modal สินค้า + เมนูชีตทดสอบเชื่อม/เทียบสินค้า Ketshop↔คัมภีร์ (ฝั่ง Code.gs 3.106 — token ใน Script Properties)';
-const FRONT_VER = '3.106'; // ต้องตรงกับ build ใน doGet ของ backend
+const BUILD = 'B3.124 · 23 ก.ค. 69 · 🧭 Nav ใหม่ 7 ปุ่ม: ➕ ของเข้า (SKU+In Non-RB จำทางล่าสุด) + 🚀 ปล่อยสินค้า (Scout→Backlog→สายพาน→📅 ปฏิทิน→✍️ Caption) · F5 รอบ 3: ปฏิทินคอนเทนต์รวมทั้งร้าน (เป้า 14/สัปดาห์ · คลิปสายพานขั้น 7 โผล่อัตโนมัติ) + Caption Bank ย้ายจาก Excel (seed 8 แคปชั่น · ปุ่มคัดลอก) — เลิกใช้ Excel planner ได้แล้ว (ฝั่ง Code.gs 3.107)';
+const FRONT_VER = '3.107'; // ต้องตรงกับ build ใน doGet ของ backend
 console.log('RB Online Ops · '+BUILD);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -292,6 +292,7 @@ console.log('RB Online Ops · '+BUILD);
 </div>
 
 <div id="add" class="pg">
+  <div id="inbar_add"></div>
   <div class="card">
     <h2>➕ Add New SKU <span class="lock">Luffy/Assist</span></h2>
     <div class="row2">
@@ -346,6 +347,7 @@ console.log('RB Online Ops · '+BUILD);
 </div>
 
 <div id="ext" class="pg">
+  <div id="inbar_ext"></div>
   <div class="card" id="ebCard"><h2>🛍 In Non-RB <span class="lock">Luffy/Assist</span></h2>
     <div style="font-size:11px;color:var(--mut);margin-bottom:8px">รับของที่ไม่ได้มาจาก Rainbow Wholesale — ยืนยันแล้วสต๊อกบวกทันที · สิ้นเดือนเข้าไฟล์ Etax เท่านั้น</div>
     <button class="btn" style="margin-top:0" onclick="extOpenForm()">➕ คีย์บิลใหม่</button>
@@ -367,6 +369,7 @@ console.log('RB Online Ops · '+BUILD);
 </div>
 
 <div id="scout" class="pg">
+  <div id="hubbar_scout"></div>
   <div style="display:flex;gap:0;margin:12px 12px 0;background:var(--soft);border-radius:14px;padding:4px;overflow-x:auto">
     <button id="scoutT1" onclick="scoutTab(1)" class="wtab on">➕ เพิ่มใหม่</button>
     <button id="scoutT2" onclick="scoutTab(2)" class="wtab">🛒 ซื้อแล้ว <span id="scoutB2" class="wbadge" style="display:none">0</span></button>
@@ -435,6 +438,7 @@ console.log('RB Online Ops · '+BUILD);
 </div>
 
 <div id="backlog" class="pg">
+  <div id="hubbar_backlog"></div>
   <div style="display:flex;gap:0;margin:12px 12px 0;background:var(--soft);border-radius:14px;padding:4px;overflow-x:auto">
     <button id="blT1" onclick="blTab(1)" class="wtab on">📊 ภาพรวม</button>
     <button id="blT2" onclick="blTab(2)" class="wtab">➕ เพิ่มรายการ</button>
@@ -559,6 +563,7 @@ console.log('RB Online Ops · '+BUILD);
 </div>
 
 <div id="launch" class="pg">
+  <div id="hubbar_launch"></div>
   <div style="display:flex;gap:0;margin:12px 12px 0;background:var(--soft);border-radius:14px;padding:4px;overflow-x:auto">
     <button id="lnT1" onclick="lnTab(1)" class="wtab on">📊 สายพาน</button>
     <button id="lnT2" onclick="lnTab(2)" class="wtab">👤 งานของฉัน <span id="lnB2" class="wbadge" style="display:none">0</span></button>
@@ -596,6 +601,49 @@ console.log('RB Online Ops · '+BUILD);
   </div>
 </div>
 
+<!-- ═══ B3.124: hub ➕ ของเข้า — 2 ปุ่มใหญ่ (สเปค Luffy 23 ก.ค.) จำปุ่มล่าสุด ═══ -->
+<div id="inhub" class="pg">
+  <div class="card">
+    <h2>➕ ของเข้า — เลือกทางเข้า</h2>
+    <div class="hint" style="margin-bottom:12px">ระบบจะจำทางที่เลือก — ครั้งหน้ากด ➕ ของเข้า จะพาเข้าหน้านั้นเลย (สลับได้จากแถบบนหัวฟอร์ม)</div>
+    <button class="btn" style="width:100%;padding:18px;font-size:16px" onclick="inHubGo('add')">➕ SKU ใหม่ (เบิกจาก RBWS)</button>
+    <div class="hint" style="text-align:center;margin:2px 0 10px">ของเบิกจากโรงงาน — รันรหัส คิดราคา 5 ตัวเลข</div>
+    <button class="btn o" style="width:100%;padding:18px;font-size:16px" onclick="inHubGo('ext')">🛍 In Non-RB (ซื้อภายนอก)</button>
+    <div class="hint" style="text-align:center;margin-top:2px">บิลซื้อจากร้านอื่น — สร้าง SKU ใหม่ในบิลได้ สต็อกบวกทันที</div>
+  </div>
+</div>
+
+<!-- ═══ B3.124: 📅 ปฏิทินคอนเทนต์รวมทั้งร้าน (D3 planner — ย้ายจาก Excel) ═══ -->
+<div id="plan" class="pg">
+  <div id="hubbar_plan"></div>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+      <h2 style="margin:0">📅 ปฏิทินคอนเทนต์</h2>
+      <span id="cpWeekCount" style="font-size:12px;font-weight:600;background:var(--soft);color:var(--pdd);border-radius:999px;padding:3px 12px">0/14 ชิ้น</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin:10px 0 6px">
+      <button class="btn o" style="width:auto;margin:0;padding:6px 14px" onclick="cpWeekMove(-1)">◀</button>
+      <div id="cpWeekLabel" style="flex:1;text-align:center;font-size:13.5px;font-weight:600"></div>
+      <button class="btn o" style="width:auto;margin:0;padding:6px 14px" onclick="cpWeekMove(1)">▶</button>
+    </div>
+    <div class="hint" style="margin-bottom:8px">เป้า 14 คลิป/สัปดาห์ (เจ้าของ 7 + กราฟฟิค 7) · โครงคลิป: <b>Hook (0-3วิ) → Product → Proof → CTA</b> · Tone เพื่อนสาว — พูด "ค่า/นะ" ได้ ไม่ใช้ "ท่านลูกค้า" · คลิปจากสายพาน 🚀 ขั้น 7 โผล่ในนี้อัตโนมัติ</div>
+    <div id="cpList"><div class="empty">กำลังโหลด…</div></div>
+    <button class="btn" style="width:100%;margin-top:10px" onclick="cpOpenForm()">➕ เพิ่มคอนเทนต์</button>
+  </div>
+</div>
+
+<!-- ═══ B3.124: ✍️ Caption Bank (ย้ายจาก Excel — seed อัตโนมัติครั้งแรก) ═══ -->
+<div id="caption" class="pg">
+  <div id="hubbar_caption"></div>
+  <div class="card">
+    <h2>✍️ Caption Bank</h2>
+    <div class="hint" style="margin-bottom:8px">แคปชั่นสำเร็จรูป กด 📋 คัดลอกไปวางได้เลย (แก้ [XX] เป็นราคาจริง) · เพิ่ม/แก้ได้เฉพาะ Luffy/Assist/Graphic</div>
+    <div id="capChips" style="margin-bottom:8px"></div>
+    <div id="capList"><div class="empty">กำลังโหลด…</div></div>
+    <button class="btn" id="capAddBtn" style="width:100%;margin-top:10px;display:none" onclick="capOpenForm()">➕ เพิ่มแคปชั่น</button>
+  </div>
+</div>
+
 <!-- Modal (ระดับบนสุด — เปิดได้จากทุกหน้า ไม่ติดการซ่อนของแท็บ) -->
 <div id="wdModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;overflow:auto;padding:16px">
   <div style="background:#fff;border-radius:20px;max-width:480px;margin:0 auto;padding:16px">
@@ -611,12 +659,10 @@ console.log('RB Online Ops · '+BUILD);
   <button data-p="home" onclick="tab('home',this)"><span class="i">🌈</span>หน้าแรก</button>
   <button data-p="prod" onclick="tab('prod',this)"><span class="i">💎</span>สินค้า</button>
   <button data-p="wd" onclick="tab('wd',this)"><span class="i">🔄</span>เบิก</button>
-  <button data-p="add" id="navAdd" onclick="tab('add',this)"><span class="i">➕</span>SKU</button>
-  <button data-p="ext" id="navExt" onclick="tab('ext',this)"><span class="i">📦</span>In Non-RB</button>
+  <!-- B3.124: ยุบ nav 10→7 — ➕ ของเข้า (SKU+In Non-RB) · 🚀 ปล่อยสินค้า (Scout+Backlog+สายพาน+ปฏิทิน+Caption) -->
+  <button data-p="inhub" id="navIn" onclick="goInHub()"><span class="i">➕</span>ของเข้า</button>
+  <button data-p="lnhub" id="navHub" onclick="goLaunchHub()"><span class="i">🚀</span>ปล่อยสินค้า</button>
   <button data-p="exp" id="navExp" onclick="tab('exp',this)"><span class="i">💸</span>Expense</button>
-  <button data-p="scout" id="navScout" onclick="tab('scout',this)"><span class="i">🔎</span>Scout</button>
-  <button data-p="backlog" id="navBacklog" onclick="tab('backlog',this)"><span class="i">🗃️</span>Backlog</button>
-  <button data-p="launch" id="navLaunch" onclick="tab('launch',this)"><span class="i">🚀</span>ปล่อยสินค้า</button>
   <button data-p="more" onclick="tab('more',this)"><span class="i">⚙️</span>Setting</button>
 </nav>
 
@@ -1287,11 +1333,11 @@ async function blRoute(id,to){
   x.status=to;
   blRenderReviewList(); blRenderOverview(); blUpdateBadges();
   if(to==='sent_sku'){
-    tab('add',document.getElementById('navAdd'));
+    tab('add',document.getElementById('navIn')); /* B3.124: navAdd ยุบเข้า hub ➕ ของเข้า */
     blFillAddForm_(x);
     toast('➡️ พาไปหน้า ➕ SKU พร้อมข้อมูลจาก Backlog แล้ว — ใส่ทุน/สี/ราคาแล้วกดบันทึก SKU ใหม่','ok',3500);
   } else {
-    tab('ext',document.getElementById('navExt'));
+    tab('ext',document.getElementById('navIn'));
     extOpenForm();
     ebMode('new');
     blFillExtForm_(x);
@@ -1417,9 +1463,8 @@ function enter(){
   document.getElementById('nav').classList.add('show');
   document.getElementById('hi').textContent='สวัสดี '+(S.name||S.u||'')+' 🌈'; /* B3.121: session เก่าบางตัวไม่มี name — โชว์ username แทน undefined */
   document.getElementById('hsub').textContent=new Date().toLocaleDateString('th-TH',{weekday:'long',day:'numeric',month:'short',year:'2-digit'});
-  if(!isLA()){document.getElementById('navAdd').style.display='none';document.getElementById('setCard').style.display='none';
-    document.getElementById('navExt').style.display='none';document.getElementById('navExp').style.display='none';
-    document.getElementById('navScout').style.display='none';}
+  if(!isLA()){document.getElementById('navIn').style.display='none';document.getElementById('setCard').style.display='none';
+    document.getElementById('navExp').style.display='none';} /* B3.124: navAdd/navExt/navScout ยุบเข้า hub — ➕ ของเข้า เฉพาะ L/A · Scout ซ่อนที่ pill ใน hub */
   /* Backlog Board: เปิดให้ทุก role เห็น — ไม่มีต้นทุนอยู่ในนี้เลย (แยกไปอยู่ที่ ➕SKU/In Non-RB ปลายทางแล้ว)
      พนักงานที่ถูกมอบหมายต้องเข้าถึงแท็บ 📝 กรอกรายละเอียด ได้ · หน้า ✅ รอรีวิว ยังกันด้วย isLA() แยกอยู่แล้วใน blRenderReviewList */
   if(S.role==='storefront'){ document.getElementById('wdCreateCard').style.display='none';
@@ -1655,7 +1700,7 @@ async function lsWdGo(id){
 function lsBind(id){
   var x=LS_MAP[id]; if(!x) return;
   if(!isLA()){ toast('เพิ่ม SKU ได้เฉพาะ Luffy/Assist — แจ้งให้ช่วยผูกรหัส '+x.sku_rbo,'warn',3500); return; }
-  tab('add',document.getElementById('navAdd'));
+  tab('add',document.getElementById('navIn')); /* B3.124 */
   var c=document.getElementById('aCustom');
   if(c){ c.value=String(x.sku_rbo||''); }
   toast('ใส่รหัส '+x.sku_rbo+' ในช่องรหัสกำหนดเองให้แล้ว — กรอกข้อมูลที่เหลือได้เลย','ok',3500);
@@ -4749,6 +4794,204 @@ function tab(id,btn){
   if(id==='scout'){ scoutLoad(); }
   if(id==='backlog'){ Promise.all([blLoadStaff(),blLoad()]).then(function(){ blTab(1); }); } /* B3.112: โหลดชีต Backlog จริงทุกครั้งที่เปิดแท็บ */
   if(id==='launch'){ lnLoad(); } /* B3.116 F5: โหลดสายพานจริงทุกครั้งที่เปิดแท็บ */
+  /* B3.124: hub 🚀 + hub ➕ + หน้าใหม่ ปฏิทิน/Caption */
+  if(id==='scout'||id==='backlog'||id==='launch'||id==='plan'||id==='caption') hubBarPaint(id);
+  if(id==='add'||id==='ext') inBarPaint(id);
+  if(id==='plan') cpLoad();
+  if(id==='caption') capLoad();
+}
+/* ═══ B3.124: hub nav — ยุบ 10 ปุ่มเหลือ 7 (สเปค Luffy 23 ก.ค.) ═══
+   ➕ ของเข้า = SKU ใหม่ + In Non-RB (จำทางล่าสุดใน localStorage)
+   🚀 ปล่อยสินค้า = Scout → Backlog → สายพาน → ปฏิทิน → Caption (pipeline เดียวกัน 3 ช่วง เรียงตาม flow) */
+var HUB_TABS=[['scout','🔎 Scout'],['backlog','🗃️ Backlog'],['launch','🚀 สายพาน'],['plan','📅 ปฏิทิน'],['caption','✍️ Caption']];
+function hubGo(id){
+  if(id==='scout'&&!isLA()) return;
+  try{localStorage.setItem('rb_lnhub_last',id);}catch(e){}
+  tab(id,document.getElementById('navHub'));
+}
+function goLaunchHub(){
+  var last=''; try{last=localStorage.getItem('rb_lnhub_last')||'';}catch(e){}
+  if(!HUB_TABS.some(function(t){return t[0]===last;})) last='launch';
+  if(last==='scout'&&!isLA()) last='launch';
+  hubGo(last);
+}
+function hubBarPaint(cur){
+  var el=document.getElementById('hubbar_'+cur);
+  HUB_TABS.forEach(function(t){ var e2=document.getElementById('hubbar_'+t[0]); if(e2&&t[0]!==cur) e2.innerHTML=''; });
+  if(!el) return;
+  el.innerHTML='<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px">'+HUB_TABS.map(function(t){
+    if(t[0]==='scout'&&!isLA()) return '';
+    var on=t[0]===cur;
+    return '<button onclick="hubGo(\''+t[0]+'\')" style="font-family:\'Prompt\';cursor:pointer;border:1.5px solid var(--pd);border-radius:999px;padding:6px 13px;font-size:12.5px;'+(on?'background:var(--pd);color:#fff;font-weight:600':'background:#fff;color:var(--pdd)')+'">'+t[1]+'</button>';
+  }).join('')+'</div>';
+}
+function goInHub(){
+  var last=''; try{last=localStorage.getItem('rb_inhub_last')||'';}catch(e){}
+  if(last==='add'||last==='ext') tab(last,document.getElementById('navIn'));
+  else tab('inhub',document.getElementById('navIn'));
+}
+function inHubGo(w){
+  try{localStorage.setItem('rb_inhub_last',w);}catch(e){}
+  tab(w,document.getElementById('navIn'));
+}
+function inBarPaint(cur){
+  var el=document.getElementById('inbar_'+cur); if(!el) return;
+  var o=document.getElementById('inbar_'+(cur==='add'?'ext':'add')); if(o) o.innerHTML='';
+  el.innerHTML='<div style="display:flex;gap:5px;margin-bottom:10px">'+[['add','➕ SKU ใหม่'],['ext','🛍 In Non-RB']].map(function(t){
+    var on=t[0]===cur;
+    return '<button onclick="inHubGo(\''+t[0]+'\')" style="font-family:\'Prompt\';cursor:pointer;border:1.5px solid var(--pd);border-radius:999px;padding:6px 13px;font-size:12.5px;'+(on?'background:var(--pd);color:#fff;font-weight:600':'background:#fff;color:var(--pdd)')+'">'+t[1]+'</button>';
+  }).join('')+'</div>';
+}
+/* ═══ B3.124: 📅 ปฏิทินคอนเทนต์รวมทั้งร้าน (D3 planner จาก Excel → เว็บ) ═══ */
+var CP_TYPES=['Hook','Demo','Trust','Set','B-A','New','Promo']; /* ให้ตรง LN_CONTENT_TYPES ของสายพานขั้น 7 */
+var CP_CH=['TikTok','Shopee','IG','Facebook','Lazada','Threads','อื่นๆ'];
+window._CP={list:[],clips:[],staff:{},week:null};
+function cpMonday_(d){ var x=new Date(d); var dow=(x.getDay()+6)%7; x.setDate(x.getDate()-dow); x.setHours(0,0,0,0); return x; }
+function cpFmt_(d){ return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
+async function cpLoad(){
+  if(!window._CP.week) window._CP.week=cpMonday_(new Date());
+  var r=await api('cpList',{});
+  if(!r.ok){ document.getElementById('cpList').innerHTML='<div class="empty">⛔ '+(r.error||'โหลดไม่สำเร็จ')+'</div>'; return; }
+  window._CP.list=r.list||[]; window._CP.clips=r.clips||[]; window._CP.staff=r.staff||{};
+  cpRender();
+}
+function cpWeekMove(n){ var w=new Date(window._CP.week); w.setDate(w.getDate()+n*7); window._CP.week=w; cpRender(); }
+function cpItemsOfWeek_(){
+  var a=cpFmt_(window._CP.week); var e=new Date(window._CP.week); e.setDate(e.getDate()+6); var b=cpFmt_(e);
+  var items=[];
+  window._CP.list.forEach(function(x){ var d=String(x.date||'').slice(0,10); if(d>=a&&d<=b) items.push(x); });
+  window._CP.clips.forEach(function(x){ var d=String(x.date||'').slice(0,10); if(d>=a&&d<=b) items.push(x); });
+  return items;
+}
+function cpEsc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function cpRender(){
+  var el=document.getElementById('cpList'); if(!el) return;
+  var w=window._CP.week; var e=new Date(w); e.setDate(e.getDate()+6);
+  var thDay=['จันทร์','อังคาร','พุธ','พฤหัส','ศุกร์','เสาร์','อาทิตย์'];
+  document.getElementById('cpWeekLabel').textContent=w.toLocaleDateString('th-TH',{day:'numeric',month:'short'})+' – '+e.toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'2-digit'});
+  var items=cpItemsOfWeek_();
+  var cnt=document.getElementById('cpWeekCount'); if(cnt) cnt.textContent=items.length+'/14 ชิ้น';
+  var h='';
+  for(var i=0;i<7;i++){
+    var d=new Date(w); d.setDate(d.getDate()+i); var key=cpFmt_(d);
+    var day=items.filter(function(x){return String(x.date||'').slice(0,10)===key;});
+    h+='<div style="border-bottom:1px dashed var(--soft);padding:7px 2px">'+
+      '<div style="display:flex;justify-content:space-between;align-items:baseline">'+
+      '<b style="font-size:12.5px;color:'+(i>=5?'var(--mut)':'var(--pdd)')+'">'+thDay[i]+' '+d.getDate()+'</b>'+
+      '<button class="btn o" style="width:auto;margin:0;padding:2px 10px;font-size:11px" onclick="cpOpenForm(null,\''+key+'\')">＋</button></div>';
+    if(!day.length) h+='<div style="font-size:11px;color:var(--mut);padding:2px 0">—</div>';
+    day.forEach(function(x){
+      var isLn=x.source==='launch';
+      var done=String(x.status)==='done';
+      h+='<div style="display:flex;align-items:center;gap:6px;padding:3px 0;font-size:12.5px'+(done?';opacity:.55':'')+'">'+
+        (isLn?'<span title="จากสายพาน — แก้ที่สายพานขั้น 7">🚀</span>':'<input type="checkbox" '+(done?'checked':'')+' onchange="cpToggle(\''+cpEsc(x.cp_id)+'\',this.checked)" style="width:16px;height:16px;margin:0">')+
+        '<span style="font-size:10.5px;background:var(--soft);border-radius:6px;padding:1px 6px;flex-shrink:0">'+cpEsc([x.channel,x.ctype].filter(Boolean).join(' · ')||'—')+'</span>'+
+        '<span style="flex:1;min-width:0'+(done?';text-decoration:line-through':'')+'">'+cpEsc(x.topic||'')+(isLn&&x.ln_name?' <small style="color:var(--mut)">('+cpEsc(x.ln_name)+')</small>':'')+'</span>'+
+        (x.owner?'<span style="font-size:10.5px;color:var(--mut);flex-shrink:0">'+cpEsc(window._CP.staff[String(x.owner).toLowerCase()]||x.owner)+'</span>':'')+
+        (isLn?'':'<span onclick="cpOpenForm(\''+cpEsc(x.cp_id)+'\')" style="cursor:pointer;flex-shrink:0">✏️</span>')+
+      '</div>';
+    });
+    h+='</div>';
+  }
+  el.innerHTML=h;
+}
+function cpOpenForm(id,dateKey){
+  var x=id?window._CP.list.find(function(v){return String(v.cp_id)===String(id);}):null;
+  document.getElementById('modalTitle').textContent=x?'✏️ แก้คอนเทนต์':'➕ เพิ่มคอนเทนต์';
+  var staffOpts=Object.keys(window._CP.staff).map(function(u){return '<option value="'+cpEsc(u)+'"'+(x&&String(x.owner||'').toLowerCase()===u?' selected':'')+'>'+cpEsc(window._CP.staff[u])+'</option>';}).join('');
+  document.getElementById('modalBody').innerHTML=
+    '<label style="font-size:12px;color:var(--mut)">วันที่</label><input type="date" id="cpF_date" value="'+cpEsc(x?String(x.date).slice(0,10):(dateKey||cpFmt_(new Date())))+'" style="width:100%;margin:4px 0 8px">'+
+    '<div style="display:flex;gap:8px"><div style="flex:1"><label style="font-size:12px;color:var(--mut)">ช่องทาง</label><select id="cpF_ch" style="width:100%;margin:4px 0 8px">'+CP_CH.map(function(c){return '<option'+(x&&x.channel===c?' selected':'')+'>'+c+'</option>';}).join('')+'</select></div>'+
+    '<div style="flex:1"><label style="font-size:12px;color:var(--mut)">Type</label><select id="cpF_ty" style="width:100%;margin:4px 0 8px">'+CP_TYPES.map(function(c){return '<option'+(x&&x.ctype===c?' selected':'')+'>'+c+'</option>';}).join('')+'</select></div></div>'+
+    '<label style="font-size:12px;color:var(--mut)">หัวข้อ / Hook</label><textarea id="cpF_topic" rows="2" style="width:100%;margin:4px 0 8px">'+cpEsc(x?x.topic:'')+'</textarea>'+
+    '<label style="font-size:12px;color:var(--mut)">คนทำ</label><select id="cpF_owner" style="width:100%;margin:4px 0 8px"><option value="">— ไม่ระบุ —</option>'+staffOpts+'</select>'+
+    '<button class="btn" style="width:100%;margin-top:6px" onclick="cpSaveGo(\''+cpEsc(id||'')+'\')">💾 บันทึก</button>'+
+    (x?'<button class="btn o" style="width:100%;margin-top:8px;border-color:#e05656;color:#C03A3A" onclick="cpDelGo(\''+cpEsc(id)+'\')">🗑 ลบ</button>':'');
+  document.getElementById('wdModal').style.display='block';
+}
+async function cpSaveGo(id){
+  var topic=(document.getElementById('cpF_topic').value||'').trim();
+  if(!topic){ toast('ใส่หัวข้อก่อน','warn'); return; }
+  var r=await api('cpSave',{cp_id:id||'',date:document.getElementById('cpF_date').value,
+    channel:document.getElementById('cpF_ch').value,ctype:document.getElementById('cpF_ty').value,
+    topic:topic,owner:document.getElementById('cpF_owner').value});
+  if(!r.ok){ toast(r.error||'บันทึกไม่สำเร็จ','err',3500); return; }
+  closeModal(); toast('💾 บันทึกแล้ว','ok',2000); await cpLoad();
+}
+async function cpToggle(id,done){
+  var r=await api('cpSave',{cp_id:id,status:done?'done':'plan'});
+  if(!r.ok){ toast(r.error||'ไม่สำเร็จ','err'); } await cpLoad();
+}
+async function cpDelGo(id){
+  if(!confirm('ลบคอนเทนต์นี้?')) return;
+  var r=await api('cpDel',{cp_id:id});
+  if(!r.ok){ toast(r.error||'ลบไม่สำเร็จ','err',3500); return; }
+  closeModal(); toast('🗑 ลบแล้ว','ok',2000); await cpLoad();
+}
+/* ═══ B3.124: ✍️ Caption Bank ═══ */
+window._CAP={list:[],canEdit:false,filter:''};
+async function capLoad(){
+  var r=await api('capList',{});
+  if(!r.ok){ document.getElementById('capList').innerHTML='<div class="empty">⛔ '+(r.error||'โหลดไม่สำเร็จ')+'</div>'; return; }
+  window._CAP.list=r.list||[]; window._CAP.canEdit=!!r.canEdit;
+  var ab=document.getElementById('capAddBtn'); if(ab) ab.style.display=window._CAP.canEdit?'block':'none';
+  capRender();
+}
+function capRender(){
+  var plats=[]; window._CAP.list.forEach(function(x){ if(x.platform&&plats.indexOf(x.platform)<0) plats.push(x.platform); });
+  var ch=document.getElementById('capChips');
+  if(ch) ch.innerHTML=['<span onclick="window._CAP.filter=\'\';capRender()" style="cursor:pointer;font-size:11.5px;border-radius:999px;padding:4px 12px;'+(!window._CAP.filter?'background:var(--pd);color:#fff':'background:var(--soft)')+'">ทั้งหมด</span>'].concat(plats.map(function(p){
+    return '<span onclick="window._CAP.filter=\''+cpEsc(p)+'\';capRender()" style="cursor:pointer;font-size:11.5px;border-radius:999px;padding:4px 12px;margin-left:4px;'+(window._CAP.filter===p?'background:var(--pd);color:#fff':'background:var(--soft)')+'">'+cpEsc(p)+'</span>';
+  })).join('');
+  var el=document.getElementById('capList'); if(!el) return;
+  var list=window._CAP.list.filter(function(x){return !window._CAP.filter||x.platform===window._CAP.filter;});
+  if(!list.length){ el.innerHTML='<div class="empty">ยังไม่มีแคปชั่น</div>'; return; }
+  el.innerHTML=list.map(function(x,i){
+    return '<div style="border:1.5px solid var(--soft);border-radius:12px;padding:10px;margin-bottom:8px">'+
+      '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap">'+
+      '<span style="font-size:10.5px;background:var(--soft);border-radius:6px;padding:1px 8px">'+cpEsc(x.platform||'')+(x.ctype?' · '+cpEsc(x.ctype):'')+'</span>'+
+      '<b style="font-size:12.5px;flex:1">'+cpEsc(x.topic||'')+'</b>'+
+      '<button class="btn o" style="width:auto;margin:0;padding:3px 12px;font-size:11.5px" onclick="capCopy('+i+')">📋 คัดลอก</button>'+
+      (window._CAP.canEdit?'<span onclick="capOpenForm(\''+cpEsc(x.cap_id)+'\')" style="cursor:pointer">✏️</span>':'')+'</div>'+
+      '<div style="font-size:12px;white-space:pre-wrap;color:var(--mut);max-height:110px;overflow:hidden">'+cpEsc(x.caption||'')+'</div>'+
+      (x.note?'<div style="font-size:10.5px;color:var(--pdd);margin-top:4px">💡 '+cpEsc(x.note)+'</div>':'')+
+    '</div>';
+  }).join('');
+}
+function capCopy(i){
+  var list=window._CAP.list.filter(function(x){return !window._CAP.filter||x.platform===window._CAP.filter;});
+  var x=list[i]; if(!x) return;
+  var t=String(x.caption||'');
+  if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(function(){ toast('📋 คัดลอกแล้ว — ไปวางได้เลย','ok',2000); },function(){ toast('คัดลอกไม่สำเร็จ','err'); });
+  else { var ta=document.createElement('textarea'); ta.value=t; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); toast('📋 คัดลอกแล้ว','ok',2000); }
+}
+function capOpenForm(id){
+  var x=id?window._CAP.list.find(function(v){return String(v.cap_id)===String(id);}):null;
+  document.getElementById('modalTitle').textContent=x?'✏️ แก้แคปชั่น':'➕ เพิ่มแคปชั่น';
+  document.getElementById('modalBody').innerHTML=
+    '<div style="display:flex;gap:8px"><div style="flex:1"><label style="font-size:12px;color:var(--mut)">Platform</label><select id="capF_p" style="width:100%;margin:4px 0 8px">'+CP_CH.map(function(c){return '<option'+(x&&x.platform===c?' selected':'')+'>'+c+'</option>';}).join('')+'</select></div>'+
+    '<div style="flex:1"><label style="font-size:12px;color:var(--mut)">Type</label><select id="capF_t" style="width:100%;margin:4px 0 8px">'+CP_TYPES.map(function(c){return '<option'+(x&&x.ctype===c?' selected':'')+'>'+c+'</option>';}).join('')+'</select></div></div>'+
+    '<label style="font-size:12px;color:var(--mut)">หัวข้อ</label><input id="capF_topic" value="'+cpEsc(x?x.topic:'')+'" style="width:100%;margin:4px 0 8px">'+
+    '<label style="font-size:12px;color:var(--mut)">แคปชั่น</label><textarea id="capF_cap" rows="6" style="width:100%;margin:4px 0 8px">'+cpEsc(x?x.caption:'')+'</textarea>'+
+    '<label style="font-size:12px;color:var(--mut)">หมายเหตุ</label><input id="capF_note" value="'+cpEsc(x?x.note:'')+'" style="width:100%;margin:4px 0 8px">'+
+    '<button class="btn" style="width:100%;margin-top:6px" onclick="capSaveGo(\''+cpEsc(id||'')+'\')">💾 บันทึก</button>'+
+    (x?'<button class="btn o" style="width:100%;margin-top:8px;border-color:#e05656;color:#C03A3A" onclick="capDelGo(\''+cpEsc(id)+'\')">🗑 ลบ</button>':'');
+  document.getElementById('wdModal').style.display='block';
+}
+async function capSaveGo(id){
+  var cap=(document.getElementById('capF_cap').value||'').trim();
+  if(!cap){ toast('ใส่แคปชั่นก่อน','warn'); return; }
+  var r=await api('capSave',{cap_id:id||'',platform:document.getElementById('capF_p').value,
+    ctype:document.getElementById('capF_t').value,topic:(document.getElementById('capF_topic').value||'').trim(),
+    caption:cap,note:(document.getElementById('capF_note').value||'').trim()});
+  if(!r.ok){ toast(r.error||'บันทึกไม่สำเร็จ','err',3500); return; }
+  closeModal(); toast('💾 บันทึกแล้ว','ok',2000); await capLoad();
+}
+async function capDelGo(id){
+  if(!confirm('ลบแคปชั่นนี้?')) return;
+  var r=await api('capDel',{cap_id:id});
+  if(!r.ok){ toast(r.error||'ลบไม่สำเร็จ','err',3500); return; }
+  closeModal(); toast('🗑 ลบแล้ว','ok',2000); await capLoad();
 }
 document.getElementById('bstamp').textContent='เวอร์ชั่น: '+BUILD;
 if(document.getElementById('scDate')) document.getElementById('scDate').value=new Date().toISOString().slice(0,10);
