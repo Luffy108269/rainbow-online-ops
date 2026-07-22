@@ -155,8 +155,8 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B3.120 · 22 ก.ค. 69 · 🚀 F5 รอบ 2: ฟอร์มเฉพาะขั้น — ป้ายนับขั้น3 · checklist รูป10+วีดีโอขั้น4 · ติ๊กช่องทางขั้น5 (sync web_status ตอน L/A approve) · แผนการตลาดขั้น6 · ตารางคลิป Hook→Product→Proof→CTA ขั้น7 · วัดผล Reach/Engagement/คลิก Shopee ขั้น9 (ฝั่ง Code.gs 3.103)';
-const FRONT_VER = '3.103'; // ต้องตรงกับ build ใน doGet ของ backend
+const BUILD = 'B3.121 · 22 ก.ค. 69 · 📝 Draft เบิกเลิกทับกันข้ามคน (sync รายรายการ+Lock — ของ Jane ไม่หายตอน Ticha คีย์) · ↩️ ปุ่มดึงกลับ/ปฏิเสธใบขออนุมัติ → เด้งกลับเป็น Draft ให้แก้แล้วส่งใหม่ (ฝั่ง Code.gs 3.104)';
+const FRONT_VER = '3.104'; // ต้องตรงกับ build ใน doGet ของ backend
 console.log('RB Online Ops · '+BUILD);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -1406,7 +1406,7 @@ function enter(){
   document.getElementById('hd').style.display='block';
   document.getElementById('stats').style.display='block';
   document.getElementById('nav').classList.add('show');
-  document.getElementById('hi').textContent='สวัสดี '+S.name+' 🌈';
+  document.getElementById('hi').textContent='สวัสดี '+(S.name||S.u||'')+' 🌈'; /* B3.121: session เก่าบางตัวไม่มี name — โชว์ username แทน undefined */
   document.getElementById('hsub').textContent=new Date().toLocaleDateString('th-TH',{weekday:'long',day:'numeric',month:'short',year:'2-digit'});
   if(!isLA()){document.getElementById('navAdd').style.display='none';document.getElementById('setCard').style.display='none';
     document.getElementById('navExt').style.display='none';document.getElementById('navExp').style.display='none';
@@ -1605,7 +1605,7 @@ async function lsWdGo(id){
   } else {
     WDCART.push({sku:s.sku_rbo,ws:s.sku_rbws,loc:s.loc_rbws||'',qty:q,needLoc:!s.loc_rbws,by:S.name,date:today});
   }
-  wdRender(); wdDraftPush();
+  wdRender(); wdDraftOp('set',wdRowPayload_(ex||WDCART[WDCART.length-1]));
   try{ await api('lowStockDone',{alert_id:id,note:'สั่งเบิกแล้ว '+q+' ชิ้น'}); }catch(e){}
   toast('เข้า Draft เบิกแล้ว '+q+' ชิ้น ✓ (ดูที่แท็บเบิก)','ok',3000);
   lsLoad();
@@ -2529,7 +2529,7 @@ function wdQtySet(i,val){
     x.hist=delta!==0?prior.concat([{q:delta,by:S.name,d:today}]):prior;
     if(x.hist.length<=1){ x.hist=null; } /* เหลือรายการเดียว = ไม่ต้องโชว์ breakdown */
   }
-  wdRender();wdDraftPush();
+  wdRender();wdDraftOp('set',wdRowPayload_(x));
 }
 function wdPick(js){
   const s=JSON.parse(js);
@@ -2545,28 +2545,47 @@ function wdPick(js){
     if(te) te.q=Number(te.q)+1; else ex.hist.push({q:1,by:S.name,d:today});
     ex.qty=ex.hist.reduce(function(a,h){return a+Number(h.q||0);},0);
     toast(s.sku_rbo+' มีในรายการอยู่แล้ว — เพิ่มเป็น '+ex.qty+' ชิ้น (ดูที่มาใต้บรรทัด)','ok',3000);
-    wdRender();wdDraftPush();return;
+    wdRender();wdDraftOp('set',wdRowPayload_(ex));return;
   }
-  WDCART.push({sku:s.sku_rbo,ws:s.sku_rbws,loc:s.loc_rbws||'',qty:1,needLoc:!s.loc_rbws,
-    by:S.name,date:today});
-  wdRender();wdDraftPush();
+  var nw={sku:s.sku_rbo,ws:s.sku_rbws,loc:s.loc_rbws||'',qty:1,needLoc:!s.loc_rbws,
+    by:S.name,date:today};
+  WDCART.push(nw);
+  wdRender();wdDraftOp('set',wdRowPayload_(nw));
 }
 
-/* ── Sync Draft ขึ้น Google Sheets (คีย์สะสมข้ามวัน/ข้ามเครื่องได้ ไม่หายตอน refresh) ── */
-let _draftTimer=null;
-function wdDraftPush(){
-  clearTimeout(_draftTimer);
-  _draftTimer=setTimeout(async function(){
-    const items=WDCART.map(function(x){return {sku_rbo:x.sku,sku_rbws:x.ws,loc_rbws:x.loc||'',qty:x.qty,sel_name:'',added_by:x.by||S.name,added_date:x.date||new Date().toISOString().slice(0,10),hist:(x.hist&&x.hist.length)?JSON.stringify(x.hist):''};});
-    try{
-      const r=await api('wdDraftSync',{items:items});
-      const note=document.getElementById('wdDraftNote');
-      if(note) note.textContent=r.ok
-        ?(WDCART.length?'☁️ Draft '+WDCART.length+' รายการ — บันทึกขึ้นระบบแล้ว':'')
-        :'⚠️ บันทึกขึ้นระบบไม่สำเร็จ (เก็บในเครื่องไว้ก่อน)';
-    }catch(e){}
-  },800);
+/* ── B3.121: Sync Draft แบบรายรายการ (เลิกทับทั้งชุด) ──
+   บั๊กเดิม 22 ก.ค.: wdDraftSync เขียนทับทั้งชีตด้วย state ในเครื่องคนที่กดล่าสุด — Jane คีย์ไว้ Ticha (หน้าเก่าค้าง) มาคีย์ต่อ ของ Jane หายทั้งชุด
+   แก้: ส่งเฉพาะรายการที่แตะ (set/del/delMany) → backend อัปเดตรายแถวใต้ LockService แล้วตอบ draft ล่าสุดทั้งชุดกลับมา
+   ทุกครั้งที่ sync จะเห็นของเพื่อนร่วมทีมโผล่ในจอด้วยทันที */
+function wdApplyDraftItems_(items){
+  WDCART=(items||[]).map(function(it){
+    var hh=null; try{ hh=it.hist?JSON.parse(it.hist):null; }catch(e){}
+    return {sku:it.sku_rbo,ws:it.sku_rbws,loc:it.loc_rbws||'',qty:Number(it.qty)||1,
+      needLoc:!it.loc_rbws,by:it.added_by||'',date:it.added_date?String(it.added_date).slice(0,10):'',hist:hh};
+  });
+  wdRender();
 }
+function wdRowPayload_(x){
+  return {item:{sku_rbo:x.sku,sku_rbws:x.ws,loc_rbws:x.loc||'',qty:x.qty,sel_name:'',
+    added_by:x.by||S.name,added_date:x.date||new Date().toISOString().slice(0,10),
+    hist:(x.hist&&x.hist.length)?JSON.stringify(x.hist):''}};
+}
+async function wdDraftOp(op,payload){
+  const note=document.getElementById('wdDraftNote');
+  try{
+    const r=await api('wdDraftOp',Object.assign({op:op},payload||{}));
+    if(r.ok){
+      wdApplyDraftItems_(r.items||[]);
+      if(note) note.textContent=WDCART.length?'☁️ Draft '+WDCART.length+' รายการ — บันทึกขึ้นระบบแล้ว':'';
+    } else {
+      if(note) note.textContent='⚠️ '+(r.error||'บันทึกขึ้นระบบไม่สำเร็จ');
+      toast(r.error||'บันทึกขึ้นระบบไม่สำเร็จ — ลองใหม่อีกครั้ง','err',3500);
+    }
+    return r;
+  }catch(e){ if(note) note.textContent='⚠️ ต่อระบบไม่ได้ (เก็บในเครื่องไว้ก่อน)'; return {ok:false}; }
+}
+function wdLocSet(i,v){ var x=WDCART[i]; if(!x) return; x.loc=String(v||'').trim(); wdDraftOp('set',wdRowPayload_(x)); }
+function wdDelLine(i){ var x=WDCART[i]; if(!x) return; WDCART.splice(i,1); wdRender(); wdDraftOp('del',{sku_rbo:x.sku}); }
 async function wdDraftLoad(){
   try{
     const r=await api('wdDraftList');
@@ -2596,7 +2615,7 @@ function wdRender(){
       :(CAT.length?noPhoto_():'⏳'); /* B3.55: ฐานยังไม่มา=⏳ · มีฐานแต่ไม่มีรูป=No photo */
     const chk='<input type="checkbox" '+(x.sel?'checked':'')+' onchange="WDCART['+i+'].sel=this.checked;wdRender()" style="width:18px;height:18px;accent-color:var(--pd);flex-shrink:0;margin:0">';
     const loc=x.needLoc
-      ?'<input placeholder="Location WS (เติมได้)" style="width:160px;margin:2px 0" onchange="WDCART['+i+'].loc=this.value;wdDraftPush()">'
+      ?'<input placeholder="Location WS (เติมได้)" style="width:160px;margin:2px 0" onchange="wdLocSet('+i+',this.value)">'
       :'<small style="color:var(--mut)">📍'+x.loc+'</small>';
     const keyer=(x.by?'<small style="color:var(--mut);font-size:10px">✏️ '+x.by+(x.date?' · '+x.date.split('-').reverse().join('/'):'')+'</small>':'');
     /* B3.50: แสดงที่มาจำนวนเมื่อคีย์สะสมหลายครั้ง เช่น 12/07 Luffy 10 + 14/07 Luffy 10 = รวม 20 */
@@ -2607,16 +2626,18 @@ function wdRender(){
       '<div class="ph" style="width:40px;height:40px;flex-shrink:0">'+imgHtml+'</div>'+
       '<div style="flex:1"><b>'+x.sku+'</b><small style="color:var(--mut)"> → '+x.ws+'</small><br>'+loc+(keyer?'<br>'+keyer:'')+histLine+'</div>'+
       '<input type="number" value="'+x.qty+'" min="1" style="width:52px;text-align:center" onchange="wdQtySet('+i+',this.value)">'+
-      '<button class="x" onclick="WDCART.splice('+i+',1);wdRender();wdDraftPush()">✕</button></div>';
+      '<button class="x" onclick="wdDelLine('+i+')">✕</button></div>';
   }).join('');
 }
 async function wdSend(){
   if(!WDCART.length){toast('ยังไม่มีรายการ','warn');return;}
   toast('กำลังส่งใบเบิก...','info',2000);
+  const sentSkus=WDCART.map(function(x){return x.sku;});
   const r=await api('wdCreate',{items:WDCART});
   if(r.ok){
     toast('✅ ส่งใบเบิก '+r.doc+' แล้ว — รอหน้าร้านปล่อยของ','ok',4000);
-    WDCART=[];localStorage.removeItem('rbo_wd_draft');wdRender();wdDraftPush();loadAll();wdTab(2);
+    /* B3.121: ลบเฉพาะรายการที่ส่งไป (delMany) — รายการที่เพื่อนเพิ่งคีย์เพิ่มระหว่างนี้ไม่โดนล้าง */
+    WDCART=[];localStorage.removeItem('rbo_wd_draft');wdRender();wdDraftOp('delMany',{skus:sentSkus});loadAll();wdTab(2);
     setTimeout(()=>document.getElementById('wdList').scrollIntoView({behavior:'smooth'}),400);
   } else toast(r.error,'err');
 }
@@ -2629,7 +2650,7 @@ async function wdSendSelected(){
     toast('✅ ส่งใบเบิก '+r.doc+' ('+sel.length+' รายการ) แล้ว','ok',4000);
     WDCART=WDCART.filter(x=>!x.sel);
     localStorage.setItem('rbo_wd_draft',JSON.stringify(WDCART));
-    wdRender();wdDraftPush();loadAll();
+    wdRender();wdDraftOp('delMany',{skus:sel.map(function(x){return x.sku;})});loadAll();
     setTimeout(()=>document.getElementById('wdList').scrollIntoView({behavior:'smooth'}),400);
   } else toast(r.error,'err');
 }
@@ -2703,6 +2724,16 @@ async function addSku(){
 function closeModal(){document.getElementById('wdModal').style.display='none';}
 document.addEventListener('keydown',function(e){if(e.key==='Escape') closeModal();});
 
+/* B3.121: ดึงใบที่ส่งขออนุมัติ (sent) กลับเป็น Draft — Admin กดผิด/Store ปฏิเสธ → รายการกลับเข้าแท็บเบิกให้แก้/ลบ แล้วส่งใหม่ */
+async function wdRecallAsk(doc){
+  var reason=prompt((S.role==='storefront'?'✖ ปฏิเสธใบ ':'↩️ ดึงใบ ')+doc+' กลับเป็น Draft\nรายการทั้งหมดจะกลับไปหน้าเบิกให้แก้/ลบ แล้วส่งขออนุมัติใหม่ได้\n\nเหตุผล (เว้นว่างได้):');
+  if(reason===null) return; /* กดยกเลิก */
+  toast('กำลังดึงกลับ...','info',1500);
+  const r=await api('wdRecall',{doc:doc,reason:String(reason||'').trim()});
+  if(!r.ok){ toast(r.error||'ดึงกลับไม่สำเร็จ','err',4000); return; }
+  toast('↩️ ดึงใบ '+doc+' กลับเป็น Draft แล้ว ('+(r.restored||0)+' รายการ) — แก้ไขแล้วส่งใหม่ได้เลย','ok',4500);
+  await wdDraftLoad(); loadAll(); wdLoadTab(2); wdTab(1);
+}
 async function wdQuickAct(doc,action){
   toast('กำลังดำเนินการ...','info',1500);
   const actMsg={wdHold:'📦 ของมาแล้ว รอตรวจ',wdReceive:'✅ รับของแล้ว สต๊อกบวก'};
@@ -2933,6 +2964,8 @@ function renderWdInline(orders, tabN){
       '<b class="num" style="font-size:13px">'+doc+'</b>'+
       '<small style="color:var(--mut)">'+w.items.length+' SKU · '+w.created_by+' · '+fmtDate(w.date)+'</small>'+
       (w.pdf_url?'<button class="btn o" style="width:auto;margin:0;padding:5px 12px;font-size:11px" onclick="window.open(\''+w.pdf_url+'\',\'_blank\')">📄 ดู/พิมพ์ PDF</button>':'')+
+      /* B3.121: กดขออนุมัติผิด ดึงกลับได้ — ใบเด้งกลับเป็น Draft ให้แก้/ลบ แล้วส่งใหม่ (Store เห็นเป็นปุ่มปฏิเสธ) */
+      (isApprove?'<button class="btn o" style="width:auto;margin:0;padding:5px 12px;font-size:11px;border-color:#e05656;color:#C03A3A" data-doc="'+doc+'" onclick="wdRecallAsk(this.dataset.doc)">'+(S.role==='storefront'?'✖ ปฏิเสธ':'↩️ ดึงกลับแก้')+'</button>':'')+
       (canAct?
         '<button class="btn sm" style="margin-left:auto" data-doc="'+doc+'" data-tab="'+tabN+'" onclick="wdSubmitInline(this.dataset.doc,Number(this.dataset.tab))">'+
         (isApprove?'✅ อนุมัติ':'📦 ยืนยันรับของ')+
@@ -3969,6 +4002,7 @@ function wdTab(n){
     }
   });
   if(n>=2) wdLoadTab(n);
+  if(n===1) wdDraftLoad(); /* B3.121: เปิดแท็บเบิกทีไร โหลด Draft ล่าสุดจากชีต — เห็นของที่เพื่อนคีย์ไว้เสมอ */
 }
 
 async function wdLoadTab(n){
