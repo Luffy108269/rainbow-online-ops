@@ -1,5 +1,12 @@
 # RB Online Ops — Master Tracker
-> อัปเดตล่าสุด: 23 ก.ค. 2569 · Build: **B3.122 (html) / 3.105 (gs)** — deploy @124 ยืนยันเว็บจริงแล้ว
+> อัปเดตล่าสุด: 23 ก.ค. 2569 · Build: **B3.123 (html) / 3.106 (gs)** — deploy @125 ยืนยันเว็บจริงแล้ว
+
+## 🛒 23 ก.ค. 2569 (รอบ 3) — เชื่อม Ketshop OpenAPI เข้าเว็บ (B3.123/3.106 — อ่านอย่างเดียวล้วน deploy @125 ✓)
+- **Base URL:** `https://openapi.ketshopweb.com` (เจอจากยิง /health ตอบ ok) · **auth:** POST /auth/token headers `x-oapi-client-id`/`x-oapi-secret` body `{scopes:["all"]}` → access_token มีอายุ (cache ใน ScriptCache 'ks_token' หมดอายุก่อนจริง 2 นาที · 401 = ล้าง cache ลองใหม่ 1 ครั้ง)
+- **คีย์:** Luffy ใส่ `KS_API_KEY`/`KS_API_SECRET` (จากหน้า ส่วนเสริม Ketshop) ใน **Script Properties** เองแล้ว 23 ก.ค. — ไม่ผ่านแชท/ไม่เข้า git · UrlFetchApp มีสิทธิ์อยู่แล้ว (LINE ใช้) ไม่ต้อง authorize เพิ่ม
+- **ของใหม่ (อ่านอย่างเดียวทุกตัว — ยังไม่มี write เข้า Ketshop สักจุด ตามกฎยืนยัน 3 ครั้ง):** helper `ksToken_`/`ksApi_` · action `ksLive` (dashboard+ยอดต่อช่องทางเดือนนี้ · L/A) / `ksStock` (สต็อกสดราย SKU สูงสุด 50 ตัว/ครั้ง · ทุก role) · **การ์ด 🛒 Ketshop สด หน้าแรก** (L/A · กดรีเฟรชเอง ไม่ auto) · **ปุ่ม 🛒 เช็คสต็อกสดใน modal สินค้า** (โชว์ Ketshop vs เรา + ผลต่าง · ไม่เจอ SKU = บอกตรงว่าชื่ออาจต่าง) · **เมนูชีต 2 ตัว:** 🛒 ทดสอบเชื่อม Ketshop (`menuKsTest`) + 🛒 เทียบสินค้า Ketshop↔คัมภีร์ (`menuKsCompare` — ดึงทั้งร้าน จับคู่ exact+prefix (sku KS ขึ้นต้น sku_rbo+'-') เขียนแท็บรายงาน '🛒 KsCompare': จับคู่ได้/มีแต่ KS/มีแต่เรา/ผลต่างสต็อก)
+- **ทดสอบ:** logic ผ่าน stub บน local server ครบ (การ์ดสด/เช็ค SKU เจอ+ไม่เจอ) · syntax+dup+onclick ครบ · **⚠️ ของจริงรอ Luffy กดเมนู 🛒 ทดสอบเชื่อม Ketshop ในชีต 1 ครั้ง** (ผมเรียก action ที่ต้อง login ไม่ได้) แล้วค่อยกด 🛒 เทียบสินค้า → ได้รายงาน KsCompare เป็นฐานของปุ่ม push สต็อก
+- **คิวต่อ (เขียน — confirm 3 ชั้น):** ปุ่ม ✅ Ketshop แล้ว push สต็อก increment ตามใบเบิก · ร่างจดหมาย Ketshop 4 ข้อ (บั๊ก search_order / ราคาตามช่องทาง / mapping ช่องทาง / API รูป)
 
 ## 📐 23 ก.ค. 2569 (รอบ 2) — Luffy วางกฎ + สเปกเฟส C (คุยหลังเชื่อม MCP)
 - **⛔ กฎเหล็กใหม่ (เข้า CLAUDE.md แล้ว): เขียนอะไรเข้า Ketshop ต้องถาม Luffy ยืนยัน 3 ครั้งเสมอ** — อ่านอิสระ · ฟีเจอร์เว็บที่เขียนเข้า Ketshop ต้อง confirm 3 ชั้นใน UI
