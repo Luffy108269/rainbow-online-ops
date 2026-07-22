@@ -155,8 +155,8 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B3.119 · 22 ก.ค. 69 · 🚀 รอบ 1: กริดเพิ่มอัลบั้ม 2 มิติตัวเลือก (หัวข้อตั้งเอง สไตล์ Shopee) + สะพาน Save SKU→สายพาน (ขั้น 1-2 done อัตโนมัติ · 1 สายพาน=1 อัลบั้ม กันซ้ำ) + การ์ดโชว์ตัวเลือกจากคัมภีร์ + ปุ่ม 🔁 ตีกลับพร้อมเหตุผลบังคับ (ฝั่ง Code.gs 3.102)';
-const FRONT_VER = '3.102'; // ต้องตรงกับ build ใน doGet ของ backend
+const BUILD = 'B3.120 · 22 ก.ค. 69 · 🚀 F5 รอบ 2: ฟอร์มเฉพาะขั้น — ป้ายนับขั้น3 · checklist รูป10+วีดีโอขั้น4 · ติ๊กช่องทางขั้น5 (sync web_status ตอน L/A approve) · แผนการตลาดขั้น6 · ตารางคลิป Hook→Product→Proof→CTA ขั้น7 · วัดผล Reach/Engagement/คลิก Shopee ขั้น9 (ฝั่ง Code.gs 3.103)';
+const FRONT_VER = '3.103'; // ต้องตรงกับ build ใน doGet ของ backend
 console.log('RB Online Ops · '+BUILD);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -4431,6 +4431,114 @@ function lnRenderMine(){
   }
   el.innerHTML=h;
 }
+/* ══ B3.120 F5 รอบ 2: ฟอร์มเฉพาะขั้น — ภาษาเดียวกับ Excel 365 Day planner ของ Luffy ══
+   ขั้น 3 ป้ายนับกรอกครบ · ขั้น 4 checklist รูป10+วีดีโอ · ขั้น 5 ติ๊กช่องทาง (sync web_status ตอน L/A approve)
+   ขั้น 6 Type คอนเทนต์ (Hook/Demo/Trust/Set/B-A/New/Promo)+โปร+เป้าหมาย · ขั้น 7 ตารางคลิป โครง Hook→Product→Proof→CTA · ขั้น 9 Reach/Engagement/คลิก Shopee
+   ข้อมูลเก็บเป็น JSON ในคอลัมน์ data ของ LaunchSteps (backend 3.103) */
+var LN_CONTENT_TYPES=['Hook','Demo','Trust','Set','B-A','New','Promo'];
+function lnData_(s){ try{ var d=JSON.parse(String(s.data||'')||'{}'); return (d&&typeof d==='object')?d:{}; }catch(e){ return {}; } }
+function lnStepForm_(l,s,no,can){
+  var D=lnData_(s);
+  var dis=can?'':' disabled';
+  var box='background:var(--soft);border-radius:12px;padding:10px 12px;margin-bottom:10px';
+  if(no===3){
+    var vs=lnAlbumSkus_(l.name);
+    if(!vs.length) return '<div class="hint" style="margin-bottom:8px">🧬 ยังไม่พบ SKU ของอัลบั้ม "'+lnEsc(l.name)+'" ในคัมภีร์ — เช็คชื่ออัลบั้มให้ตรงกัน</div>';
+    var h3='<div style="'+box+';font-size:12.5px">🧬 อัลบั้มนี้มี <b>'+vs.length+' SKU</b> ในคัมภีร์';
+    if(isLA()&&BIBLE_FIELDS.length){
+      var inc=vs.filter(function(x){return skuMissing_(x).length;});
+      h3+=' · กรอกครบ <b style="color:#2c7a52">'+(vs.length-inc.length)+'</b> · ⚠️ ไม่ครบ <b style="color:#C03A3A">'+inc.length+'</b>';
+      if(inc.length) h3+='<div style="font-size:11px;color:var(--mut);margin-top:4px">ตัวที่ไม่ครบ: '+inc.slice(0,6).map(function(x){return lnEsc(x.sku_rbo);}).join(' · ')+(inc.length>6?' …และอีก '+(inc.length-6):'')+'</div>';
+    }
+    return h3+'</div>';
+  }
+  if(no===4){
+    var pics=D.pics||[];
+    var h4='<div style="'+box+'"><div style="font-size:12px;font-weight:600;margin-bottom:6px">📸 Checklist <span id="lnF4Count" style="color:var(--pdd)"></span></div><div style="display:flex;gap:6px;flex-wrap:wrap">';
+    for(var i4=0;i4<10;i4++) h4+='<label style="font-size:11.5px;display:inline-flex;align-items:center;gap:3px;background:#fff;border-radius:8px;padding:4px 8px;cursor:pointer"><input type="checkbox" class="lnF4pic" data-i="'+i4+'"'+(pics[i4]?' checked':'')+dis+' onchange="lnF4Count()"> รูป '+(i4+1)+'</label>';
+    h4+='<label style="font-size:11.5px;display:inline-flex;align-items:center;gap:3px;background:#fff;border-radius:8px;padding:4px 8px;cursor:pointer"><input type="checkbox" id="lnF4vid"'+(D.vid?' checked':'')+dis+' onchange="lnF4Count()"> 🎬 วีดีโอ</label>';
+    return h4+'</div></div>';
+  }
+  if(no===5){
+    var have5={}; (D.channels||[]).forEach(function(c){have5[String(c).toLowerCase()]=1;});
+    var h5='<div style="'+box+'"><div style="font-size:12px;font-weight:600;margin-bottom:6px">🛒 ลงขายแล้วช่องทางไหนบ้าง</div><div style="display:flex;gap:6px;flex-wrap:wrap">';
+    SALE_CHANNELS.forEach(function(c){
+      h5+='<label style="font-size:11.5px;display:inline-flex;align-items:center;gap:4px;background:#fff;border:1.5px solid '+c[1]+';border-radius:999px;padding:4px 10px;cursor:pointer"><input type="checkbox" class="lnF5ch" value="'+lnEsc(c[0])+'"'+(have5[c[0].toLowerCase()]?' checked':'')+dis+'> '+lnEsc(c[0])+'</label>';
+    });
+    return h5+'</div><div class="hint" style="margin-top:6px">ตอน L/A กด ✅ เสร็จ (approve) ระบบจะเติมช่องทางที่ติ๊กเข้า "ช่องทางขาย" ของทุก SKU ในอัลบั้มนี้ให้เอง (เติมอย่างเดียว ไม่ลบของเดิม — เคาะ 22 ก.ค.)</div></div>';
+  }
+  if(no===6){
+    var t6=D.types||[];
+    return '<div style="'+box+'"><div style="font-size:12px;font-weight:600;margin-bottom:6px">📣 แผนการตลาด</div>'+
+      '<label style="font-size:11px;color:var(--mut)">Type คอนเทนต์ที่จะใช้ (เลือกได้หลายแบบ — ภาษาเดียวกับ planner)</label>'+
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 8px">'+
+      LN_CONTENT_TYPES.map(function(t){return '<label style="font-size:11.5px;display:inline-flex;align-items:center;gap:4px;background:#fff;border-radius:999px;padding:4px 10px;cursor:pointer"><input type="checkbox" class="lnF6ty" value="'+t+'"'+(t6.indexOf(t)>=0?' checked':'')+dis+'> '+t+'</label>';}).join('')+'</div>'+
+      '<label style="font-size:11px;color:var(--mut)">โปรโมชั่น/ข้อเสนอ</label>'+
+      '<input id="lnF6promo" value="'+lnEsc(D.promo||'')+'"'+dis+' placeholder="เช่น ลด 10% 3 วันแรก / แถมผ้าเช็ดเงิน" style="width:100%;margin:4px 0 8px">'+
+      '<label style="font-size:11px;color:var(--mut)">กลุ่มเป้าหมาย/ช่องทางหลักที่ดัน</label>'+
+      '<input id="lnF6target" value="'+lnEsc(D.target||'')+'"'+dis+' placeholder="เช่น สายมินิมอล · ดัน TikTok เป็นหลัก" style="width:100%;margin:4px 0 0"></div>';
+  }
+  if(no===7){
+    window._lnF7=(D.clips||[]).map(function(c){return Object.assign({},c);});
+    window._lnF7Can=can;
+    return '<div style="'+box+'"><div style="font-size:12px;font-weight:600;margin-bottom:6px">🗓️ ตารางคอนเทนต์ <small style="font-weight:400;color:var(--mut)">· โครงคลิป Hook→Product→Proof→CTA</small></div>'+
+      '<div id="lnF7List"></div>'+
+      (can?'<button class="btn o sm" style="margin-top:6px" onclick="window._lnF7.push({d:\'\',ty:\'Hook\',hook:\'\',prod:\'\',proof:\'\',cta:\'\'});lnF7Render(true)">➕ เพิ่มคลิป</button>':'')+'</div>';
+  }
+  if(no===9){
+    return '<div style="'+box+'"><div style="font-size:12px;font-weight:600;margin-bottom:6px">📈 วัดผล (ช่องเดียวกับ Performance Tracker)</div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">'+
+      '<div><label style="font-size:11px;color:var(--mut)">Reach</label><input id="lnF9reach" type="number" value="'+lnEsc(D.reach||'')+'"'+dis+' style="width:100%;margin:4px 0 0"></div>'+
+      '<div><label style="font-size:11px;color:var(--mut)">Engagement</label><input id="lnF9eng" type="number" value="'+lnEsc(D.eng||'')+'"'+dis+' style="width:100%;margin:4px 0 0"></div>'+
+      '<div><label style="font-size:11px;color:var(--mut)">คลิกเข้า Shopee</label><input id="lnF9clicks" type="number" value="'+lnEsc(D.clicks||'')+'"'+dis+' style="width:100%;margin:4px 0 0"></div>'+
+      '</div></div>';
+  }
+  return '';
+}
+function lnF4Count(){
+  var n=document.querySelectorAll('.lnF4pic:checked').length+((document.getElementById('lnF4vid')||{}).checked?1:0);
+  var e=document.getElementById('lnF4Count'); if(e) e.textContent=n+'/11';
+}
+function lnF7Set(i,f,v){ if(window._lnF7&&window._lnF7[i]) window._lnF7[i][f]=v; }
+function lnF7Del(i){ window._lnF7.splice(i,1); lnF7Render(window._lnF7Can); }
+function lnF7Render(can){
+  window._lnF7Can=can;
+  var el=document.getElementById('lnF7List'); if(!el) return;
+  var dis=can?'':' disabled';
+  if(!(window._lnF7||[]).length){ el.innerHTML='<div class="hint">ยังไม่มีคลิปในตาราง'+(can?' — กด ➕ เพิ่มคลิป':'')+'</div>'; return; }
+  el.innerHTML=window._lnF7.map(function(c,i){
+    return '<div style="background:#fff;border-radius:10px;padding:8px;margin-bottom:6px">'+
+      '<div style="display:flex;gap:6px;margin-bottom:4px;align-items:center">'+
+      '<span style="font-size:11px;color:var(--mut)">คลิป '+(i+1)+'</span>'+
+      '<input type="date" value="'+lnEsc(c.d||'')+'"'+dis+' oninput="lnF7Set('+i+',\'d\',this.value)" style="width:132px;margin:0;padding:5px 8px">'+
+      '<select'+dis+' onchange="lnF7Set('+i+',\'ty\',this.value)" style="flex:1;min-width:0;margin:0;padding:5px 8px">'+LN_CONTENT_TYPES.map(function(t){return '<option'+(t===(c.ty||'Hook')?' selected':'')+'>'+t+'</option>';}).join('')+'</select>'+
+      (can?'<button onclick="lnF7Del('+i+')" style="border:none;background:none;color:#C03A3A;font-size:15px;cursor:pointer;padding:2px 6px">✕</button>':'')+'</div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">'+
+      '<input placeholder="Hook — 3 วิแรกดึงยังไง" value="'+lnEsc(c.hook||'')+'"'+dis+' oninput="lnF7Set('+i+',\'hook\',this.value)" style="margin:0;padding:6px 8px;font-size:12px">'+
+      '<input placeholder="Product — โชว์อะไร" value="'+lnEsc(c.prod||'')+'"'+dis+' oninput="lnF7Set('+i+',\'prod\',this.value)" style="margin:0;padding:6px 8px;font-size:12px">'+
+      '<input placeholder="Proof — หลักฐาน/รีวิว" value="'+lnEsc(c.proof||'')+'"'+dis+' oninput="lnF7Set('+i+',\'proof\',this.value)" style="margin:0;padding:6px 8px;font-size:12px">'+
+      '<input placeholder="CTA — ชวนทำอะไรต่อ" value="'+lnEsc(c.cta||'')+'"'+dis+' oninput="lnF7Set('+i+',\'cta\',this.value)" style="margin:0;padding:6px 8px;font-size:12px">'+
+      '</div></div>';
+  }).join('');
+}
+function lnStepFormData_(no,s){
+  var D=lnData_(s); /* เริ่มจากของเดิม — คีย์อื่นไม่หาย */
+  if(no===4){
+    var pics=[]; document.querySelectorAll('.lnF4pic').forEach(function(c){pics[Number(c.dataset.i)]=c.checked?1:0;});
+    D.pics=pics; D.vid=(document.getElementById('lnF4vid')||{}).checked?1:0;
+  } else if(no===5){
+    var ch=[]; document.querySelectorAll('.lnF5ch').forEach(function(c){if(c.checked)ch.push(c.value);});
+    D.channels=ch;
+  } else if(no===6){
+    var ty=[]; document.querySelectorAll('.lnF6ty').forEach(function(c){if(c.checked)ty.push(c.value);});
+    D.types=ty; D.promo=(document.getElementById('lnF6promo')||{}).value||''; D.target=(document.getElementById('lnF6target')||{}).value||'';
+  } else if(no===7){
+    D.clips=(window._lnF7||[]).filter(function(c){return String(c.d||'')+String(c.hook||'')+String(c.prod||'')+String(c.proof||'')+String(c.cta||'')!=='';});
+  } else if(no===9){
+    D.reach=(document.getElementById('lnF9reach')||{}).value||''; D.eng=(document.getElementById('lnF9eng')||{}).value||''; D.clicks=(document.getElementById('lnF9clicks')||{}).value||'';
+  } else return null;
+  return JSON.stringify(D);
+}
 function lnOpenStep(lnId,no){
   var l=(_LN.list||[]).find(function(x){return String(x.ln_id)===String(lnId);}); if(!l) return;
   var s=lnStepsOf(lnId).find(function(x){return Number(x.step_no)===Number(no);}); if(!s) return;
@@ -4456,6 +4564,7 @@ function lnOpenStep(lnId,no){
     '<div style="font-size:12.5px;color:var(--mut);margin-bottom:8px">'+lnEsc(l.name)+(l.sku_rbo?' · '+lnEsc(l.sku_rbo):'')+' · ผู้รับผิดชอบ: <b>'+lnEsc(lnWho(s.assigned_to))+'</b>'+(s.done_at?' · ✅ approve เมื่อ '+lnEsc(s.done_at)+' โดย '+lnEsc(s.done_by):(String(s.status)==='review'&&s.sent_by?' · ✋ ส่งตรวจโดย '+lnEsc(s.sent_by)+' '+lnEsc(s.sent_at||''):''))+'</div>'+
     (can?'':'<div class="hint" style="margin-bottom:8px">👁 ดูอย่างเดียว — ขั้นนี้มอบหมายให้ '+lnEsc(lnWho(s.assigned_to))+'</div>')+
     '<div style="display:flex;gap:6px;margin-bottom:10px">'+stBtns+'</div>'+
+    lnStepForm_(l,s,no,can)+ /* B3.120: ฟอร์มเฉพาะขั้น 3/4/5/6/7/9 (ขั้นอื่นเป็นค่าว่าง) */
     '<label style="font-size:12px;color:var(--mut)">โน้ต</label>'+
     '<textarea id="lnStepNote" rows="2" style="width:100%;margin:4px 0 8px">'+lnEsc(s.note||'')+'</textarea>'+
     '<label style="font-size:12px;color:var(--mut)">ลิงก์แนบ (อัลบั้มรูป / โพสต์ / แผน)</label>'+
@@ -4466,6 +4575,8 @@ function lnOpenStep(lnId,no){
     (_LN.canManage&&String(s.status)==='review'?'<button class="btn o" style="width:100%;margin-top:8px;border-color:#e05656;color:#C03A3A" onclick="lnStepReject(\''+lnEsc(lnId)+'\','+no+')">🔁 ตีกลับ — งานยังไม่ผ่าน ให้กลับไปแก้</button>':'');
   window._lnSt=String(s.status||'wait');
   lnStPaint();
+  if(no===4) lnF4Count();
+  if(no===7) lnF7Render(can);
   document.getElementById('wdModal').style.display='block';
 }
 function lnStPaint(){
@@ -4499,8 +4610,13 @@ async function lnStepSave(lnId,no){
   var body={ln_id:lnId,step_no:no,status:st,
     note:(document.getElementById('lnStepNote')||{}).value||'',
     link:(document.getElementById('lnStepLink')||{}).value||''};
+  /* B3.120: เก็บข้อมูลฟอร์มเฉพาะขั้นแนบไปด้วย (ขั้นที่ไม่มีฟอร์มคืน null = ไม่แนบ) */
+  var sCur=lnStepsOf(lnId).find(function(x){return Number(x.step_no)===Number(no);});
+  var dstr=lnStepFormData_(no,sCur||{});
+  if(dstr!==null) body.data=dstr;
   var r=await api('launchStepUpdate',body);
   if(!r.ok){ toast('บันทึกไม่สำเร็จ: '+(r.error||''),'err',3500); return; }
+  if(r.synced!==undefined) toast('🛒 เติมช่องทาง ['+(r.channels||[]).join(', ')+'] เข้าคัมภีร์ '+r.synced+' SKU แล้ว','ok',4500);
   if(_LN.canManage){
     var whoEl=document.getElementById('lnStepWho'), dueEl=document.getElementById('lnStepDue');
     if(whoEl||dueEl){

@@ -1,5 +1,19 @@
 # RB Online Ops — Master Tracker
-> อัปเดตล่าสุด: 22 ก.ค. 2569 · Build: **B3.119 (html) / 3.102 (gs)**
+> อัปเดตล่าสุด: 22 ก.ค. 2569 · Build: **B3.120 (html) / 3.103 (gs)**
+
+## 🚀 22 ก.ค. 2569 (รอบ 4 — เครื่องที่ทำงาน) — F5 รอบ 2 เสร็จ: ฟอร์มเฉพาะขั้น (B3.120/3.103 — รอ deploy)
+- **เคาะกับ Luffy ก่อนทำ:** ขั้น 5 sync `web_status` **ตอน L/A approve เท่านั้น** (ไม่ sync ทันทีที่พนักงานติ๊ก — มีคนกลั่นกรองก่อนเหมาทั้งอัลบั้ม) · เติมอย่างเดียวไม่ลบช่องทางเดิม
+- **ของใหม่:** คอลัมน์ `data` ใน LaunchSteps (JSON ต่อขั้น · ensureHeaders_ เติมเอง · cap 20000) + ฟอร์มใน modal ขั้นตอน:
+  - **ขั้น 3** ป้ายนับอัตโนมัติ: อัลบั้มนี้มี N SKU ในคัมภีร์ · L/A เห็นเพิ่ม กรอกครบ X / ⚠️ ไม่ครบ Y + รายชื่อตัวไม่ครบ (ใช้ BIBLE_FIELDS/skuMissing_ เดิม)
+  - **ขั้น 4** checklist รูป 1-10 + 🎬 วีดีโอ พร้อมตัวนับสด N/11 (data.pics/vid)
+  - **ขั้น 5** ติ๊กช่องทางจาก SALE_CHANNELS 11 ช่อง (data.channels) → **L/A กด ✅ approve → backend เติมเข้า web_status ทุก SKU ของอัลบั้ม** (จับคู่ Launches.name↔album_id trim+case-insensitive · เติม dedupe case-insensitive · ตอบ synced+channels · toast บอกจำนวน SKU ที่เติม · log launchSyncWeb)
+  - **ขั้น 6** แผนการตลาด: Type คอนเทนต์ multi-select (Hook/Demo/Trust/Set/B-A/New/Promo — ภาษาเดียวกับ Excel planner) + โปรโมชั่น + กลุ่มเป้าหมาย/ช่องทางหลัก
+  - **ขั้น 7** ตารางคอนเทนต์: รายการคลิป (วันที่ + Type + โครง Hook→Product→Proof→CTA) เพิ่ม/ลบ/แก้รายแถว แถวว่างกรองทิ้งตอน save (data.clips)
+  - **ขั้น 9** วัดผล: Reach / Engagement / คลิกเข้า Shopee (ช่องเดียวกับ Performance Tracker)
+  - ขั้น 1/2/8 ไม่มีฟอร์ม — save ไม่แนบ data (ไม่ทับของเดิม) · ฟอร์ม disabled เมื่อดูอย่างเดียว · data เดิม merge ไม่หาย (เริ่มจาก lnData_ ของเดิมเสมอ)
+- **ทดสอบผ่าน local server ครบ:** ขั้น 3 ป้ายนับถูก (2 SKU · ไม่ครบ 1) ✓ ขั้น 4 ตัวนับ 3/11 + data ถูก ✓ ขั้น 5 ส่ง channels + เส้นทาง synced toast ✓ ขั้น 6/7/9 save→เปิดใหม่ค่าคงอยู่ (round-trip ผ่านคอลัมน์ data) ✓ คลิปแถวว่างถูกกรอง ✓ ขั้น 8 ไม่แนบ data ✓ · syntax Code.gs ผ่าน · ไม่มีฟังก์ชันซ้ำ · console ไม่มี error · (บั๊กที่เจอระหว่างเทส = stub เทสเอง ไม่ใช่โค้ดจริง)
+- **⚠️ รอ deploy:** Code.gs 3.103 (เครื่องนี้ deploy เองไม่ได้ ไม่มี clasp) — วาง/clasp จากเครื่องที่ทำได้ · ไม่แตะ DriveApp ไม่ต้อง initDrivePermission · คอลัมน์ data สร้างเองอัตโนมัติ · **อัปโหลดสำเนา 3.103 เข้าโฟลเดอร์ Google Drive "Project : Rainbow online ops" ด้วยตอน deploy เสร็จ** (ตอนนี้ในโฟลเดอร์ล่าสุดคือ 3.102)
+- **คิวถัดไป (รอบ 3):** D3 planner รวมทั้งร้าน + Caption Bank ย้ายจาก Excel เข้าเว็บ · เก็บกวาด: ลบท่อน massBind217 + SHEETS.Expenses ซ้ำ
 
 ## 🚀 22 ก.ค. 2569 (รอบ 3) — F5 รอบ 1 เสร็จ + deploy แล้ว (B3.119/3.102 @120)
 - **สเปกที่เคาะกับ Luffy วันนี้ก่อนสร้าง:** 1 สายพาน = 1 อัลบั้ม · สะพานเชื่อมอยู่หลัง Save SKU (ไม่ใช่ตอน route — ตรงนั้นราคายังไม่มี) · ส่งบัญชีอยู่ท่อเดิมช่วง ① ไม่แตะ · กริดเพิ่มอัลบั้มสไตล์ Shopee/Ketshop: **หัวข้อตัวเลือกทั้ง 2 ตั้งชื่อเองอิสระ** (แบบ/สี/ไซส์/ความยาว…) ตัวเลือก 2 มี/ไม่มีก็ได้
