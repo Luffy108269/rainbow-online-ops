@@ -155,7 +155,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B3.131 · 24 ก.ค. 69 · 🙈 ซ่อนการ์ด Ketshop สด (OpenAPI) — ยังไม่มีคีย์ กด 403 ตลอด สับสนกับการ์ดยอดขายสด webhook · trial หมด ~3-4 ส.ค. ค่อยเคาะลบถาวร (ฝั่ง Code.gs 3.112 ไม่เปลี่ยน)';
+const BUILD = 'B3.132 · 24 ก.ค. 69 · 🙈 ซ่อนการ์ด 🏷 รอกำหนดรหัส RBO จากหน้าแรก — เปลี่ยนวิธีทำงานเป็นผูกผ่านไฟล์ Excel + อัพหมู่ (การ์ดเดิมเกะกะ+ข้อมูลค้าง) · โค้ดยังอยู่เปิดกลับได้ (ฝั่ง Code.gs 3.112 ไม่เปลี่ยน)';
 const FRONT_VER = '3.112'; // ต้องตรงกับ build ใน doGet ของ backend
 console.log('RB Online Ops · '+BUILD);
 </script>
@@ -1528,12 +1528,14 @@ async function loadAll(){
        ⏰ trial MCP หมด ~3-4 ส.ค. 69 → ถาม Luffy อีกทีว่าลบโค้ด ksLive/ksLiveLoad ทิ้งถาวรไหม (ถ้าได้คีย์มาก่อนก็เปิดบรรทัดนี้กลับ) */
     /* var kc=document.getElementById('ksLiveCard'); if(kc&&isLA()) kc.style.display='block'; */
     var kc2=document.getElementById('ksSalesCard'); if(kc2&&isLA()) kc2.style.display='block'; /* B3.129: การ์ดยอดขายสด webhook เฉพาะ L/A */ });
-  if(isLA()){const p=await api('pendingList');
+  /* B3.132: ซ่อนการ์ด 🏷 รอกำหนดรหัส RBO ถาวร — Luffy สั่ง 24 ก.ค.: เปลี่ยนวิธีทำงานเป็นผูกผ่านไฟล์ Excel + อัพหมู่กับ Claude แทน
+     (การ์ดเดิมเกะกะ + โหลดครั้งเดียวตอน login ของที่ผูกแล้วไม่หาย) · โค้ด pendRender_/pendBind ยังอยู่ครบ เปิดกลับได้ถ้าเปลี่ยนใจ */
+  /* if(isLA()){const p=await api('pendingList');
     if(p.ok&&p.list.length){
-      window._PEND=p.list; /* B3.104: เก็บทั้งชุด — ค้นหา/ผูกด่วนทำงานกับตัวแปรนี้ */
+      window._PEND=p.list;
       document.getElementById('pendCard').style.display='block';
       pendPfxInit_(); pendRender_();
-    }}
+    }} */
   wdLoad();
 }
 /* ═══ B3.104: ⚡ ผูกรหัส RBO ด่วน — Ketshop ไม่มีข้อมูล RBWS การผูกจึงต้องเกิดที่ระบบเรา ═══ */
