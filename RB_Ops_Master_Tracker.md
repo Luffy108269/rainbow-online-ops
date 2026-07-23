@@ -1,5 +1,17 @@
 # RB Online Ops — Master Tracker
-> อัปเดตล่าสุด: 24 ก.ค. 2569 (ตี 1 — Luffy หลับ อนุมัติให้ทำจบ) · Build: **B3.124 (html) / 3.107 (gs)** — deploy @126 ยืนยันเว็บจริงแล้ว
+> อัปเดตล่าสุด: 23 ก.ค. 2569 (บ่าย — เครื่องที่ทำงาน) · Build: **B3.125 (html) / 3.108 (gs)** — deploy @127 ยืนยันเว็บจริงแล้ว
+
+## 🛒 23 ก.ค. 2569 (บ่าย — เครื่องที่ทำงาน) — คุย Ketshop support ได้ข้อสรุปใหญ่ + รับ Webhook เข้าระบบ (B3.125/3.108 @127 ✓)
+- **คำตอบจาก Ketshop support (คุยทางแชต — เมล Gmail draft ไม่ต้องส่งแล้ว ค้างอยู่ใน Drafts ไว้ลบได้):**
+  1. **แพ็กเกจปัจจุบันใช้ OpenAPI เต็มไม่ได้** — MCP ได้สิทธิ์ OpenAPI แค่บางส่วน → 403 ที่เจอไม่ใช่คีย์ผิด แต่แพ็กเกจไม่มีสิทธิ์ · Luffy ประเมินว่า Ketshop ไม่ปล่อย OpenAPI เต็มแน่
+  2. **MCP เป็นของเสียเงิน: ~1,200 บาท/เดือน** — ตอนนี้เป็น **trial 14 วัน ใช้มาแล้ว 3 วัน หมด ~3-4 ส.ค.** ต้องตัดสินใจต่อ/ไม่ต่อก่อนนั้น
+  3. **support แนะนำ Webhook สำหรับเชื่อมระบบภายนอก** → Luffy เจอหน้าตั้งค่าในหลังบ้าน (Extension → Webhook) มีในแพ็กเกจปัจจุบัน
+- **ไขปริศนาคีย์ d63…:** `X-KET-API-KEY` ที่หน้า Webhook = คีย์ที่ Ketshop แนบใน header ตอนยิงมาหาเรา (ไว้ตรวจฝั่งรับ) — ไม่ใช่คีย์ OpenAPI ตั้งแต่แรก สมเหตุสมผลที่ /auth/token ตอบ 403
+- **Webhook events มี 9 ตัว (ออเดอร์+ลูกค้าล้วน ไม่มี stock/product):** orderCreate · orderUpdate · pointUpdate · tagUpdate · billingAddressUpdate · orderShippingAddressUpdate · orderPackedUpdate · batchOrderUpdate · batchOrderCreate + สวิตช์ Marketplace เปิด/ปิดแยก (ต้องลองว่าครอบคลุมออเดอร์ Shopee ไหม)
+- **ของใหม่ 3.108 (backend อย่างเดียว · frontend ขยับแค่ stamp):** `doPost` รับ webhook ที่ `/exec?src=ks&tk=<token>` (Apps Script อ่าน HTTP header ไม่ได้ → ตรวจ X-KET-API-KEY ไม่ได้ ใช้ token ลับใน URL แทน · token = `KS_WH_TOKEN` ใน Script Properties) → เก็บ event **ดิบ** ลงชีตใหม่ `KsWebhook` (ts/event/order_id/bytes/raw cap 45k) ยังไม่ประมวลผลใด ๆ = เฟสเรียนรู้ payload ก่อน · เมนูชีตใหม่ **🛒 ตั้งค่า Webhook Ketshop** (`menuKsWebhook`) — สร้าง token ครั้งแรก + โชว์ URL เต็มให้ copy ไปวางใน Ketshop · ไม่แตะ DriveApp ไม่ต้อง initDrivePermission
+- **Deploy แล้ว:** เครื่องที่ทำงาน clasp pull ก่อน (Code.gs เครื่องนี้ค้าง 3.105 — ลบทิ้ง ใช้ `รหัส.js` จาก pull) → push → redeploy @127 → curl ตอบ 3.108 ✓ · ทดสอบยิง POST token ผิด → `bad token` ถูกต้อง ✓
+- **⚠️ ขั้นตอน Luffy (webhook จะยังไม่ทำงานจนกว่าทำครบ):** (1) เปิดชีต → เมนู 💰 RB ราคา → **🛒 ตั้งค่า Webhook Ketshop** → copy URL (2) วางใน Ketshop: Extension → Webhook → Webhook URL + เลือก events orderCreate/orderUpdate + เปิด Status + บันทึก (3) ทำออเดอร์ทดสอบ/แก้ออเดอร์ 1 ตัว → ดูแท็บ `KsWebhook` ฝั่งเรา + `Logs webhook` ฝั่ง Ketshop (4) ได้ payload จริงแล้ว Claude ค่อยออกแบบขั้นประมวลผล (ยอดขายสด/กระจกสต็อกจากรายการในออเดอร์ — ขึ้นกับว่า payload มี SKU/จำนวนไหม)
+- **คิวตัดสินใจ MCP (ก่อน ~3-4 ส.ค.):** ทดสอบ MCP **เขียน** สต็อก (increase +1 / decrease −1 คืน SKU ทดสอบ) — ถ้าเขียนได้ = จ่าย 1,200/เดือนได้เป้าเฟส C ครบผ่าน Claude เป็นตัวกลาง (confirm 3 ครั้งตามกฎ) · ยืนยันแล้ว 1/3 ครั้ง รอ Luffy สั่งต่อ · ระหว่าง trial: รัน KsCompare เก็บรายงานถาวร + ดึงข้อมูลประกอบแผนล้างทุนจมให้หมด
 
 ## 🧭 24 ก.ค. 2569 (กลางคืน) — Nav ใหม่ 7 ปุ่ม + F5 รอบ 3 จบ: เลิกใช้ Excel planner ได้แล้ว (B3.124/3.107 @126 ✓)
 - **Luffy อนุมัติเต็มก่อนนอน** ("ทำเลย เทออนุมัติให้จบเลย") — สเปกเคาะแล้ว: 1) ยุบ nav 10→7 ตามที่ Luffy เสนอ (➕SKU+In Non-RB รวมเป็นปุ่มเดียว กดแล้วมีปุ่มใหญ่เลือก) 2) Scout/Backlog/สายพาน **ไม่ซ้ำซ้อนกันเชิงหน้าที่** (ตัดสินใจซื้อ/กรอกมอบหมาย/งานหลังขึ้นระบบ) แต่เป็น pipeline เดียวกัน → รวมบ้านเป็น hub เดียวเรียงตาม flow
