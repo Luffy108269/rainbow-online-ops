@@ -155,7 +155,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B3.127 · 23 ก.ค. 69 · 🔁 ตีกลับใบเบิกที่ Store อนุมัติแล้ว → กลับแท็บขออนุมัติให้ Store แก้เอง (Assist/Luffy · เหตุผลบังคับ+ป้ายแดงบนการ์ด) + กันพลาดต้นทาง: จำนวนชิ้นรับเฉพาะจำนวนเต็ม · Net จริงว่างตอนอนุมัติต้องยืนยันซ้ำ (ฝั่ง Code.gs 3.110)';
+const BUILD = 'B3.128 · 23 ก.ค. 69 · 📎 Expense บนมือถือ: ป้ายรูปแนบแยกออกจากชื่อรายการ (เดิมชื่อยาวดันตัวหนีบหลุดจอ มองไม่เห็น/กดเพิ่มรูปไม่ได้) — โชว์เสมอทุกรายการ กดง่ายขึ้น (ฝั่ง Code.gs 3.110 ไม่เปลี่ยน)';
 const FRONT_VER = '3.110'; // ต้องตรงกับ build ใน doGet ของ backend
 console.log('RB Online Ops · '+BUILD);
 </script>
@@ -3439,10 +3439,14 @@ async function expLoadList(){
     /* B3.61 fix: จำกัดความยาว detail ไม่ให้ layout พัง */
     var detailText=String(x.detail||'');
     var detailShort=detailText.length>40?detailText.slice(0,40)+'…':detailText;
+    /* B3.128: 📎 แยกออกจากโซน ellipsis — เดิมชื่อรายการยาวบนมือถือจะดันตัวหนีบหลุด overflow:hidden จนมองไม่เห็น/กดไม่ได้ */
+    var nPh=(x.photos||[]).length;
+    var phBadge='<span onclick="expPhotos('+i+')" style="cursor:pointer;flex-shrink:0;font-size:10.5px;font-weight:700;border-radius:999px;padding:2px 8px;'+
+      (nPh?'background:#FCE4EC;color:var(--pdd)':'background:#ECEFF1;color:#90A4AE')+'" title="ดู/เพิ่มรูป">📎'+nPh+'</span>';
     return '<div style="display:grid;grid-template-columns:1fr auto auto auto;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--soft)">'+
       '<div style="min-width:0">'+
-        '<div style="font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="'+detailText+'">'+detailShort+
-          ' <span onclick="expPhotos('+i+')" style="cursor:pointer;color:var(--pdd);font-weight:700" title="ดู/เพิ่มรูป">📎'+x.photos.length+'</span></div>'+
+        '<div style="display:flex;align-items:center;gap:5px;min-width:0">'+
+          '<span style="font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0" title="'+detailText+'">'+detailShort+'</span>'+phBadge+'</div>'+
         '<small style="color:var(--mut)">'+x.exp_id+' · '+fmtDate(x.date)+' · '+(String(x.category).split('(')[0].trim())+' · '+(x.payment||'')+'</small></div>'+
       tgl+editBtn+
       '<b class="num" style="white-space:nowrap;min-width:70px;text-align:right">'+fmtN(x.amount)+'</b></div>';
