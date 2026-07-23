@@ -1,6 +1,12 @@
 # RB Online Ops — Master Tracker
 > อัปเดตล่าสุด: 23 ก.ค. 2569 (บ่าย — เครื่องที่ทำงาน) · Build: **B3.126 (html) / 3.109 (gs)** — deploy @128 ยืนยันเว็บจริงแล้ว
 
+## 🎯 23 ก.ค. 2569 (เย็น) — Luffy เคาะ: ไม่จ่าย MCP แน่นอน → แผนรีด trial 11 วัน (หมด ~3-4 ส.ค.)
+- **ธง: ไม่เสียเงินทุกกรณี** — ตัดการทดสอบเขียนสต็อกทิ้ง (ไม่มีประโยชน์แล้วเพราะยังไงก็ไม่ต่อ) · เป้าเดียว: เก็บของถาวรให้ครบก่อน trial หมด
+- **บทเรียนจากการลองดึงจริง:** ร้านมี 3,316 รายการ (นับราย variant) · `/product/search` แบก description ยาวมาก · `/product/list_all` เบากว่าแต่ก็ยังไม่เหมาะดึงหมดผ่านแชต → **ดัมพ์ก้อนใหญ่ใช้ปุ่ม Export หลังบ้าน Ketshop แทน (ฟรีตลอด ไม่ผูก trial)** · MCP เก็บไว้ใช้กับสิ่งที่ export ไม่ได้ = รายงานวิเคราะห์สำเร็จรูป `/report/*` (dead-stock, revenue-summary, order-channel, orders-by-time, RFM segmentation, repeat-purchase-rate, cancelled-orders, cohort) — response เล็ก คุ้มโทเคน
+- **แผนเก็บเกี่ยว:** (1) Luffy export สินค้าทั้งร้านจากหลังบ้าน (Product Manager) → ส่งไฟล์ให้ Claude → สร้างแท็บ mapping SKU Ketshop↔RBO + สแนปช็อตสต็อกตั้งต้น ลงชีตถาวร (2) Claude ดึง `/report/*` ชุดวิเคราะห์เก็บเป็นไฟล์/ชีตถาวร (เสบียงแผนล้างทุนจม + benchmark ยอดขาย) (3) webhook สะสมออเดอร์ต่อเนื่องอยู่แล้ว = ข้อมูลสดหลัง trial หมด
+- **หลัง trial หมด สิ่งที่เสีย:** การถามวิเคราะห์สดในแชต (ทดแทนด้วย export ไฟล์เป็นรอบ ๆ) · ฝั่งเขียน push สต็อกอัตโนมัติ (ไม่เคยเปิดใช้อยู่แล้ว — ทีมคีย์มือเหมือนเดิม)
+
 ## ✅ 23 ก.ค. 2569 (บ่าย รอบ 3) — Webhook ติดแล้ว! ออเดอร์ Shopee จริงไหลเข้าชีต + payload มี SKU/จำนวนครบ (@129)
 - **เส้นทางเปิดใช้จริง:** รอบแรก Fail ทุกนัด — บั๊กที่เมนูใช้ `ScriptApp.getService().getUrl()` ซึ่งคืน URL deployment เก่าที่ตายแล้ว (404) → แก้เป็น URL /exec จริงฝังตรง ๆ (ตัวเดียวกับ index.html) → Luffy วาง URL ใหม่ → **Success ต่อเนื่อง: orderUpdate 2607001664/2607001408 (channel shopee) เข้าชีต KsWebhook ครบ** — ฝั่ง Ketshop ขึ้น Success ด้วย (ไม่ติดเรื่อง 302)
 - **โครง payload จริง (วิเคราะห์แล้ว):** `{signature, type, data:{ordercode, channel/channel_name/channel_ordercode, status, packed, totals, ชื่อ-ที่อยู่-เบอร์ลูกค้า, order_date, details:[{sku, qty, price, title, properties…}]}}` — **`details[]` มี SKU+จำนวน+ราคาครบทุกชิ้น** (มีรายการหลอก K-SHOPEE/K-S-Discount = ค่าธรรมเนียม/ส่วนลด ต้องกรองตอนประมวลผล) · `signature` 44 ตัว base64 น่าจะ HMAC-SHA256 (คีย์น่าจะเป็น X-KET-API-KEY d63… — เฟสหน้าใช้ตรวจความแท้ได้)
