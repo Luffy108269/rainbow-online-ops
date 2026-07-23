@@ -155,8 +155,8 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B3.128 · 23 ก.ค. 69 · 📎 Expense บนมือถือ: ป้ายรูปแนบแยกออกจากชื่อรายการ (เดิมชื่อยาวดันตัวหนีบหลุดจอ มองไม่เห็น/กดเพิ่มรูปไม่ได้) — โชว์เสมอทุกรายการ กดง่ายขึ้น (ฝั่ง Code.gs 3.110 ไม่เปลี่ยน)';
-const FRONT_VER = '3.110'; // ต้องตรงกับ build ใน doGet ของ backend
+const BUILD = 'B3.129 · 23 ก.ค. 69 · 🛒 การ์ดยอดขายสดจาก webhook (แท็บ KsOrders — dedupe ออเดอร์/กรองรายการหลอก K-*/แยกยืนยันแล้ว-รอชำระ/แยกช่องทาง) ฟรีตลอดไม่พึ่ง OpenAPI/trial (ฝั่ง Code.gs 3.111)';
+const FRONT_VER = '3.111'; // ต้องตรงกับ build ใน doGet ของ backend
 console.log('RB Online Ops · '+BUILD);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -211,6 +211,15 @@ console.log('RB Online Ops · '+BUILD);
     </div>
     <div id="ksLiveBox"><div class="empty">กด 🔄 รีเฟรช เพื่อดึงข้อมูลสดจาก Ketshop</div></div>
     <div class="hint">ดึงสดจาก Ketshop OpenAPI ตอนกดรีเฟรช — <b>อ่านอย่างเดียว</b> ไม่มีการเขียนใด ๆ เข้า Ketshop</div>
+  </div>
+  <!-- B3.129: 🛒 ยอดขายสดจาก webhook (KsOrders) — ฟรีตลอด ไม่พึ่ง OpenAPI/MCP/trial · เฉพาะ L/A -->
+  <div class="card" id="ksSalesCard" style="display:none">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <h2 style="margin:0">🛒 ยอดขายสด (webhook)</h2>
+      <button class="btn o" style="padding:4px 10px;font-size:12px;width:auto" onclick="ksSalesLoad(this)">🔄 รีเฟรช</button>
+    </div>
+    <div id="ksSalesBox"><div class="empty">กด 🔄 รีเฟรช เพื่อสรุปยอดจากออเดอร์ที่ Ketshop ยิงเข้ามา</div></div>
+    <div class="hint">นับจากออเดอร์ webhook ในชีตเรา (Shopee/Lazada) — ประมวลผลตอนกดรีเฟรช · <b>ไม่เขียนอะไรเข้า Ketshop</b> · "ยืนยันแล้ว" ไม่รวมรอชำระเงิน (COD ที่ยังไม่จ่าย)</div>
   </div>
 </div>
 
@@ -1515,7 +1524,8 @@ async function loadAll(){
   }
   /* B3.63: โหลด catalog ทันที ไม่รอ dashboard เสร็จก่อน — สินค้าโชว์เร็วขึ้น */
   api('catalog').then(function(c){ if(c.ok){CAT=c.selections;if(c.bibleFields)BIBLE_FIELDS=c.bibleFields;if('editFields' in c)EDIT_FIELDS=c.editFields;renderCat();wdRender();} lsLoad();
-    var kc=document.getElementById('ksLiveCard'); if(kc&&isLA()) kc.style.display='block'; /* B3.123: การ์ด Ketshop สด เฉพาะ L/A */ });
+    var kc=document.getElementById('ksLiveCard'); if(kc&&isLA()) kc.style.display='block'; /* B3.123: การ์ด Ketshop สด เฉพาะ L/A */
+    var kc2=document.getElementById('ksSalesCard'); if(kc2&&isLA()) kc2.style.display='block'; /* B3.129: การ์ดยอดขายสด webhook เฉพาะ L/A */ });
   if(isLA()){const p=await api('pendingList');
     if(p.ok&&p.list.length){
       window._PEND=p.list; /* B3.104: เก็บทั้งชุด — ค้นหา/ผูกด่วนทำงานกับตัวแปรนี้ */
@@ -1624,6 +1634,40 @@ async function ksLiveLoad(btn){
     h+=r.channels.map(function(c){return '<div style="display:flex;justify-content:space-between;font-size:12.5px;padding:4px 2px;border-bottom:1px dashed var(--soft)"><span>'+(c.full_name||c.social)+'</span><span class="num"><b>'+fmtN(c.paid_total||0)+'</b> ('+fmtQ(c.paid_count||0)+' ออเดอร์'+(Number(c.cancel_count||0)?' · ยกเลิก '+fmtQ(c.cancel_count):'')+')</span></div>';}).join('');
   }
   h+='<div style="font-size:10.5px;color:var(--mut);margin-top:6px">ดึงเมื่อ '+(r.fetched_at||'')+'</div>';
+  box.innerHTML=h;
+}
+/* B3.129: การ์ดยอดขายสดจาก webhook (KsOrders) — แผน ก. Luffy เคาะ 23 ก.ค. (ประมวลผลฝั่ง backend ตอนเรียก ksSales) */
+async function ksSalesLoad(btn){
+  var box=document.getElementById('ksSalesBox'); if(!box) return;
+  if(btn){btn.disabled=true;btn.textContent='⏳…';}
+  box.innerHTML='<div class="empty">⏳ กำลังสรุปยอด…</div>';
+  var r=await api('ksSales',{});
+  if(btn){btn.disabled=false;btn.textContent='🔄 รีเฟรช';}
+  if(!r.ok){ box.innerHTML='<div class="empty">⛔ '+(r.error||'ไม่สำเร็จ')+'</div>'; return; }
+  var stat=function(lb,v,sub){return '<div style="flex:1;min-width:110px;background:var(--soft);border-radius:12px;padding:8px 10px;text-align:center"><div style="font-size:11px;color:var(--mut)">'+lb+'</div><div style="font-size:17px;font-weight:700" class="num">'+v+'</div>'+(sub?'<div style="font-size:10px;color:var(--mut)">'+sub+'</div>':'')+'</div>';};
+  var t=r.today||{},m=r.month||{},stTH=r.status_th||{};
+  var h='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">'+
+    stat('วันนี้ ยืนยันแล้ว',fmtN(t.ok_amt||0),fmtQ(t.ok_n||0)+' ออเดอร์ · '+fmtQ(t.ok_qty||0)+' ชิ้น')+
+    stat('วันนี้ รอชำระ',fmtN(t.wait_amt||0),fmtQ(t.wait_n||0)+' ออเดอร์')+
+    stat('เดือนนี้ ยืนยันแล้ว',fmtN(m.ok_amt||0),fmtQ(m.ok_n||0)+' ออเดอร์ · '+fmtQ(m.ok_qty||0)+' ชิ้น')+
+    stat('เดือนนี้ รอชำระ',fmtN(m.wait_amt||0),fmtQ(m.wait_n||0)+' ออเดอร์')+'</div>';
+  var chKeys=Object.keys(m.channels||{});
+  if(chKeys.length){
+    h+='<div style="font-size:12px;font-weight:700;color:var(--pdd);margin-bottom:4px">ยืนยันแล้ว เดือนนี้ ต่อช่องทาง</div>';
+    h+=chKeys.sort(function(a,b){return (m.channels[b].amount||0)-(m.channels[a].amount||0);}).map(function(c){
+      return '<div style="display:flex;justify-content:space-between;font-size:12.5px;padding:4px 2px;border-bottom:1px dashed var(--soft)"><span>'+c+'</span><span class="num"><b>'+fmtN(m.channels[c].amount||0)+'</b> ('+fmtQ(m.channels[c].orders||0)+' ออเดอร์)</span></div>';}).join('');
+  }
+  if((r.latest||[]).length){
+    h+='<div style="font-size:12px;font-weight:700;color:var(--pdd);margin:8px 0 4px">ออเดอร์ล่าสุด</div>';
+    h+=r.latest.map(function(o){
+      var lb=stTH[o.status]||('สถานะ '+o.status);
+      var clr=o.status===4?'#2FA36B':(o.status===2?'#E39B0C':'var(--mut)');
+      return '<div style="display:flex;justify-content:space-between;gap:6px;font-size:12px;padding:4px 2px;border-bottom:1px dashed var(--soft)">'+
+        '<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">'+o.ordercode+' · '+(o.channel||'—')+'</span>'+
+        '<span style="white-space:nowrap"><span style="color:'+clr+'">'+lb+'</span> · <b class="num">'+fmtN(o.amount)+'</b></span></div>';}).join('');
+  }
+  if(!r.total_orders) h+='<div class="empty">ยังไม่มีออเดอร์ในระบบ — webhook เพิ่งเริ่มเก็บ รอออเดอร์ใหม่เข้า</div>';
+  h+='<div style="font-size:10.5px;color:var(--mut);margin-top:6px">ออเดอร์สะสม '+fmtQ(r.total_orders||0)+' · อ่านแถวดิบใหม่ '+fmtQ((r.proc&&r.proc.scanned)||0)+' · ดึงเมื่อ '+(r.fetched_at||'')+(r.proc&&r.proc.err?' · ⚠️ '+r.proc.err:'')+'</div>';
   box.innerHTML=h;
 }
 async function ksCheckSku(i){
