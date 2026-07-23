@@ -155,7 +155,7 @@ label{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3m-TjFCozs9ttRPAFNg-VJhamX-PmG6zqnp3Ne0NgXwcJ9CpvEC82GWgTM43_OzDkOA/exec';
 const IMG_BASE = 'img/';
-const BUILD = 'B3.130 · 24 ก.ค. 69 · 🛒 แก้การ์ดยอดขายสด วันนี้/เดือนนี้เป็น 0 — Sheets แปลง order_date เป็น Date ตอนเขียนชีต ต้อง format กลับก่อนเทียบ (ฝั่ง Code.gs 3.112)';
+const BUILD = 'B3.131 · 24 ก.ค. 69 · 🙈 ซ่อนการ์ด Ketshop สด (OpenAPI) — ยังไม่มีคีย์ กด 403 ตลอด สับสนกับการ์ดยอดขายสด webhook · trial หมด ~3-4 ส.ค. ค่อยเคาะลบถาวร (ฝั่ง Code.gs 3.112 ไม่เปลี่ยน)';
 const FRONT_VER = '3.112'; // ต้องตรงกับ build ใน doGet ของ backend
 console.log('RB Online Ops · '+BUILD);
 </script>
@@ -1524,7 +1524,9 @@ async function loadAll(){
   }
   /* B3.63: โหลด catalog ทันที ไม่รอ dashboard เสร็จก่อน — สินค้าโชว์เร็วขึ้น */
   api('catalog').then(function(c){ if(c.ok){CAT=c.selections;if(c.bibleFields)BIBLE_FIELDS=c.bibleFields;if('editFields' in c)EDIT_FIELDS=c.editFields;renderCat();wdRender();} lsLoad();
-    var kc=document.getElementById('ksLiveCard'); if(kc&&isLA()) kc.style.display='block'; /* B3.123: การ์ด Ketshop สด เฉพาะ L/A */
+    /* B3.131: ซ่อนการ์ด Ketshop สด (OpenAPI) — Luffy สั่ง 24 ก.ค.: ยังไม่มีคีย์ OpenAPI กด 403 ตลอด สับสนกับการ์ด webhook
+       ⏰ trial MCP หมด ~3-4 ส.ค. 69 → ถาม Luffy อีกทีว่าลบโค้ด ksLive/ksLiveLoad ทิ้งถาวรไหม (ถ้าได้คีย์มาก่อนก็เปิดบรรทัดนี้กลับ) */
+    /* var kc=document.getElementById('ksLiveCard'); if(kc&&isLA()) kc.style.display='block'; */
     var kc2=document.getElementById('ksSalesCard'); if(kc2&&isLA()) kc2.style.display='block'; /* B3.129: การ์ดยอดขายสด webhook เฉพาะ L/A */ });
   if(isLA()){const p=await api('pendingList');
     if(p.ok&&p.list.length){
